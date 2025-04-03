@@ -1,0 +1,22 @@
+.qa-clipper-toast-container {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.qa-clipper-toast {
+  background-color: rgba(0, 0, 0, 0.65);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  font-size: 14px;
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+  text-align: center;
+  white-space: nowrap;
+} 

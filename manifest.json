@@ -1,0 +1,63 @@
+{
+  "manifest_version": 3,
+  "name": "Chatbot Q&A Clipper",
+  "version": "1.0",
+  "description": "Extracts Q&A from chatbot conversations and copies them to the clipboard in specific formats",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "clipboardWrite",
+    "storage",
+    "commands",
+    "offscreen"
+  ],
+  "host_permissions": [
+    "https://chatgpt.com/*",
+    "https://chat.openai.com/*",
+    "https://claude.ai/*",
+    "https://gemini.google.com/*",
+    "https://grok.x.ai/*",
+    "https://chat.deepseek.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "images/icon128.png"
+  },
+  "icons": {
+    "16": "images/icon16.png",
+    "32": "images/icon32.png",
+    "64": "images/icon64.png",
+    "96": "images/icon96.png",
+    "128": "images/icon128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://chatgpt.com/*",
+        "https://chat.openai.com/*",
+        "https://claude.ai/*",
+        "https://gemini.google.com/*",
+        "https://grok.x.ai/*",
+        "https://chat.deepseek.com/*"
+      ],
+      "css": [
+        "toast.css"
+      ],
+      "js": [
+        "utils.js",
+        "content.js"
+      ]
+    }
+  ],
+  "commands": {
+    "trigger-extraction": {
+      "suggested_key": {
+        "default": "Alt+3"
+      },
+      "description": "Extract Q&A from the current chat"
+    }
+  }
+} 

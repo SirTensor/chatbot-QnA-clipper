@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Chatbot Q&A Clipper</title>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <!-- Normal UI section -->
+  <div id="normalUI">
+    <h2>Chatbot Q&A Clipper</h2>
+    
+    <button id="copyButton">Copy Q&A to Clipboard</button>
+    <div id="status"></div>
+    
+    <div class="option-group">
+      <label for="headerLevel">Header Level:</label>
+      <select id="headerLevel">
+        <option value="1"># (H1)</option>
+        <option value="2">## (H2)</option>
+        <option value="3">### (H3)</option>
+        <option value="4">#### (H4)</option>
+        <option value="5">##### (H5)</option>
+      </select>
+    </div>
+
+    <div class="option-group">
+      <label for="labelStyle">Label Style:</label>
+      <select id="labelStyle">
+        <option value="qa">Question / Answer</option>
+        <option value="prompt">Prompt / Response</option>
+        <option value="short">Q / A</option>
+        <option value="korean">질문 / 답변</option>
+        <option value="chinese">问题 / 回答</option>
+        <option value="japanese">質問 / 回答</option>
+        <option value="vietnamese">Câu hỏi / Trả lời</option>
+        <option value="indonesian">Pertanyaan / Jawaban</option>
+        <option value="hindi">प्रश्न / उत्तर</option>
+        <option value="spanish">Pregunta / Respuesta</option>
+        <option value="portuguese">Pergunta / Resposta</option>
+        <option value="french">Question / Réponse</option>
+        <option value="german">Frage / Antwort</option>
+        <option value="italian">Domanda / Risposta</option>
+        <option value="russian">Вопрос / Ответ</option>
+        <option value="arabic">سؤال / جواب</option>
+        <option value="swahili">Swali / Jibu</option>
+      </select>
+    </div>
+
+    <div class="option-group">
+      <label for="numberFormat">Number Format:</label>
+      <select id="numberFormat">
+        <option value="noSpace">1 (No space)</option>
+        <option value="space">&nbsp;1 (Space before number)</option>
+        <option value="dashNoSpace">-1 (Dash, no space)</option>
+        <option value="dash">-&nbsp;1 (Dash with space)</option>
+        <option value="spaceDashNoSpace">&nbsp;-1 (Space, then dash)</option>
+        <option value="spaceDash">&nbsp;-&nbsp;1 (Space, dash, space)</option>
+        <option value="colonNoSpace">:1 (Colon, no space)</option>
+        <option value="colon">:&nbsp;1 (Colon with space)</option>
+        <option value="spaceColonNoSpace">&nbsp;:1 (Space, then colon)</option>
+        <option value="spaceColon">&nbsp;:&nbsp;1 (Space, colon, space)</option>
+      </select>
+    </div>
+    
+    <hr>
+    
+    <div class="option-group">
+      <label for="imageFormat">Image URL Format:</label>
+      <select id="imageFormat">
+        <option value="bracketed">[Image URL]: https://...</option>
+        <option value="markdown">[Image URL](https://...)</option>
+        <option value="plain">https://... (plain URL)</option>
+      </select>
+    </div>
+    
+    <div class="option-group">
+      <label for="imageLabel">Image Label:</label>
+      <input type="text" id="imageLabel" placeholder="Image URL">
+    </div>
+    
+    <hr>
+    
+    <div class="option-group">
+      <label>Keyboard Shortcut:</label>
+      <div id="currentShortcut" class="shortcut-display">Loading...</div>
+      <div class="shortcut-help">
+        <a href="#" id="shortcutConfigLink">Configure shortcut in Chrome</a>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Manual Copy UI section (initially hidden) -->
+  <div id="manualCopyUI" style="display: none;">
+    <h3>Clipboard access failed</h3>
+    <p>Please use the button below to copy the extracted text:</p>
+    <textarea id="extractedTextArea" readonly></textarea>
+    <button id="manualCopyButton">Copy to Clipboard</button>
+    <button id="backButton" class="secondary">Back to Settings</button>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html> 

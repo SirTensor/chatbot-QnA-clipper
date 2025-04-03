@@ -1,0 +1,149 @@
+body {
+  width: 300px;
+  padding: 15px;
+  font-family: Arial, sans-serif;
+}
+button {
+  width: 100%;
+  padding: 10px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-top: 15px;
+  margin-bottom: 10px;
+}
+button:hover {
+  background-color: #45a049;
+}
+#status {
+  text-align: center;
+  color: #666;
+  margin-bottom: 15px;
+  font-size: 13px;
+  min-height: 16px;
+}
+.option-group {
+  margin-bottom: 10px;
+}
+label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+  font-size: 14px;
+}
+select {
+  width: 100%;
+  padding: 5px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+}
+input[type="text"] {
+  width: 100%;
+  padding: 5px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  box-sizing: border-box;
+}
+.shortcut-field {
+  width: 100%;
+  padding: 5px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  box-sizing: border-box;
+  font-weight: bold;
+}
+.shortcut-field.empty {
+  color: #999;
+  font-style: italic;
+  font-weight: normal;
+}
+.shortcut-help {
+  font-size: 12px;
+  color: #666;
+  margin-top: 4px;
+  font-style: italic;
+}
+/* Toast notification style */
+.toast-container {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  pointer-events: none;
+}
+.toast {
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  font-size: 14px;
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+  text-align: center;
+}
+.toast.show {
+  opacity: 1;
+}
+.inline-group {
+  display: flex;
+  gap: 8px;
+}
+.inline-group .field-wrapper {
+  flex: 1;
+}
+hr {
+  border: none;
+  border-top: 1px solid #ddd;
+  margin: 15px 0;
+}
+/* Manual copy UI styles */
+#manualCopyUI {
+  padding: 15px;
+}
+#manualCopyUI h3 {
+  color: #e74c3c;
+  margin-top: 0;
+}
+#extractedTextArea {
+  width: 100%;
+  height: 120px;
+  margin: 10px 0;
+  padding: 5px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  resize: vertical;
+}
+#manualCopyUI button {
+  margin-bottom: 10px;
+}
+#manualCopyUI button.secondary {
+  background-color: #ccc;
+  color: #333;
+}
+
+.shortcut-display {
+  font-weight: bold;
+  font-family: monospace;
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+  padding: 6px 10px;
+  border-radius: 4px;
+  text-align: center;
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+.shortcut-help a {
+  color: #4285f4;
+  text-decoration: none;
+}
+
+.shortcut-help a:hover {
+  text-decoration: underline;
+} 
