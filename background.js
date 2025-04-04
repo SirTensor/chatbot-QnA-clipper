@@ -103,7 +103,7 @@ chrome.runtime.onInstalled.addListener(() => {
         labelStyle: 'qa',
         numberFormat: 'space',
         imageFormat: 'bracketed',
-        imageLabel: 'Image URL'
+        imageLabel: ''
         // Note: customShortcut removed as it's now handled by Chrome's native commands API
       };
 
@@ -258,38 +258,69 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 
-  // Handle the inject-extractor action
-  if (request.action === 'inject-extractor') {
-    console.log('Received request to inject extractor:', request.script);
+  // Handle the inject-scripts action
+  if (request.action === 'inject-scripts') {
+    console.log('Received request to inject scripts:', request.scripts);
+
+    // Validate scripts array
+    if (!request.scripts || !Array.isArray(request.scripts) || request.scripts.length === 0) {
+        console.error('Invalid or empty scripts array provided for injection.');
+        sendResponse({ success: false, error: 'No scripts specified for injection' });
+        return true;
+    }
 
     // We need the tab ID. Prefer sender.tab if available, otherwise query active tab.
     let targetTabId = sender.tab?.id;
 
-    const injectAction = async (tabId) => {
+    // Use a single async function to handle injection for a given tab ID
+    const injectScriptsAction = async (tabId) => {
       if (!tabId) {
          throw new Error('No valid tab ID found for injection');
       }
-      if (!request.script) {
-         throw new Error('No script specified for injection');
+
+      // Inject each script sequentially
+      for (const scriptName of request.scripts) {
+          console.log(`Attempting to inject ${scriptName} into tab ${tabId}`);
+          try {
+              await chrome.scripting.executeScript({
+                  target: { tabId: tabId, allFrames: false }, // Target only the main frame
+                  files: [scriptName]
+              });
+              console.log(`Successfully injected ${scriptName} into tab ${tabId}`);
+          } catch (injectionError) {
+              console.error(`Failed to inject ${scriptName} into tab ${tabId}:`, injectionError);
+              // Decide if we should stop or continue if one script fails
+              // For now, let's stop if any script fails
+              throw new Error(`Failed to inject script ${scriptName}: ${injectionError.message}`);
+          }
       }
-      // Inject the requested extractor script
-      const success = await injectExtractorScript(tabId, request.script);
-      return {
-        success: success,
-        error: success ? null : 'Failed to inject extractor script'
-      };
+
+      // Optionally, notify the content script *after* all scripts are injected
+      try {
+          await chrome.tabs.sendMessage(tabId, {
+              action: 'scripts-injected',
+              scripts: request.scripts
+          });
+          console.log(`Notified content script about successful injection of all scripts in tab ${tabId}`);
+      } catch (messageError) {
+          // This might happen if the content script isn't fully ready yet
+          console.warn(`Failed to notify content script post-injection in tab ${tabId}: ${messageError.message}. Might be timing issue.`);
+      }
+
+      return { success: true }; // Overall success if all injections passed
     };
 
+    // Execute the injection action
     if (targetTabId) {
-        injectAction(targetTabId)
+        injectScriptsAction(targetTabId)
             .then(sendResponse)
             .catch(error => {
-                console.error(`Error injecting into sender tab ${targetTabId}:`, error);
+                console.error(`Error injecting scripts into sender tab ${targetTabId}:`, error);
                 sendResponse({ success: false, error: error.message || 'Unknown injection error' });
             });
     } else {
         // Fallback to querying active tab if sender tab context is missing
-        console.warn("Sender tab ID missing for inject-extractor, querying active tab.");
+        console.warn("Sender tab ID missing for inject-scripts, querying active tab.");
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
             if (chrome.runtime.lastError || !tabs || tabs.length === 0 || !tabs[0].id) {
                 const errorMsg = chrome.runtime.lastError?.message || 'No active tab found for injection fallback';
@@ -298,10 +329,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 return;
             }
             targetTabId = tabs[0].id;
-            injectAction(targetTabId)
+            injectScriptsAction(targetTabId)
                 .then(sendResponse)
                 .catch(error => {
-                    console.error(`Error injecting into active tab ${targetTabId}:`, error);
+                    console.error(`Error injecting scripts into active tab ${targetTabId}:`, error);
                     sendResponse({ success: false, error: error.message || 'Unknown injection error' });
                 });
         });
@@ -387,47 +418,7 @@ async function showToast(tabId, message, duration = 2000) {
   }
 }
 
-// Function to inject site-specific extractor script
-async function injectExtractorScript(tabId, scriptName) {
-   if (!tabId || !scriptName) {
-    console.error("injectExtractorScript: Missing tabId or scriptName");
-    return false;
-  }
-  try {
-    console.log(`Attempting to inject ${scriptName} into tab ${tabId}`);
-    await chrome.scripting.executeScript({
-      target: { tabId },
-      files: [scriptName]
-    });
-
-    // Send message *after* successful injection
-    // Use a try-catch for sendMessage as the content script might not be ready immediately
-    try {
-        await chrome.tabs.sendMessage(tabId, {
-            action: 'extractor-injected',
-            script: scriptName
-        });
-         console.log(`Successfully injected ${scriptName} and notified content script in tab ${tabId}`);
-         return true;
-    } catch (messageError) {
-        // This can happen if the content script isn't listening yet, which might be okay
-        console.warn(`Successfully injected ${scriptName}, but failed to notify content script in tab ${tabId}: ${messageError.message}. Might be timing issue.`);
-        return true; // Injection itself succeeded
-    }
-
-  } catch (error) {
-    console.error(`Failed to inject ${scriptName} into tab ${tabId}:`, error);
-    // Try to provide more context if possible
-    if (error.message.includes("Cannot access contents of url")) {
-        console.warn(`Injection failed: Likely a permissions issue or protected page (e.g., chrome://). URL check might be needed.`);
-    } else if (error.message.includes("No tab with id")) {
-        console.warn(`Injection failed: Tab ${tabId} may have been closed.`);
-    }
-    return false;
-  }
-}
-
-// Function to ensure content script is loaded
+// Modify ensureContentScriptLoaded to reflect that specific extractors aren't injected individually anymore
 async function ensureContentScriptLoaded(tabId) {
   if (!tabId) {
     console.error("ensureContentScriptLoaded: Invalid tabId");
@@ -438,12 +429,14 @@ async function ensureContentScriptLoaded(tabId) {
     try {
       const response = await chrome.tabs.sendMessage(tabId, { action: 'ping' }, { frameId: 0 }); // Target main frame
       if (response && response.pong === true) {
-        console.log(`Content script already loaded and responded on tab ${tabId}:`, response.extractors || 'No extractor info');
-         // Even if loaded, ensure *our* specific extractors are present if needed
-        if (response.extractors && response.extractors.registered && response.extractors.registered.length > 0) {
-          return true;
+        console.log(`Content script already loaded and responded on tab ${tabId}:`, response.status || 'No status info');
+        // Check if the required global objects from our injected scripts are present
+        if (response.status && response.status.extractConversationLoaded) {
+             console.log(`Required extraction scripts confirmed loaded on tab ${tabId}.`);
+             return true;
         } else {
-          console.warn(`Content script pinged on tab ${tabId}, but no QAClipper extractors registered. Will attempt injection.`);
+             console.warn(`Content script pinged on tab ${tabId}, but required extraction scripts are missing. Will attempt injection.`);
+             // Proceed to injection phase
         }
       } else {
         console.warn(`Ping to tab ${tabId} received unexpected response:`, response);
@@ -458,56 +451,54 @@ async function ensureContentScriptLoaded(tabId) {
       }
     }
 
-    // 2. Inject if ping failed or script needs injection
+    // 2. Inject core content scripts (if not already loaded) AND our extractor scripts
     const manifest = chrome.runtime.getManifest();
-    // Ensure content_scripts exists and has the expected structure
     const contentScriptDefs = manifest.content_scripts;
     if (!contentScriptDefs || !Array.isArray(contentScriptDefs) || contentScriptDefs.length === 0 || !contentScriptDefs[0].js) {
         console.error("Manifest content_scripts definition is missing or invalid.");
         return false;
     }
-    const scriptsToInject = contentScriptDefs[0].js; // Get JS files from first definition
-    // Fallback if somehow manifest is wrong
-    const defaultScripts = ['utils.js', 'content.js'];
-    const effectiveScripts = Array.isArray(scriptsToInject) && scriptsToInject.length > 0 ? scriptsToInject : defaultScripts;
+    const coreContentScripts = contentScriptDefs[0].js;
+    // We inject extractor.js and all platform config scripts to ensure availability
+    const extractorScripts = ['extractor.js', 'chatgptConfigs.js', 'claudeConfigs.js', 'geminiConfigs.js']; 
+    const allScriptsToInject = [...new Set([...coreContentScripts, ...extractorScripts])]; // Combine and deduplicate
 
-
-    console.log(`Injecting content scripts into tab ${tabId}: ${effectiveScripts.join(', ')}`);
-    for (const script of effectiveScripts) {
+    console.log(`Ensuring scripts are loaded in tab ${tabId}: ${allScriptsToInject.join(', ')}`);
+    for (const script of allScriptsToInject) {
       try {
         await chrome.scripting.executeScript({
           target: { tabId: tabId, allFrames: false }, // Inject only into main frame
           files: [script]
         });
-        console.log(`Successfully injected ${script} into tab ${tabId}`);
+        console.log(`Successfully injected/ensured ${script} into tab ${tabId}`);
       } catch (injectionError) {
          console.error(`Failed to inject script ${script} into tab ${tabId}:`, injectionError);
-         // If core content.js fails, stop. utils.js might be less critical?
-         if (script === 'content.js') {
-            throw new Error(`Core content script injection failed: ${injectionError.message}`); // Re-throw to stop the process
+         // If core content.js or our extractor scripts fail, stop.
+         if (script === 'content.js' || script === 'extractor.js') {
+            throw new Error(`Core script injection failed (${script}): ${injectionError.message}`); // Re-throw to stop the process
          }
+         // For config scripts, log but continue - they might be dynamically loaded later
+         console.warn(`Config script injection failed (${script}), will try dynamic loading: ${injectionError.message}`);
       }
     }
 
-    // 3. Verify injection with a second ping
+    // Success - notify the content script that injection is complete
     try {
-       // Add a small delay before the second ping to allow script initialization
-       await new Promise(resolve => setTimeout(resolve, 100));
-      const verifyResponse = await chrome.tabs.sendMessage(tabId, { action: 'ping' }, { frameId: 0 });
-      if (verifyResponse && verifyResponse.pong) {
-        console.log(`Content script injection into tab ${tabId} verified successfully.`);
-        return true;
-      } else {
-        console.warn(`Content script injection verification failed for tab ${tabId} - unexpected response:`, verifyResponse);
-        return false; // Verification failed
-      }
-    } catch (verifyErr) {
-      console.error(`Content script injection verification failed for tab ${tabId}:`, verifyErr);
-      return false; // Verification failed
+      await chrome.tabs.sendMessage(tabId, { 
+        action: 'scripts-injected', 
+        scripts: allScriptsToInject 
+      });
+    } catch (notifyError) {
+      console.warn(`Unable to notify content script about injection in tab ${tabId}:`, notifyError);
+      // This is non-fatal, as the scripts themselves should have loaded
     }
+
+    // Delay to allow scripts to initialize
+    await new Promise(resolve => setTimeout(resolve, 150));
+    
+    return true;
   } catch (error) {
-    // Catch errors from the overall process, including re-thrown injection errors
-    console.error(`Error ensuring content script is loaded for tab ${tabId}:`, error);
+    console.error(`Error ensuring content script loaded in tab ${tabId}:`, error);
     return false;
   }
 }
@@ -563,81 +554,30 @@ async function extractQA() {
     tabUrl = tab.url; // Store URL for logging
     console.log(`Starting extraction for tab: ${currentTabId}, URL: ${tabUrl}`);
 
-    // URL VALIDATION
-    // Define supported hostnames
-    const supportedHostnames = [
-      'chat.openai.com',
-      'chatgpt.com',
-      'claude.ai',
-      'gemini.google.com',
-      'bard.google.com',
-      'poe.com',
-      'anthropic.com',
-      'perplexity.ai'
-    ];
-
+    // --- REMOVED OLD URL/HOSTNAME VALIDATION BLOCK ---
+    // The new extractor.js handles platform identification internally.
+    // We still need basic http/https check though.
     try {
-      // Check if URL exists
-      if (!tabUrl) {
-        throw new Error('Tab URL is missing');
-      }
-
-      const url = new URL(tabUrl);
-      const protocol = url.protocol;
-      const hostname = url.hostname;
-
-      // Protocol validation
-      const isHttpProtocol = protocol === 'http:' || protocol === 'https:';
-      
-      // Hostname validation
-      let isHostnameSupported = false;
-      if (isHttpProtocol) {
-        for (const supportedHost of supportedHostnames) {
-          if (hostname === supportedHost || hostname.endsWith('.' + supportedHost)) {
-            isHostnameSupported = true;
-            break;
-          }
-        }
-      }
-
-      // If URL is unsupported, notify and exit
-      if (!isHttpProtocol || !isHostnameSupported) {
-        console.warn(`Unsupported page at ${tabUrl} (protocol: ${protocol}, hostname: ${hostname})`);
-        
-        // Send message to popup regardless of page type
-        sendMessageToPopup({
-          action: 'extraction-complete',
-          success: false,
-          message: 'Unsupported page.'
-        });
-        
-        // Only attempt toast on HTTP/HTTPS pages (will fail on chrome:// etc.)
-        if (isHttpProtocol) {
-          await showToast(currentTabId, 'Unsupported page.', 3000);
-        }
-        
-        return; // Stop execution
-      }
-      
-      // URL validation passed - log and continue
-      console.log(`URL validation passed for ${hostname}`);
-    } catch (urlError) {
-      console.error(`URL validation error:`, urlError);
-      sendMessageToPopup({
-        action: 'extraction-complete',
-        success: false,
-        message: 'Error: Invalid page URL.'
-      });
-      return; // Stop execution
+       const urlObject = new URL(tabUrl);
+       if (!['http:', 'https:'].includes(urlObject.protocol)) {
+           console.warn(`Unsupported protocol (${urlObject.protocol}) at ${tabUrl}`);
+           sendMessageToPopup({ action: 'extraction-complete', success: false, message: 'Unsupported page protocol.' });
+           // Don't show toast for non-web pages where it would fail
+           return;
+       }
+       console.log(`URL protocol check passed for ${tabUrl}`);
+    } catch(urlError) {
+       console.error(`URL parsing error:`, urlError);
+       sendMessageToPopup({ action: 'extraction-complete', success: false, message: 'Error: Invalid page URL.' });
+       return; // Stop execution
     }
 
-    // Ensure content script is loaded
-    const scriptLoaded = await ensureContentScriptLoaded(currentTabId);
-    if (!scriptLoaded) {
-      console.error(`Failed to ensure content script is loaded for tab ${currentTabId}.`);
-      // Try to show toast on the specific tab if possible
-      await showToast(currentTabId, 'Error: Could not load extension scripts.', 3000);
-      // Notify popup if it's open
+    // Ensure content script AND necessary extractor scripts are loaded
+    const scriptsLoaded = await ensureContentScriptLoaded(currentTabId);
+    if (!scriptsLoaded) {
+      // Error handling moved inside ensureContentScriptLoaded
+      // console.error(`Failed to ensure scripts are loaded for tab ${currentTabId}.`);
+      // await showToast(currentTabId, 'Error: Could not load extension scripts.', 3000);
       sendMessageToPopup({
         action: 'extraction-complete',
         success: false,
@@ -645,79 +585,94 @@ async function extractQA() {
       });
       return; // Stop execution
     }
-    console.log(`Content script confirmed loaded for tab ${currentTabId}`);
-
+    console.log(`Scripts confirmed loaded for tab ${currentTabId}`);
 
     // Get the format settings
     const data = await chrome.storage.local.get('formatSettings');
     const formatSettings = data.formatSettings || {};
     console.log('Using format settings:', formatSettings);
 
-
     // Send message to content script to extract raw data
-    // Add timeout for sendMessage in case content script hangs
     let response;
     try {
-        response = await chrome.tabs.sendMessage(currentTabId, { action: 'extractRawData' });
+        // Create our own timeout promise instead of using the unsupported timeout parameter
+        const extractionPromise = new Promise((resolve, reject) => {
+            chrome.tabs.sendMessage(currentTabId, { action: 'extractRawData' }, (result) => {
+                if (chrome.runtime.lastError) {
+                    reject(chrome.runtime.lastError);
+                } else {
+                    resolve(result);
+                }
+            });
+        });
+        
+        // Our own timeout implementation (30 seconds)
+        const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Extraction took too long or timed out after 30 seconds')), 30000);
+        });
+        
+        // Race the extraction against the timeout
+        response = await Promise.race([extractionPromise, timeoutPromise]);
         console.log(`Received response from content script on tab ${currentTabId}:`, response);
     } catch (commsError) {
-         console.error(`Error communicating with content script on tab ${currentTabId}:`, commsError);
-         throw new Error(`Failed to get data from content script: ${commsError.message}`);
+         // Check if it was a timeout error
+         if (commsError.message.includes("Receiving end does not exist") || commsError.message.includes("Could not establish connection")) {
+              console.error(`Communication error with content script (might be closed or unloaded):`, commsError);
+              throw new Error(`Failed to communicate with the page. Please reload the page and try again.`);
+         } else if (commsError.message.includes("message channel closed")) {
+              console.error(`Communication error (message channel closed):`, commsError);
+              throw new Error(`Connection to the page was lost. Please reload and try again.`);
+         } else {
+             // Assume other errors might be timeouts or unexpected issues
+             console.error(`Error sending/receiving extractRawData message on tab ${currentTabId}:`, commsError);
+             throw new Error(`Extraction took too long or failed unexpectedly. Please try again.`);
+         }
     }
-
 
     // Check for errors reported by the content script
     if (response && response.error) {
-      // Check if this is a "no content found" scenario
-      const isNoContentError = response.error.includes("No conversation content found") || 
-                              response.error.includes("No content found") ||
-                              response.error.includes("conversation not found") ||
-                              response.error.includes("content elements not found");
-      
+      // Simplified error check - rely on error message content
+      const isNoContentError = response.error.includes("No conversation content found");
+
       if (isNoContentError) {
-        // Handle as an informational scenario rather than an error
+        // Handle as an informational scenario
         console.warn(`No conversation content on tab ${currentTabId} (${tabUrl}):`, response.error);
         await showToast(currentTabId, `No conversation found to extract.`, 3000);
-        // Notify popup if it's open
         sendMessageToPopup({
           action: 'extraction-complete',
           success: false,
           message: `No conversation found to extract.`
         });
       } else {
-        // Handle as a true error (original behavior)
+        // Handle as a true error
         console.error(`Content script error on tab ${currentTabId} (${tabUrl}):`, response.error, response.diagnostics || '');
         const displayError = response.error.length > 100 ? response.error.substring(0, 97) + '...' : response.error;
         await showToast(currentTabId, `Error: ${displayError}`, 4000);
-        // Notify popup if it's open
         sendMessageToPopup({
           action: 'extraction-complete',
           success: false,
-          message: `Extraction Error: ${response.error}` // Send full error to popup
+          message: `Extraction Error: ${response.error}`
         });
       }
       return; // Stop execution
     }
 
-    // If we have data, format it using the formatter
-    if (response && response.data) {
-      if (!Array.isArray(response.data)) {
-         console.error(`Invalid data received from content script (not an array) on tab ${currentTabId}:`, response.data);
-         throw new Error('Invalid data format received from content script.');
-      }
-      console.log(`Received ${response.data.length} raw items from ${response.site || 'unknown site'} extractor on tab ${currentTabId}`);
+    // Ensure data is in the new expected format
+    if (response && response.data && response.data.platform && Array.isArray(response.data.conversationTurns)) {
+      console.log(`Received ${response.data.conversationTurns.length} items for platform ${response.data.platform} on tab ${currentTabId}`);
 
-
-      // Format the data using our formatter
+      // Format the data using our formatter (needs update for new structure)
+      // Pass the entire new data object to the formatter
       const formattedText = formatter.formatData(response.data, formatSettings);
+      console.log(`--- Formatter output start (length: ${formattedText.length}) ---`);
+      console.log(formattedText); // Output the exact string log
+      console.log(`--- Formatter output end ---`);
+      console.log(`Attempting to copy to clipboard for tab ${currentTabId}...`);
       console.log(`Formatted text length for tab ${currentTabId}: ${formattedText.length}`);
-      // console.log('Formatted Text:\n', formattedText); // Uncomment for debugging
-
 
       // Copy the result to clipboard
       const copySuccess = await copyToClipboard(currentTabId, formattedText);
       console.log(`Clipboard copy success for tab ${currentTabId}: ${copySuccess}`);
-
 
       // Show success or error toast and notify popup
       if (copySuccess) {
@@ -728,6 +683,7 @@ async function extractQA() {
           message: 'Q&A copied to clipboard!'
         });
       } else {
+        // Clipboard failure handling (remains the same, but text might be larger)
         console.warn(`Clipboard copy failed for tab ${currentTabId}`);
         await showToast(currentTabId, 'Could not copy. Open extension popup for manual copy.', 4000);
         sendMessageToPopup({
@@ -741,50 +697,30 @@ async function extractQA() {
         });
       }
     } else {
-      // Handle case where response is valid but has no data/error (or unexpected structure)
-      console.error(`Extraction response from tab ${currentTabId} invalid or missing data:`, response);
-      const noDataMessage = 'Error: No data extracted. Ensure conversation is visible and try again.';
-      await showToast(currentTabId, noDataMessage, 3000);
+      // Handle case where response structure is incorrect
+      console.error(`Extraction response from tab ${currentTabId} has invalid structure:`, response);
+      const invalidDataMessage = 'Error: Invalid data received from page. Extraction failed.';
+      await showToast(currentTabId, invalidDataMessage, 3000);
       sendMessageToPopup({
         action: 'extraction-complete',
         success: false,
-        message: noDataMessage
+        message: invalidDataMessage
       });
     }
   } catch (error) {
-    // --- CATCH BLOCK WITH IMPROVED ERROR HANDLING ---
-    console.error(`Error during extractQA for tab ${currentTabId || 'UNKNOWN'} (URL: ${tabUrl || 'UNKNOWN'}):`, error);
-    const errorMessage = error.message || 'An unexpected error occurred during extraction or copying.';
-
-    // Try to show error toast in the current tab, but wrap in try/catch
+    // Catch errors from the outer try block (e.g., tab query, script loading, communication)
+    console.error('Error during main extraction process:', error);
+    const errorMessage = error.message || 'Unknown error during extraction';
+    // Try to show toast on the specific tab if we have an ID
     if (currentTabId) {
-      try {
-        // Check if tab still exists before showing toast
-        const tabExists = await chrome.tabs.get(currentTabId).catch(() => null);
-        if (tabExists) {
-            console.log(`Attempting to show error toast on valid tab ${currentTabId}`);
-            // Shorten message for toast if too long
-            const toastErrorMessage = errorMessage.length > 70 ? errorMessage.substring(0, 67) + '...' : errorMessage;
-            await showToast(currentTabId, `Error: ${toastErrorMessage}`, 3500);
-        } else {
-            console.warn(`Tab ${currentTabId} no longer exists, cannot show error toast.`);
-        }
-      } catch (toastError) {
-        // Catch errors specifically from showToast or tabs.get
-        console.error(`Failed to show error toast for tab ${currentTabId}:`, toastError);
-      }
-    } else {
-        console.error('Cannot show error toast because active tab ID was not available or lost.');
+      await showToast(currentTabId, `Error: ${errorMessage}`, 4000);
     }
-
-    // ALWAYS attempt to notify the popup about the error.
-    console.log('Sending error message to popup (if open)');
+    // Notify popup if it's open
     sendMessageToPopup({
       action: 'extraction-complete',
       success: false,
-      message: errorMessage // Send the full error message to the popup
+      message: `Error: ${errorMessage}`
     });
-    // --- END OF CATCH BLOCK ---
   }
 }
 // --- END OF FILE background.js ---

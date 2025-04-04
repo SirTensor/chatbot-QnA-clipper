@@ -2,12 +2,12 @@
 
 /**
  * Main content script for Chatbot Q&A Clipper extension
- * Acts as a bridge between background.js and the site-specific extractors
+ * Acts as a bridge between background.js and the new extractor.js logic
  */
 
 // Wrap the entire script in an IIFE to prevent variable leakage to global scope
 (function() {
-  console.log('Content script loaded');
+  console.log('Content script loaded for Chatbot Q&A Clipper. URL:', window.location.href, 'Hostname:', window.location.hostname);
 
   // Track if we've initialized already to prevent double initialization
   if (window.qaClipperInitialized) {
@@ -18,169 +18,202 @@
   // Mark as initialized
   window.qaClipperInitialized = true;
 
-  // Ensure extractors container exists
-  if (!window.QAClipperExtractors) {
-    window.QAClipperExtractors = {};
-  }
+  // Define the scripts to be injected into the page context
+  // Modified to include explicit platform configs
+  const scriptsToInject = ['extractor.js', 'chatgptConfigs.js', 'claudeConfigs.js', 'geminiConfigs.js'];
 
-  // Define site to extractor script mapping
-  const siteExtractorMap = {
-    'chat.openai.com': 'chatgpt.js',
-    'chatgpt.com': 'chatgpt.js',
-    'claude.ai': 'claude.js', // Assuming you might add claude.js later
-    'gemini.google.com': 'gemini.js',
-    // Add mappings for other supported sites here
-    // 'grok.x.ai': 'grok.js',
-    // 'chat.deepseek.com': 'deepseek.js'
-  };
-
-  // Detect the current website and request the appropriate extractor script
-  function loadSiteSpecificExtractor() {
-    const hostname = window.location.hostname;
-    let extractorScript = null;
-
-    // Find matching extractor script
-    for (const site in siteExtractorMap) {
-      if (hostname.includes(site)) {
-        extractorScript = siteExtractorMap[site];
-        break;
+  // Function to request script injection from background
+  function injectScripts(retryCount = 0) {
+      console.log('Requesting injection of core extractor scripts:', scriptsToInject);
+      
+      // Check if any scripts are available via URLs (for debugging)
+      try {
+        scriptsToInject.forEach(script => {
+          const url = chrome.runtime.getURL(script);
+          console.log(`Script URL check: ${script} -> ${url}`);
+        });
+      } catch (err) {
+        console.error('Error getting script URLs:', err);
       }
-    }
-
-    if (extractorScript) {
-      console.log(`Detected site ${hostname}, requesting extractor: ${extractorScript}`);
-
-      // Request background script to inject the appropriate extractor
+      
       chrome.runtime.sendMessage({
-        action: 'inject-extractor',
-        script: extractorScript
+        action: 'inject-scripts',
+        scripts: scriptsToInject
       }, (response) => {
         if (chrome.runtime.lastError) {
-          console.error('Error requesting extractor injection:', chrome.runtime.lastError);
+          console.error('Error requesting script injection:', chrome.runtime.lastError);
+          
+          // Add retry logic (up to 3 times)
+          if (retryCount < 3) {
+            console.log(`Retrying script injection (attempt ${retryCount + 1}/3)...`);
+            setTimeout(() => injectScripts(retryCount + 1), 1000); // Wait 1 second before retry
+            return;
+          }
+          // Handle error appropriately - maybe disable functionality?
           return;
         }
 
         if (response && response.success) {
-          console.log(`Successfully injected ${extractorScript}`);
+          console.log('Successfully injected core extractor scripts.');
+          // Verify if functions/objects are available on window
+          const status = {
+            extractConversation: !!window.extractConversation,
+            chatgptConfig: !!window.chatgptConfig,
+            claudeConfig: !!window.claudeConfig,
+            geminiConfig: !!window.geminiConfig
+          };
+          console.log('Script injection verification:', status);
+          
+          if (!window.extractConversation) {
+            console.error('Injection reported success but extractConversation not detected on window.');
+            if (retryCount < 3) {
+              setTimeout(() => injectScripts(retryCount + 1), 1000);
+            }
+          }
         } else {
-          console.error(`Failed to inject ${extractorScript}:`, response?.error || 'Unknown error');
+          console.error('Failed to inject core extractor scripts:', response?.error || 'Unknown error');
+          // Retry on failure
+          if (retryCount < 3) {
+            console.log(`Retrying script injection (attempt ${retryCount + 1}/3)...`);
+            setTimeout(() => injectScripts(retryCount + 1), 1000);
+          }
         }
       });
-    } else {
-      console.warn(`No matching extractor found for ${hostname}`);
-    }
   }
 
-  // Load the site-specific extractor script
-  loadSiteSpecificExtractor();
+  // Inject the necessary scripts
+  injectScripts();
 
   // Single message listener for all actions
   chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     console.log('Content script received message:', request);
 
     if (request.action === 'extractRawData') {
-      let extractor = null; // Keep extractor in wider scope for catch block
       let diagnosticData = { // Initialize diagnostics early
         url: window.location.href,
         hostname: window.location.hostname,
-        availableExtractors: Object.keys(window.QAClipperExtractors || {}),
-        matchedExtractor: null,
-        documentReady: document.readyState === 'complete'
+        claudeConfigLoaded: !!window.claudeConfig,
+        chatgptConfigLoaded: !!window.chatgptConfig,
+        geminiConfigLoaded: !!window.geminiConfig,
+        extractConversationLoaded: !!window.extractConversation,
+        documentReady: document.readyState === 'complete',
+        platformDetected: null,
+        selectors: null
       };
 
+      // Log detailed debugging information
+      console.log("ExtractRawData called with diagnostics:", diagnosticData);
+
+      // Ensure the necessary functions are loaded
+      if (!window.extractConversation) {
+        const errorMsg = "Core extraction script (extractor.js) not loaded correctly. Cannot extract.";
+        console.error(errorMsg, diagnosticData);
+        sendResponse({ error: errorMsg, diagnostics: diagnosticData });
+        return true; // Indicate async response
+      }
+
+      // The platform-specific config will be loaded dynamically by extractor.js
+
+      // Try to detect platform early to provide more diagnostics
       try {
-        // Find the appropriate extractor for the current site
-        extractor = findExtractor();
-        diagnosticData.matchedExtractor = extractor?.siteId || null; // Update diagnostics
-
-        if (!extractor) {
-          console.error('No supported extractor found for this website:', diagnosticData);
-
-          throw new Error(
-            `This website (${window.location.hostname}) is not supported. ` +
-            `Available extractors: ${diagnosticData.availableExtractors.join(', ')}. ` +
-            `Please navigate to a supported chatbot site (ChatGPT, Claude, Gemini, etc).`
-          );
+        let platformClue = null;
+        if (window.location.href.includes('claude.ai')) {
+          platformClue = 'claude';
+          // Test selectors
+          const turnCount = document.querySelectorAll('div[data-test-render-count]').length;
+          diagnosticData.selectors = { platform: 'claude', turnCount: turnCount };
+        } else if (window.location.href.includes('chat.openai.com')) {
+          platformClue = 'chatgpt';
+          // Test selectors
+          const turnCount = document.querySelectorAll('div[data-testid^="conversation-turn-"]').length;
+          diagnosticData.selectors = { platform: 'chatgpt', turnCount: turnCount };
+        } else if (window.location.href.includes('gemini.google.com')) {
+          platformClue = 'gemini';
+          // Test selectors
+          const turnCount = document.querySelectorAll('user-query, model-response').length;
+          diagnosticData.selectors = { platform: 'gemini', turnCount: turnCount };
         }
+        diagnosticData.platformDetected = platformClue;
+        console.log(`Platform detection test: ${platformClue}, selectors:`, diagnosticData.selectors);
+      } catch (selectorError) {
+        console.error("Error testing selectors:", selectorError);
+      }
 
-        try {
-          // Extract the raw data using the service-specific extractor
-          console.log(`Using ${extractor.siteId} extractor to process page content`);
-          const rawDataArray = extractor.extractRawData();
-          console.log(`${extractor.siteId} extraction succeeded:`, rawDataArray);
+      console.log("Calling window.extractConversation with extra diagnostics:", diagnosticData);
 
-          if (!rawDataArray || rawDataArray.length === 0) {
-            // This case is typically handled by the extractor throwing an error,
-            // but we add a check here for extractors that might return empty arrays instead.
-            // The preferred method is for the extractor to throw a specific "no content" error.
-             console.warn(`Extractor ${extractor.siteId} returned empty data. Treating as 'no content'.`);
-             throw new Error(
-               `No conversation content found on ${extractor.siteId}. ` +
-               `Make sure you have an active chat with visible messages.`
-            );
-             // Or, alternatively, send back an empty success response:
-             // sendResponse({ site: extractor.siteId, data: [] });
-             // return true; // Exit early if sending empty success
+      // Set up a timeout just in case the promise never resolves or rejects
+      let extractionTimeout = setTimeout(() => {
+        console.error("Content script's extractConversation call timed out after 25 seconds");
+        sendResponse({
+          error: "Extraction took too long (content script timeout). Please try again.",
+          diagnostics: diagnosticData
+        });
+      }, 25000);
+
+      // Call the globally exposed extractConversation function
+      window.extractConversation()
+        .then(extractedData => {
+          clearTimeout(extractionTimeout); // Clear the timeout
+          console.log("Extraction result:", extractedData);
+          if (!extractedData) {
+            // Handle cases where extraction failed (e.g., platform not identified, config missing)
+            // The extractor.js should log specific errors.
+            throw new Error("Extraction process failed. Check console for details.");
           }
 
-          // Send back the site ID and extracted data
+          if (!extractedData.conversationTurns || extractedData.conversationTurns.length === 0) {
+            // Handle cases where no turns were found
+            throw new Error(
+              `No conversation content found on ${extractedData.platform || 'the current page'}. ` +
+              `Make sure you have an active chat with visible messages.`
+            );
+          }
+
+          // Add turn counts to diagnostics for debugging
+          diagnosticData.extractedTurns = extractedData.conversationTurns.length;
+          
+          // Send back the new structured data
+          // Note: The 'site' property is now 'platform' inside the data object
+          sendResponse({ data: extractedData });
+        })
+        .catch(error => {
+          clearTimeout(extractionTimeout); // Clear the timeout
+          // Handle errors during the extraction process
+          const isNoContentError = error.message.includes("No conversation content found");
+
+          if (isNoContentError) {
+            // console.warn(`Extractor reported no content:`, error.message, diagnosticData);
+          } else {
+            console.error('Error during extraction:', {
+              error: error,
+              message: error.message,
+              stack: error.stack,
+              diagnostics: diagnosticData
+            });
+          }
+
+          const errorMessage = `${error.message || 'Extraction failed'} ` +
+                             `(Platform: ${diagnosticData.hostname}). ` +
+                             `If this error persists, please report it.`;
+
           sendResponse({
-            site: extractor.siteId,
-            data: rawDataArray
+            error: errorMessage,
+            diagnostics: diagnosticData
           });
-        } catch (extractionError) {
-           // Log detailed error info for the specific extractor
-
-           // --- START: Modified Error Logging ---
-           const isNoContentError = extractionError.message.includes("No conversation content found") ||
-                                  extractionError.message.includes("No content found") ||
-                                  extractionError.message.includes("conversation not found") ||
-                                  extractionError.message.includes("content elements not found");
-
-           // Modify logging based on error type
-           if (isNoContentError) {
-             // Log "no content" scenarios as warnings, not errors
-            //  console.warn(`Extractor (${extractor?.siteId}) reported no content:`, extractionError.message, diagnosticData);
-           } else {
-             // Log other actual errors as errors
-             console.error(`Error in ${extractor?.siteId} extractor:`, {
-               error: extractionError,
-               message: extractionError.message,
-               stack: extractionError.stack,
-               diagnostics: diagnosticData
-             });
-           }
-           // --- END: Modified Error Logging ---
-
-           // Create a more detailed error message (this part remains the same)
-           const errorMessage = `${extractionError.message || 'Extraction failed'} ` +
-                              `(using ${extractor?.siteId || 'unknown'} extractor). ` + // Use optional chaining for safety
-                              `If this error persists, please report it as the site may have updated its UI.`;
-
-           // Send the response back (this part also remains the same)
-           sendResponse({
-             error: errorMessage,
-             diagnostics: diagnosticData // Include diagnostics to help users report issues
-           });
-        }
-      } catch (error) {
-        // Catch errors from the outer try block (e.g., extractor finding failed)
-        console.error('Error in content script extraction setup:', error);
-        sendResponse({
-          error: error.message,
-          site: null,
-          diagnostics: diagnosticData // Use already prepared diagnostic data
         });
-      }
+
       return true; // Indicate asynchronous response is expected
+
     } else if (request.action === 'getDebugInfo') {
       // Return debug info to help troubleshoot issues
       const debugInfo = {
         initialized: window.qaClipperInitialized,
         url: window.location.href,
         hostname: window.location.hostname,
-        extractors: Object.keys(window.QAClipperExtractors || {}),
-        matchingExtractor: findExtractor()?.siteId || null,
+        claudeConfigLoaded: !!window.claudeConfig,
+        chatgptConfigLoaded: !!window.chatgptConfig,
+        geminiConfigLoaded: !!window.geminiConfig,
+        extractConversationLoaded: !!window.extractConversation,
         documentReady: document.readyState === 'complete',
         iframesCount: document.querySelectorAll('iframe').length,
         mainContentPresent: !!document.querySelector('main')
@@ -188,60 +221,38 @@
 
       sendResponse({ debugInfo });
       return true;
+
     } else if (request.action === 'ping') {
-      // Enhanced ping to check if content script is loaded
-      const extractorInfo = {
-        registered: Object.keys(window.QAClipperExtractors || {}),
-        matching: findExtractor()?.siteId || null
+      // Enhanced ping to check if content script and injected scripts are loaded
+      const statusInfo = {
+        claudeConfigLoaded: !!window.claudeConfig,
+        chatgptConfigLoaded: !!window.chatgptConfig,
+        geminiConfigLoaded: !!window.geminiConfig,
+        extractConversationLoaded: !!window.extractConversation,
       };
 
-      console.log('Received ping, responding with status:', extractorInfo);
+      console.log('Received ping, responding with status:', statusInfo);
       sendResponse({
         pong: true,
         url: window.location.href,
         hostname: window.location.hostname,
-        extractors: extractorInfo
+        status: statusInfo
       });
       return true;
-    } else if (request.action === 'extractor-injected') {
-      // Notification that an extractor was injected
-      console.log(`Extractor ${request.script} was injected`);
+
+    } else if (request.action === 'scripts-injected') {
+      // Notification that scripts were injected (can be sent from background)
+      console.log(`Received confirmation: Scripts ${request.scripts?.join(', ')} injected.`);
       sendResponse({ success: true });
       return true;
+
     } else {
         console.log("Content script received unhandled message action:", request.action);
-        // Optionally send a response indicating the action wasn't handled
-        // sendResponse({ error: `Unhandled action: ${request.action}` });
-        // Return false or nothing if no asynchronous response is needed
-        return false;
+        return false; // No async response needed for unhandled actions
     }
   });
 
-  /**
-   * Finds the appropriate extractor for the current site
-   * @returns {Object|null} - The extractor object or null if not found
-   */
-  function findExtractor() {
-    if (!window.QAClipperExtractors) {
-      console.warn('No extractors registered yet (window.QAClipperExtractors missing)'); // Changed to warn
-      return null;
-    }
+  // Removed findExtractor() function as it's no longer needed with the new approach
 
-    // Check each registered extractor
-    for (const key in window.QAClipperExtractors) {
-      try {
-        const extractor = window.QAClipperExtractors[key];
-        if (extractor && typeof extractor.isMatch === 'function' && extractor.isMatch()) {
-          console.log(`Found matching extractor: ${key}`);
-          return extractor;
-        }
-      } catch (err) {
-        console.error(`Error checking extractor ${key}:`, err);
-      }
-    }
-
-    console.log('No matching extractor found for this site');
-    return null;
-  }
 })();
 // --- END OF FILE content.js ---

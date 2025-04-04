@@ -6,7 +6,7 @@ function saveSettings() {
     labelStyle: document.getElementById('labelStyle').value,
     numberFormat: document.getElementById('numberFormat').value,
     imageFormat: document.getElementById('imageFormat').value,
-    imageLabel: document.getElementById('imageLabel').value || 'Image URL'
+    imageLabel: document.getElementById('imageLabel').value
   };
   
   // Save to local storage

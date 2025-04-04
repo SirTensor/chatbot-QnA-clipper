@@ -52,6 +52,12 @@
       ]
     }
   ],
+  "web_accessible_resources": [
+    {
+      "resources": ["claudeConfigs.js", "chatgptConfigs.js", "geminiConfigs.js"],
+      "matches": ["<all_urls>"]
+    }
+  ],
   "commands": {
     "trigger-extraction": {
       "suggested_key": {
