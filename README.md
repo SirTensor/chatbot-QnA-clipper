@@ -1,213 +1,100 @@
-# Chatbot Q&A Clipper Chrome Extension
+# Chatbot Q&A Clipper
 
-This Chrome extension allows you to easily copy questions and answers from various chatbot websites (ChatGPT, Claude, Google Bard) in a formatted way.
+A Chrome extension that extracts and formats Q&A conversations from AI chatbot platforms into well-structured markdown.
+
+## Supported Platforms
+
+- **ChatGPT** (chatgpt.com)
+- **Gemini** (gemini.google.com)
+- **Claude** (claude.ai)
 
 ## Features
 
-- Extracts questions and answers from supported chatbot websites
-- Formats the content in a clean, numbered Q&A format
-- One-click copying to clipboard
-- Supports multiple chatbot platforms
-- Easy to extend for new chatbot sites
+- **One-Click Extraction**: Extract entire conversations with a single click or keyboard shortcut
+- **Customizable Formatting**: Configure header levels, label styles, and number formats
+- **Image Support**: Captures and properly formats images shared in conversations
+- **Code Block Handling**: Preserves code syntax highlighting and formatting
+- **Clipboard Integration**: Automatically copies formatted content to your clipboard
+- **Keyboard Shortcut**: Quick access via customizable keyboard shortcut (default: Alt+3)
 
 ## Installation
 
+### From Chrome Web Store
+*Coming soon*
+
+### Manual Installation
 1. Download or clone this repository
-2. Open Chrome and go to `chrome://extensions/`
-3. Enable "Developer mode" in the top right corner
+2. Open Chrome and navigate to `chrome://extensions/`
+3. Enable "Developer mode" (toggle in the top-right corner)
 4. Click "Load unpacked" and select the extension directory
 
 ## Usage
 
-1. Navigate to a supported chatbot website (ChatGPT, Claude, Gemini, etc.)
-2. Click the extension icon in your Chrome toolbar
-3. Click the "Copy Q&A to Clipboard" button
-4. The formatted Q&A will be copied to your clipboard
+1. Navigate to any supported chatbot website (ChatGPT, Claude, or Gemini)
+2. Have a conversation with the chatbot
+3. Click the extension icon in your browser toolbar
+4. Click "Copy Q&A to Clipboard" or use the keyboard shortcut (Alt+3 by default)
+5. The formatted conversation is now in your clipboard, ready to be pasted anywhere
 
-## Supported Websites
+## Customization Options
 
-- ChatGPT (chat.openai.com)
-- Claude (claude.ai)
-- Gemini (gemini.google.com)
-- Grok (grok.x.ai)
-- DeepSeek (chat.deepseek.com)
+### Header Format
+Choose heading level from H1 to H5:
+- `# Question 1` (H1)
+- `## Question 1` (H2)
+- `### Question 1` (H3)
+- etc.
 
-## Format
+### Label Style
+Select from various label formats:
+- Question/Answer (English)
+- Prompt/Response
+- Q/A (Short form)
+- Various language options (Korean, Chinese, Japanese, etc.)
 
-The copied text will be formatted as follows:
+### Number Format
+Customize how numbers appear:
+- `Question 1` (Space before number)
+- `Question-1` (Dash, no space)
+- `Question: 1` (Colon format)
+- And many more variations
 
-```
-## Question 1
+### Image URL Format
+Choose how image links are formatted:
+- `[Image URL]: https://...` (Bracketed)
+- `![Image URL](https://...)` (Markdown)
+- `https://...` (Plain URL)
 
-[Question content]
+### Other Options
+- Include platform name in the output
+- Custom image labels
 
-## Answer 1
+## Keyboard Shortcut
 
-[Answer content]
+The default keyboard shortcut is **Alt+3**. You can customize this:
+1. Go to `chrome://extensions/shortcuts`
+2. Find "Chatbot Q&A Clipper"
+3. Click the pencil icon next to "Extract Q&A from the current chat"
+4. Set your preferred keyboard combination
 
-## Question 2
+## Privacy
 
-[Question content]
+- This extension only accesses content on supported chatbot websites
+- No data is sent to remote servers
+- All processing happens locally in your browser
+- No tracking or analytics are included
+- **Clipboard Security**: Since this extension copies content to your clipboard, be cautious when using it on shared or public computers. Your conversation data remains in the clipboard and could be accessed by the next person using the computer. Always clear your clipboard before leaving a public computer, or avoid using the extension on shared devices.
 
-## Answer 2
+## How It Works
 
-[Answer content]
-```
+The extension scans the current webpage's DOM to identify conversation elements based on platform-specific selectors. It extracts both user and assistant messages, including text, code blocks, and images, then formats the content according to your preferences.
 
-## Architecture
+## Troubleshooting
 
-The extension follows a modular architecture:
-
-- `background.js`: Central controller that orchestrates the extraction process
-- `content.js`: Bridge between background.js and site-specific extractors
-- `formatter.js`: Handles formatting raw data into markdown
-- Site-specific extractors (e.g., `chatgpt.js`, `claude.js`): Handle extraction for each supported site
-- `popup.js`: Manages UI and user settings
-
-## Adding Support for a New Chatbot Site
-
-To add support for a new chatbot site (e.g., abcde.com):
-
-1. Create a new extractor file (e.g., `abcde.js`) using the template below:
-
-```javascript
-/**
- * abcde.com-specific extraction logic for Chatbot Q&A Clipper
- */
-
-(function() {
-  // Check if this extractor is already registered
-  if (window.QAClipperExtractors && window.QAClipperExtractors.abcde) {
-    return;
-  }
-
-  const AbcdeExtractor = {
-    /**
-     * Site identifier
-     */
-    siteId: 'abcde',
-    
-    /**
-     * Checks if the current page is abcde
-     * @returns {Boolean} - True if current page is abcde
-     */
-    isMatch: function() {
-      return window.location.hostname.includes('abcde.com');
-    },
-    
-    /**
-     * Extracts raw Q&A data from abcde conversations
-     * @returns {Array} - Array of objects with type, content, and optional images
-     */
-    extractRawData: function() {
-      console.log('Starting abcde raw data extraction');
-      
-      try {
-        // Find message containers on the page - update these selectors based on the site's HTML structure
-        const messageContainers = document.querySelectorAll('YOUR_SELECTOR_HERE');
-        
-        if (messageContainers.length === 0) {
-          throw new Error('No conversation content found.');
-        }
-
-        const rawDataArray = [];
-        
-        // Iterate through message containers to find user and AI messages
-        for (let i = 0; i < messageContainers.length; i++) {
-          const container = messageContainers[i];
-          
-          // Find user message elements - update these selectors
-          const userElement = container.querySelector('USER_MESSAGE_SELECTOR');
-          
-          // Find AI response elements - update these selectors
-          const assistantElement = container.querySelector('AI_RESPONSE_SELECTOR');
-
-          // Process user message
-          if (userElement && userElement.textContent.trim()) {
-            const userText = userElement.textContent.trim();
-            
-            // Extract image URLs if any
-            const userImages = [];
-            userElement.querySelectorAll('img').forEach(img => {
-              if (img.src && !img.src.startsWith('data:')) {
-                userImages.push(img.src);
-              }
-            });
-            
-            rawDataArray.push({
-              type: 'user',
-              content: userText,
-              images: userImages
-            });
-          }
-          
-          // Process AI message
-          if (assistantElement && assistantElement.textContent.trim()) {
-            rawDataArray.push({
-              type: 'assistant',
-              content: assistantElement.innerText.trim()
-            });
-          }
-        }
-        
-        return rawDataArray;
-      } catch (error) {
-        console.error('Error in abcde extraction:', error);
-        throw error;
-      }
-    }
-  };
-  
-  // Register the extractor
-  if (!window.QAClipperExtractors) {
-    window.QAClipperExtractors = {};
-  }
-  
-  window.QAClipperExtractors[AbcdeExtractor.siteId] = AbcdeExtractor;
-})();
-```
-
-2. Update `manifest.json` to include your new site and script:
-
-   a. Add the site URL to `host_permissions`:
-   ```json
-   "host_permissions": [
-     ...,
-     "https://abcde.com/*"
-   ]
-   ```
-
-   b. Add the site URL to `content_scripts.matches`:
-   ```json
-   "matches": [
-     ...,
-     "https://abcde.com/*"
-   ]
-   ```
-
-   c. Add your script to `content_scripts.js`:
-   ```json
-   "js": [
-     "utils.js",
-     ...,
-     "abcde.js",
-     "content.js"
-   ]
-   ```
-
-3. Reload the extension in Chrome
-
-That's it! The extension will now automatically detect and support your new chatbot site.
-
-## Development
-
-To modify or enhance the extension:
-
-1. Make your changes to the source files
-2. Go to `chrome://extensions/`
-3. Click the refresh icon on the extension card
-4. Test your changes
+- **Extension not working**: Make sure you're on a supported website and have an active conversation
+- **Missing content**: Some dynamic content may need time to load before extraction
+- **Format issues**: Try adjusting the format settings in the popup
 
 ## License
 
-MIT License 
+This project is licensed under the MIT License - see the LICENSE file for details. 
