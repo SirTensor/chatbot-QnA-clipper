@@ -25,7 +25,7 @@ const formatter = {
     let formattedText = '';
 
     if (includePlatform && extractedData.platform) {
-      formattedText += `> Platform: ${extractedData.platform}\n\n`;
+      formattedText += `# ${extractedData.platform}\n`;
     }
 
     let pairIndex = 0;

@@ -8,7 +8,7 @@
 <body>
   <!-- Normal UI section -->
   <div id="normalUI">
-    <h2>Chatbot Q&A Clipper</h2>
+    <h1 style="text-align: center; margin: 1px;">Chatbot Q&A Clipper</h1>
     
     <button id="copyButton">Copy Q&A to Clipboard</button>
     <div id="status"></div>
@@ -81,6 +81,14 @@
     
     <hr>
     
+    <div class="option-group">
+      <label for="includePlatform">
+        Include Platform Name <input type="checkbox" id="includePlatform" style="margin-right: 0px;">
+      </label>
+    </div>
+
+    <hr>
+
     <div class="option-group">
       <label>Keyboard Shortcut:</label>
       <div id="currentShortcut" class="shortcut-display">Loading...</div>

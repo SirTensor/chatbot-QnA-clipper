@@ -154,12 +154,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       try {
         // Validate tab exists
         if (!tabs || tabs.length === 0 || !tabs[0] || !tabs[0].id) {
-          console.error('No active tab found for popup extraction');
+          console.warn('No active tab found for popup extraction');
           sendResponse({ success: false, error: 'No active tab found.' });
           sendMessageToPopup({
             action: 'extraction-complete',
             success: false,
-            message: 'Error: No active tab found.'
+            message: 'No active tab found.'
           });
           return;
         }
@@ -183,40 +183,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         // Check if URL uses http/https protocol (excludes chrome://, file://, etc.)
         if (!tabUrl.startsWith('http:') && !tabUrl.startsWith('https:')) {
           console.log(`Non-web URL detected (${tabUrl}) for popup extraction - showing error`);
-          sendResponse({ success: false, error: 'Unsupported page.' });
-          sendMessageToPopup({
-            action: 'extraction-complete',
-            success: false,
-            message: 'Unsupported page.'
-          });
-          return;
-        }
-
-        // Check if hostname is supported
-        const supportedHostnames = [
-          'chat.openai.com',
-          'chatgpt.com',
-          'claude.ai',
-          'gemini.google.com',
-          'bard.google.com',
-          'poe.com',
-          'anthropic.com',
-          'perplexity.ai'
-        ];
-
-        const url = new URL(tabUrl);
-        const hostname = url.hostname;
-        
-        let isHostnameSupported = false;
-        for (const supportedHost of supportedHostnames) {
-          if (hostname === supportedHost || hostname.endsWith('.' + supportedHost)) {
-            isHostnameSupported = true;
-            break;
-          }
-        }
-
-        if (!isHostnameSupported) {
-          console.log(`Unsupported hostname ${hostname} for popup extraction - showing error`);
           sendResponse({ success: false, error: 'Unsupported page.' });
           sendMessageToPopup({
             action: 'extraction-complete',
@@ -258,94 +224,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 
-  // Handle the inject-scripts action
-  if (request.action === 'inject-scripts') {
-    console.log('Received request to inject scripts:', request.scripts);
-
-    // Validate scripts array
-    if (!request.scripts || !Array.isArray(request.scripts) || request.scripts.length === 0) {
-        console.error('Invalid or empty scripts array provided for injection.');
-        sendResponse({ success: false, error: 'No scripts specified for injection' });
-        return true;
-    }
-
-    // We need the tab ID. Prefer sender.tab if available, otherwise query active tab.
-    let targetTabId = sender.tab?.id;
-
-    // Use a single async function to handle injection for a given tab ID
-    const injectScriptsAction = async (tabId) => {
-      if (!tabId) {
-         throw new Error('No valid tab ID found for injection');
-      }
-
-      // Inject each script sequentially
-      for (const scriptName of request.scripts) {
-          console.log(`Attempting to inject ${scriptName} into tab ${tabId}`);
-          try {
-              await chrome.scripting.executeScript({
-                  target: { tabId: tabId, allFrames: false }, // Target only the main frame
-                  files: [scriptName]
-              });
-              console.log(`Successfully injected ${scriptName} into tab ${tabId}`);
-          } catch (injectionError) {
-              console.error(`Failed to inject ${scriptName} into tab ${tabId}:`, injectionError);
-              // Decide if we should stop or continue if one script fails
-              // For now, let's stop if any script fails
-              throw new Error(`Failed to inject script ${scriptName}: ${injectionError.message}`);
-          }
-      }
-
-      // Optionally, notify the content script *after* all scripts are injected
-      try {
-          await chrome.tabs.sendMessage(tabId, {
-              action: 'scripts-injected',
-              scripts: request.scripts
-          });
-          console.log(`Notified content script about successful injection of all scripts in tab ${tabId}`);
-      } catch (messageError) {
-          // This might happen if the content script isn't fully ready yet
-          console.warn(`Failed to notify content script post-injection in tab ${tabId}: ${messageError.message}. Might be timing issue.`);
-      }
-
-      return { success: true }; // Overall success if all injections passed
-    };
-
-    // Execute the injection action
-    if (targetTabId) {
-        injectScriptsAction(targetTabId)
-            .then(sendResponse)
-            .catch(error => {
-                console.error(`Error injecting scripts into sender tab ${targetTabId}:`, error);
-                sendResponse({ success: false, error: error.message || 'Unknown injection error' });
-            });
-    } else {
-        // Fallback to querying active tab if sender tab context is missing
-        console.warn("Sender tab ID missing for inject-scripts, querying active tab.");
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-            if (chrome.runtime.lastError || !tabs || tabs.length === 0 || !tabs[0].id) {
-                const errorMsg = chrome.runtime.lastError?.message || 'No active tab found for injection fallback';
-                console.error(errorMsg);
-                sendResponse({ success: false, error: errorMsg });
-                return;
-            }
-            targetTabId = tabs[0].id;
-            injectScriptsAction(targetTabId)
-                .then(sendResponse)
-                .catch(error => {
-                    console.error(`Error injecting scripts into active tab ${targetTabId}:`, error);
-                    sendResponse({ success: false, error: error.message || 'Unknown injection error' });
-                });
-        });
-    }
-
-    // Return true to indicate we'll respond asynchronously
-    return true;
-  }
-
   // Handle other messages if necessary
   console.log("Received unhandled message:", request);
   return false; // Indicate synchronous response or no handler found
-
 });
 
 // Function to show a toast notification in the tab
@@ -418,87 +299,134 @@ async function showToast(tabId, message, duration = 2000) {
   }
 }
 
-// Modify ensureContentScriptLoaded to reflect that specific extractors aren't injected individually anymore
+// Modify ensureContentScriptLoaded to centralize all script injection
 async function ensureContentScriptLoaded(tabId) {
   if (!tabId) {
     console.error("ensureContentScriptLoaded: Invalid tabId");
     return false;
   }
   try {
-    // 1. Ping first
+    // 1. Check if content script is loaded via ping
+    let contentScriptLoaded = false;
     try {
       const response = await chrome.tabs.sendMessage(tabId, { action: 'ping' }, { frameId: 0 }); // Target main frame
       if (response && response.pong === true) {
-        console.log(`Content script already loaded and responded on tab ${tabId}:`, response.status || 'No status info');
-        // Check if the required global objects from our injected scripts are present
-        if (response.status && response.status.extractConversationLoaded) {
-             console.log(`Required extraction scripts confirmed loaded on tab ${tabId}.`);
-             return true;
+        console.log(`Content script already loaded on tab ${tabId}:`, response.status || 'No status info');
+        
+        // Check if all required scripts are already loaded and available
+        const status = response.status || {};
+        if (status.extractConversationLoaded && 
+            status.chatgptConfigLoaded && 
+            status.claudeConfigLoaded && 
+            status.geminiConfigLoaded) {
+          console.log(`All required scripts confirmed loaded on tab ${tabId}`);
+          return true;
         } else {
-             console.warn(`Content script pinged on tab ${tabId}, but required extraction scripts are missing. Will attempt injection.`);
-             // Proceed to injection phase
+          console.log(`Content script is loaded on tab ${tabId}, but some required scripts are missing. Will inject all scripts.`);
+          contentScriptLoaded = true;
+          // We'll proceed to inject ALL scripts to ensure everything is loaded
         }
       } else {
         console.warn(`Ping to tab ${tabId} received unexpected response:`, response);
-        // Proceed to injection
+        // Content script might not be loaded, proceed to injection
       }
     } catch (err) {
       // Error likely means content script isn't loaded or listening
       if (err.message.includes("Could not establish connection")) {
-        console.log(`Content script not responding on tab ${tabId}. Attempting injection.`);
+        console.log(`Content script not responding on tab ${tabId}. Will inject content script and all required scripts.`);
       } else {
-         console.warn(`Error pinging content script on tab ${tabId}: ${err.message}. Proceeding with injection attempt.`);
+        console.warn(`Error pinging content script on tab ${tabId}: ${err.message}. Will attempt injection.`);
       }
     }
 
-    // 2. Inject core content scripts (if not already loaded) AND our extractor scripts
+    // 2. Determine scripts to inject
+    // Get core content scripts from manifest
     const manifest = chrome.runtime.getManifest();
     const contentScriptDefs = manifest.content_scripts;
     if (!contentScriptDefs || !Array.isArray(contentScriptDefs) || contentScriptDefs.length === 0 || !contentScriptDefs[0].js) {
-        console.error("Manifest content_scripts definition is missing or invalid.");
-        return false;
+      console.error("Manifest content_scripts definition is missing or invalid.");
+      return false;
     }
-    const coreContentScripts = contentScriptDefs[0].js;
-    // We inject extractor.js and all platform config scripts to ensure availability
-    const extractorScripts = ['extractor.js', 'chatgptConfigs.js', 'claudeConfigs.js', 'geminiConfigs.js']; 
-    const allScriptsToInject = [...new Set([...coreContentScripts, ...extractorScripts])]; // Combine and deduplicate
+    
+    // Only inject content.js if it's not already loaded
+    const coreContentScripts = contentScriptLoaded ? [] : contentScriptDefs[0].js;
+    
+    // Always inject these scripts to ensure they're available
+    const utilityScripts = ['utils.js']; // utils.js must be loaded first as other scripts depend on it
+    const extractorScripts = ['extractor.js']; // extractor.js should be loaded before platform configs
+    const platformScripts = ['chatgptConfigs.js', 'claudeConfigs.js', 'geminiConfigs.js']; // Platform configs
+    
+    // Combine scripts in a specific order to respect dependencies
+    const allScriptsToInject = [
+      ...coreContentScripts,       // content.js if needed
+      ...utilityScripts,           // utils.js first for dependencies
+      ...extractorScripts,         // extractor.js next
+      ...platformScripts           // platform configs last
+    ];
 
-    console.log(`Ensuring scripts are loaded in tab ${tabId}: ${allScriptsToInject.join(', ')}`);
+    // Log injection plan
+    console.log(`Ensuring scripts are loaded in tab ${tabId} in this order:`, allScriptsToInject.join(', '));
+
+    // 3. Inject scripts in sequence to maintain proper initialization order
     for (const script of allScriptsToInject) {
       try {
+        console.log(`Injecting ${script} into tab ${tabId}...`);
         await chrome.scripting.executeScript({
           target: { tabId: tabId, allFrames: false }, // Inject only into main frame
           files: [script]
         });
-        console.log(`Successfully injected/ensured ${script} into tab ${tabId}`);
+        console.log(`Successfully injected ${script} into tab ${tabId}`);
       } catch (injectionError) {
-         console.error(`Failed to inject script ${script} into tab ${tabId}:`, injectionError);
-         // If core content.js or our extractor scripts fail, stop.
-         if (script === 'content.js' || script === 'extractor.js') {
-            throw new Error(`Core script injection failed (${script}): ${injectionError.message}`); // Re-throw to stop the process
-         }
-         // For config scripts, log but continue - they might be dynamically loaded later
-         console.warn(`Config script injection failed (${script}), will try dynamic loading: ${injectionError.message}`);
+        // Handle script injection errors
+        console.error(`Failed to inject script ${script} into tab ${tabId}:`, injectionError);
+        
+        // Check for permission-related errors
+        const errorMessage = injectionError.message || '';
+        if (
+          errorMessage.includes("Cannot access contents of url") || 
+          errorMessage.includes("Missing host permission") ||
+          errorMessage.includes("Cannot access") ||
+          errorMessage.includes("The extension is not allowed to access")
+        ) {
+          console.error(`Host permission error detected: This website is not supported by the extension.`);
+          throw new Error("This website is not supported by the extension.");
+        }
+        
+        // For critical scripts, failing is a fatal error
+        const criticalScripts = ['content.js', 'utils.js', 'extractor.js'];
+        if (criticalScripts.includes(script)) {
+          throw new Error(`Critical script injection failed (${script}): ${injectionError.message}`);
+        } else {
+          // For platform configs, log error but continue - some platforms may not be needed
+          console.warn(`Platform config script injection failed (${script}): ${injectionError.message}`);
+        }
+      }
+      
+      // Small delay between injections to ensure proper initialization order
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+
+    // 4. Notify the content script that injection is complete
+    if (contentScriptLoaded) {
+      try {
+        await chrome.tabs.sendMessage(tabId, { 
+          action: 'scripts-injected', 
+          scripts: allScriptsToInject 
+        });
+        console.log(`Notified content script about successful injection in tab ${tabId}`);
+      } catch (notifyError) {
+        console.warn(`Unable to notify content script about injection in tab ${tabId}:`, notifyError);
+        // This is non-fatal
       }
     }
 
-    // Success - notify the content script that injection is complete
-    try {
-      await chrome.tabs.sendMessage(tabId, { 
-        action: 'scripts-injected', 
-        scripts: allScriptsToInject 
-      });
-    } catch (notifyError) {
-      console.warn(`Unable to notify content script about injection in tab ${tabId}:`, notifyError);
-      // This is non-fatal, as the scripts themselves should have loaded
-    }
-
-    // Delay to allow scripts to initialize
-    await new Promise(resolve => setTimeout(resolve, 150));
+    // 5. Add a final delay to ensure all scripts initialize properly
+    await new Promise(resolve => setTimeout(resolve, 200));
     
+    console.log(`Script injection complete for tab ${tabId}`);
     return true;
   } catch (error) {
-    console.error(`Error ensuring content script loaded in tab ${tabId}:`, error);
+    console.error(`Error ensuring scripts loaded in tab ${tabId}:`, error);
     return false;
   }
 }
@@ -554,38 +482,114 @@ async function extractQA() {
     tabUrl = tab.url; // Store URL for logging
     console.log(`Starting extraction for tab: ${currentTabId}, URL: ${tabUrl}`);
 
-    // --- REMOVED OLD URL/HOSTNAME VALIDATION BLOCK ---
-    // The new extractor.js handles platform identification internally.
-    // We still need basic http/https check though.
-    try {
-       const urlObject = new URL(tabUrl);
-       if (!['http:', 'https:'].includes(urlObject.protocol)) {
-           console.warn(`Unsupported protocol (${urlObject.protocol}) at ${tabUrl}`);
-           sendMessageToPopup({ action: 'extraction-complete', success: false, message: 'Unsupported page protocol.' });
-           // Don't show toast for non-web pages where it would fail
-           return;
-       }
-       console.log(`URL protocol check passed for ${tabUrl}`);
-    } catch(urlError) {
-       console.error(`URL parsing error:`, urlError);
-       sendMessageToPopup({ action: 'extraction-complete', success: false, message: 'Error: Invalid page URL.' });
-       return; // Stop execution
+    // Simple URL validation - just check URL exists and protocol is valid
+    if (!tabUrl) {
+      console.log('Tab URL is missing - silently ignoring trigger.');
+      return;
     }
 
-    // Ensure content script AND necessary extractor scripts are loaded
-    const scriptsLoaded = await ensureContentScriptLoaded(currentTabId);
-    if (!scriptsLoaded) {
-      // Error handling moved inside ensureContentScriptLoaded
-      // console.error(`Failed to ensure scripts are loaded for tab ${currentTabId}.`);
-      // await showToast(currentTabId, 'Error: Could not load extension scripts.', 3000);
+    // Basic protocol check
+    try {
+      const urlObject = new URL(tabUrl);
+      if (!['http:', 'https:'].includes(urlObject.protocol)) {
+        console.log(`Unsupported protocol (${urlObject.protocol}) at ${tabUrl} - silently ignoring trigger.`);
+        return;
+      }
+    } catch (urlError) {
+      console.log(`URL parsing error, ignoring trigger for ${tabUrl}:`, urlError);
+      return;
+    }
+
+    // --- Check Host Permissions FIRST ---
+    try {
+      const hasPermission = await new Promise((resolve) => {
+        try {
+          const urlOrigin = new URL(tabUrl).origin;
+          chrome.permissions.contains({ origins: [urlOrigin + '/*'] }, (granted) => {
+            if (chrome.runtime.lastError) {
+              // Handle potential errors during permission check (e.g., invalid origin)
+              console.error("Error checking permissions:", chrome.runtime.lastError);
+              resolve(false); // Assume no permission if check fails
+            } else {
+              resolve(granted);
+            }
+          });
+        } catch (e) {
+          // Catch potential errors from new URL() if tabUrl is invalid (though checked earlier)
+          console.error("Error checking permissions (URL parsing):", e);
+          resolve(false);
+        }
+      });
+
+      if (!hasPermission) {
+        console.log(`Extension does not have permission for origin: ${new URL(tabUrl).origin}. Silently ignoring trigger for unsupported site.`);
+        // For popup triggers, we should show an error, but shortcut triggers should be silent.
+        // Check if the trigger came from the popup. This is tricky to know directly here.
+        // Let's send a message to the popup regardless, it will only be received if open.
+        // And show a toast which will only appear if user explicitly tried on the page.
+        await showToast(currentTabId, 'This website is not supported by the extension.', 3000);
+        sendMessageToPopup({
+          action: 'extraction-complete',
+          success: false,
+          message: 'Unsupported page.'
+        });
+        return; // Stop execution
+      }
+      console.log(`Host permission granted for tab ${currentTabId}`);
+
+    } catch (permError) {
+      // Catch any unexpected error during the permission check process
+      console.error('Unexpected error during permission check:', permError);
+      await showToast(currentTabId, 'Error checking extension permissions.', 3000);
       sendMessageToPopup({
         action: 'extraction-complete',
         success: false,
-        message: 'Error: Could not load required extension scripts on the page.'
+        message: 'Error checking extension permissions.'
       });
       return; // Stop execution
     }
-    console.log(`Scripts confirmed loaded for tab ${currentTabId}`);
+    // --- End of Host Permissions Check ---
+
+    // If URL checks and permission check passed, proceed with script loading and extraction
+    try {
+      const scriptsLoaded = await ensureContentScriptLoaded(currentTabId);
+      if (!scriptsLoaded) {
+        console.error(`Failed to ensure scripts are loaded for tab ${currentTabId}.`);
+        await showToast(currentTabId, 'Error: Could not load extension scripts.', 3000);
+        sendMessageToPopup({
+          action: 'extraction-complete',
+          success: false,
+          message: 'Error: Could not load required extension scripts on the page.'
+        });
+        return; // Stop execution
+      }
+      console.log(`Scripts confirmed loaded for tab ${currentTabId}`);
+    } catch (scriptError) {
+      // Handle specific permission errors
+      if (scriptError.message && (
+          scriptError.message.includes("not supported by the extension") ||
+          scriptError.message.includes("Missing host permission") ||
+          scriptError.message.includes("Cannot access contents of url"))) {
+        console.log(`Website not supported error for tab ${currentTabId}: ${scriptError.message}`);
+        await showToast(currentTabId, 'This website is not supported by the extension.', 3000);
+        sendMessageToPopup({
+          action: 'extraction-complete',
+          success: false,
+          message: 'This website is not supported by the extension.'
+        });
+        return; // Stop execution
+      }
+      
+      // Handle other script errors
+      console.error(`Script loading error for tab ${currentTabId}:`, scriptError);
+      await showToast(currentTabId, 'Error: Could not load extension scripts.', 3000);
+      sendMessageToPopup({
+        action: 'extraction-complete',
+        success: false,
+        message: `Error: ${scriptError.message || 'Could not load required extension scripts.'}`
+      });
+      return; // Stop execution
+    }
 
     // Get the format settings
     const data = await chrome.storage.local.get('formatSettings');

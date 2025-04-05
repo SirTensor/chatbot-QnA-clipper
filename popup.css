@@ -21,7 +21,7 @@ button:hover {
 #status {
   text-align: center;
   color: #666;
-  margin-bottom: 15px;
+  margin-bottom: 5px;
   font-size: 13px;
   min-height: 16px;
 }
@@ -100,7 +100,7 @@ input[type="text"] {
 hr {
   border: none;
   border-top: 1px solid #ddd;
-  margin: 15px 0;
+  margin: 12px 0;
 }
 /* Manual copy UI styles */
 #manualCopyUI {

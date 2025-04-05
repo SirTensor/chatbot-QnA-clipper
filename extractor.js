@@ -40,58 +40,27 @@
   }
 
   /**
-   * Dynamically loads the configuration script for the identified platform.
+   * Checks if the configuration for the identified platform is loaded.
+   * Does NOT attempt to load configs anymore - relies on background.js to have loaded them.
    * @param {string} platform - The identified platform ('claude', 'chatgpt', or 'gemini')
-   * @returns {Promise<boolean>} - Resolves to true if loading was successful, false otherwise
+   * @returns {Promise<boolean>} - Resolves to true if config exists, rejects if not
    */
   function loadPlatformConfig(platform) {
     return new Promise((resolve, reject) => {
-      console.log(`Chatbot Clipper: Attempting to load config for platform: ${platform}`);
+      console.log(`Chatbot Clipper: Checking if config exists for platform: ${platform}`);
       
       // Check if config is already loaded
       if ((platform === 'claude' && window.claudeConfig) || 
           (platform === 'chatgpt' && window.chatgptConfig) || 
           (platform === 'gemini' && window.geminiConfig)) {
-        console.log(`${platform} config already loaded`);
+        console.log(`${platform} config is loaded and available`);
         resolve(true);
         return;
       }
 
-      // For chatgpt, try direct initialization as fallback
-      if (platform === 'chatgpt' && !window.chatgptConfig) {
-        try {
-          // Check if the required script is available in the extension
-          const manifestSrc = chrome.runtime.getURL(`${platform}Configs.js`);
-          console.log(`Attempting to load ${platform} config from: ${manifestSrc}`);
-        } catch (err) {
-          console.warn(`Error checking for config script: ${err.message}`);
-        }
-      }
-
-      // If not loaded, inject the appropriate script
-      const scriptPath = `${platform}Configs.js`;
-      const script = document.createElement('script');
-      script.src = chrome.runtime.getURL(scriptPath);
-      script.onload = () => {
-        console.log(`Successfully loaded ${platform} config`);
-        
-        // Verify the global config object was created
-        if ((platform === 'chatgpt' && window.chatgptConfig) ||
-            (platform === 'claude' && window.claudeConfig) ||
-            (platform === 'gemini' && window.geminiConfig)) {
-          console.log(`Verified ${platform} config object is available`);
-          resolve(true);
-        } else {
-          console.error(`${platform} config script loaded but global config object not found!`);
-          reject(new Error(`${platform} config not initialized properly`));
-        }
-      };
-      script.onerror = (error) => {
-        console.error(`Failed to load ${platform} config:`, error);
-        console.error(`Script path attempted: ${script.src}`);
-        reject(new Error(`Failed to load ${platform} config: ${error.message || 'Unknown error'}`));
-      };
-      (document.head || document.documentElement).appendChild(script);
+      // If config is not loaded, reject with error
+      console.error(`${platform} config not found on window object. Background script may have failed to inject it.`);
+      reject(new Error(`${platform} configuration not loaded. Please try refreshing the page or report this issue.`));
     });
   }
 
@@ -127,13 +96,13 @@
 
       console.log(`Chatbot Clipper: Platform identified as ${platform}`);
 
-      // Dynamically load the platform-specific config
+      // Check if the platform-specific config is available
       try {
         await loadPlatformConfig(platform);
-        console.log(`Chatbot Clipper: Successfully loaded ${platform} configuration`);
+        console.log(`Chatbot Clipper: ${platform} configuration is available`);
       } catch (loadError) {
-        console.error(`Chatbot Clipper: Failed to load platform configuration:`, loadError);
-        throw new Error(`Failed to load ${platform} configuration: ${loadError.message}`);
+        console.error(`Chatbot Clipper: Configuration for ${platform} not available:`, loadError);
+        throw new Error(`Configuration for ${platform} not available: ${loadError.message}`);
       }
 
       // Get the appropriate config from the window object

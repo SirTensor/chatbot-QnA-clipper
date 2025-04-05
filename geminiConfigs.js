@@ -4,86 +4,26 @@
   // Initialization check
   if (window.geminiConfig) { return; }
 
-  // --- Helper Functions (v26 - Updated convertInlineHtmlToMarkdown) ---
+  // --- Helper Functions ---
 
   /**
-   * Converts inline HTML within a node to basic Markdown.
-   * Skips block-level elements that are handled separately by the main extractor.
-   * @param {Node} parentNode - The node whose children should be converted.
-   * @returns {string} - The converted Markdown string.
+   * Determines if an element should be skipped during markdown conversion based on Gemini-specific rules
+   * @param {HTMLElement} element - The element to check
+   * @returns {boolean} - True if the element should be skipped, false otherwise
    */
-  function convertInlineHtmlToMarkdown(parentNode) {
-      let markdown = '';
-      if (!parentNode || !parentNode.childNodes) return markdown;
-
-      parentNode.childNodes.forEach(node => {
-          if (node.nodeType === Node.TEXT_NODE) {
-              markdown += node.textContent; // Keep spaces for joining later if needed
-          } else if (node.nodeType === Node.ELEMENT_NODE) {
-              const element = node;
-              const tagNameLower = element.tagName.toLowerCase();
-              const selectors = window.geminiConfig?.selectors; // Get selectors safely
-
-              // ** CRITICAL FIX (v26): Skip elements handled by the main extractAssistantContent loop **
-              if (selectors && (
-                  element.matches(selectors.interactiveBlockContainer) ||
-                  element.matches(selectors.imageContainerAssistant) || // `single-image` tag
-                  tagNameLower === 'code-block' || // `code-block` tag
-                  tagNameLower === 'ul' || tagNameLower === 'ol' || tagNameLower === 'pre' // Other block types handled separately
-              )) {
-                  // console.log(`[Markdown Helper] Skipping block element handled elsewhere: <${tagNameLower}>`);
-                  return; // Skip this node entirely in the markdown conversion
-              }
-
-              // Recursively convert children *if* it's not a skipped block
-              const content = convertInlineHtmlToMarkdown(element);
-
-              // Apply inline formatting
-              switch (tagNameLower) {
-                  case 'strong':
-                  case 'b':
-                      markdown += `**${content}**`;
-                      break;
-                  case 'em':
-                  case 'i':
-                      markdown += `*${content}*`;
-                      break;
-                  case 'code':
-                      // Avoid double backticks if inside a code-block handled separately
-                      if (!element.closest('code-block')) {
-                          markdown += `\`${content}\``;
-                      } else {
-                           markdown += content; // Pass content through if already in code-block
-                      }
-                      break;
-                  case 'a':
-                      const href = element.getAttribute('href');
-                      markdown += `[${content}](${href || ''})`;
-                      break;
-                  case 'br':
-                      markdown += '\n';
-                      break;
-                  // We don't handle block elements like P here because the main loop does.
-                  // Just append the converted content of *inline* elements or unknown elements.
-                  default:
-                      markdown += content;
-                      break;
-              }
-          }
-      });
-      return markdown; // Return potentially un-trimmed string; trim happens later
-  }
-
-  function addTextItem(items, text) {
-      const trimmedText = text?.trim();
-      if (!trimmedText) return;
-      const lastItem = items.at(-1);
-      if (lastItem?.type === 'text') {
-          // Append with paragraph separation if adding to existing text
-          lastItem.content += `\n\n${trimmedText}`;
-      } else {
-          items.push({ type: 'text', content: trimmedText });
-      }
+  function shouldSkipElement(element) {
+    if (!element || element.nodeType !== Node.ELEMENT_NODE) return false;
+    
+    const selectors = window.geminiConfig?.selectors;
+    if (!selectors) return false;
+    
+    const tagNameLower = element.tagName.toLowerCase();
+    
+    // Skip elements that are handled separately by main extractor
+    return (selectors.interactiveBlockContainer && element.matches(selectors.interactiveBlockContainer)) ||
+           (selectors.imageContainerAssistant && element.matches(selectors.imageContainerAssistant)) ||
+           tagNameLower === 'code-block' || 
+           tagNameLower === 'ul' || tagNameLower === 'ol' || tagNameLower === 'pre';
   }
 
   function processList(el, listType) {
@@ -96,8 +36,10 @@
       let itemIndex = 0;
       // Process only direct li children
       el.querySelectorAll(':scope > li').forEach(li => {
-          // Use the updated markdown converter for list item content
-          const itemMarkdown = convertInlineHtmlToMarkdown(li).trim();
+          // Use QAClipper.Utils.htmlToMarkdown with the Gemini-specific skip logic
+          const itemMarkdown = QAClipper.Utils.htmlToMarkdown(li, { 
+            skipElementCheck: shouldSkipElement 
+          }).trim();
           if (itemMarkdown) {
               const marker = listType === 'ul' ? '-' : `${startNum + itemIndex}.`;
               lines.push(`${marker} ${itemMarkdown}`);
@@ -177,7 +119,12 @@
 
     // --- Extraction Functions ---
     getRole: (turnElement) => {if(!turnElement||typeof turnElement.tagName!=='string')return null;const t=turnElement.tagName.toLowerCase();if(t==='user-query')return 'user';if(t==='model-response')return 'assistant';return null; },
-    extractUserText: (turnElement) => { const e=turnElement.querySelector(':scope .query-text'); return e?convertInlineHtmlToMarkdown(e).trim()||null:null; },
+    extractUserText: (turnElement) => { 
+        const e = turnElement.querySelector(':scope .query-text'); 
+        return e ? QAClipper.Utils.htmlToMarkdown(e, {
+          skipElementCheck: shouldSkipElement
+        }).trim() || null : null; 
+    },
     extractUserUploadedImages: (turnElement) => {
         const images = [];
         const containerSelector = geminiConfig.selectors.userImageContainer;
@@ -223,7 +170,7 @@
     /**
      * Extracts structured content using querySelectorAll, preventing duplicates
      * and handling different block types including interactive blocks.
-     * Uses the updated convertInlineHtmlToMarkdown helper.
+     * Uses QAClipper.Utils.htmlToMarkdown.
      */
     extractAssistantContent: (turnElement) => {
         const contentItems = [];
@@ -289,22 +236,26 @@
                  processedElements.add(element);
              }
             else if (tagNameLower === 'p') {
-                 // Use the updated helper function which skips inner blocks
+                 // Use QAClipper.Utils.htmlToMarkdown for paragraphs
                  console.log("  -> Handling as P tag");
-                 const blockMarkdown = convertInlineHtmlToMarkdown(element).trim();
+                 const blockMarkdown = QAClipper.Utils.htmlToMarkdown(element, {
+                   skipElementCheck: shouldSkipElement
+                 }).trim();
                  if (blockMarkdown) {
                      // Use addTextItem to correctly merge paragraphs
-                     addTextItem(contentItems, blockMarkdown);
+                     QAClipper.Utils.addTextItem(contentItems, blockMarkdown);
                  }
                  processedElements.add(element);
             }
             // ** Fallback / Unhandled **
             else {
                  console.warn(`  -> Unhandled relevant block type (will attempt text extraction): <${tagNameLower}>`, element);
-                 // Use the updated helper, it should correctly skip inner known blocks
-                 const fallbackText = convertInlineHtmlToMarkdown(element).trim();
+                 // Use QAClipper.Utils.htmlToMarkdown for unhandled elements
+                 const fallbackText = QAClipper.Utils.htmlToMarkdown(element, {
+                   skipElementCheck: shouldSkipElement
+                 }).trim();
                  if (fallbackText) {
-                    addTextItem(contentItems, fallbackText);
+                    QAClipper.Utils.addTextItem(contentItems, fallbackText);
                  }
                  processedElements.add(element); // Mark fallback as processed too
             }

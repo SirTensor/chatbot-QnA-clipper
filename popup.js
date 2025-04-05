@@ -6,7 +6,8 @@ function saveSettings() {
     labelStyle: document.getElementById('labelStyle').value,
     numberFormat: document.getElementById('numberFormat').value,
     imageFormat: document.getElementById('imageFormat').value,
-    imageLabel: document.getElementById('imageLabel').value
+    imageLabel: document.getElementById('imageLabel').value,
+    includePlatform: document.getElementById('includePlatform').checked
   };
   
   // Save to local storage
@@ -50,6 +51,8 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('headerLevel').value = data.formatSettings.headerLevel || '2';
       document.getElementById('labelStyle').value = data.formatSettings.labelStyle || 'qa';
       document.getElementById('numberFormat').value = data.formatSettings.numberFormat || 'space';
+
+      document.getElementById('includePlatform').checked = data.formatSettings.includePlatform || false;
       
       // Set image format options if they exist
       if (data.formatSettings.imageFormat) {
@@ -72,6 +75,8 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('imageFormat').addEventListener('change', saveSettings);
   document.getElementById('imageLabel').addEventListener('change', saveSettings);
   document.getElementById('imageLabel').addEventListener('input', saveSettings);
+
+  document.getElementById('includePlatform').addEventListener('change', saveSettings);
   
   // Add click handler for the shortcut config link
   document.getElementById('shortcutConfigLink').addEventListener('click', (e) => {

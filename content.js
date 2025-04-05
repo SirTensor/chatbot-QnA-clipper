@@ -2,7 +2,8 @@
 
 /**
  * Main content script for Chatbot Q&A Clipper extension
- * Acts as a bridge between background.js and the new extractor.js logic
+ * Acts as a bridge between background.js and the extractor.js logic
+ * Assumes all required scripts are injected by background.js
  */
 
 // Wrap the entire script in an IIFE to prevent variable leakage to global scope
@@ -17,72 +18,6 @@
 
   // Mark as initialized
   window.qaClipperInitialized = true;
-
-  // Define the scripts to be injected into the page context
-  // Modified to include explicit platform configs
-  const scriptsToInject = ['extractor.js', 'chatgptConfigs.js', 'claudeConfigs.js', 'geminiConfigs.js'];
-
-  // Function to request script injection from background
-  function injectScripts(retryCount = 0) {
-      console.log('Requesting injection of core extractor scripts:', scriptsToInject);
-      
-      // Check if any scripts are available via URLs (for debugging)
-      try {
-        scriptsToInject.forEach(script => {
-          const url = chrome.runtime.getURL(script);
-          console.log(`Script URL check: ${script} -> ${url}`);
-        });
-      } catch (err) {
-        console.error('Error getting script URLs:', err);
-      }
-      
-      chrome.runtime.sendMessage({
-        action: 'inject-scripts',
-        scripts: scriptsToInject
-      }, (response) => {
-        if (chrome.runtime.lastError) {
-          console.error('Error requesting script injection:', chrome.runtime.lastError);
-          
-          // Add retry logic (up to 3 times)
-          if (retryCount < 3) {
-            console.log(`Retrying script injection (attempt ${retryCount + 1}/3)...`);
-            setTimeout(() => injectScripts(retryCount + 1), 1000); // Wait 1 second before retry
-            return;
-          }
-          // Handle error appropriately - maybe disable functionality?
-          return;
-        }
-
-        if (response && response.success) {
-          console.log('Successfully injected core extractor scripts.');
-          // Verify if functions/objects are available on window
-          const status = {
-            extractConversation: !!window.extractConversation,
-            chatgptConfig: !!window.chatgptConfig,
-            claudeConfig: !!window.claudeConfig,
-            geminiConfig: !!window.geminiConfig
-          };
-          console.log('Script injection verification:', status);
-          
-          if (!window.extractConversation) {
-            console.error('Injection reported success but extractConversation not detected on window.');
-            if (retryCount < 3) {
-              setTimeout(() => injectScripts(retryCount + 1), 1000);
-            }
-          }
-        } else {
-          console.error('Failed to inject core extractor scripts:', response?.error || 'Unknown error');
-          // Retry on failure
-          if (retryCount < 3) {
-            console.log(`Retrying script injection (attempt ${retryCount + 1}/3)...`);
-            setTimeout(() => injectScripts(retryCount + 1), 1000);
-          }
-        }
-      });
-  }
-
-  // Inject the necessary scripts
-  injectScripts();
 
   // Single message listener for all actions
   chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -111,8 +46,6 @@
         sendResponse({ error: errorMsg, diagnostics: diagnosticData });
         return true; // Indicate async response
       }
-
-      // The platform-specific config will be loaded dynamically by extractor.js
 
       // Try to detect platform early to provide more diagnostics
       try {
@@ -251,8 +184,6 @@
         return false; // No async response needed for unhandled actions
     }
   });
-
-  // Removed findExtractor() function as it's no longer needed with the new approach
 
 })();
 // --- END OF FILE content.js ---
