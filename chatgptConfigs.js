@@ -1,370 +1,245 @@
-// chatgptConfigs.js
+// --- START OF FILE chatgptConfigs.js ---
 
-// Wrap in an immediately invoked function expression (IIFE) to prevent duplicate declarations
-// when the script is injected multiple times
+// chatgptConfigs.js (v13 - Corrected Image Container Finding Logic)
+
 (function() {
-  // Only set up if not already initialized
-  if (window.chatgptConfig) {
-    console.log("chatgptConfig already initialized, skipping re-initialization");
-    return;
+  // Initialization check
+  if (window.chatgptConfig && window.chatgptConfig.version === 13) { return; }
+
+  // --- Helper Functions ---
+
+  function shouldSkipElement(element) { // Unchanged
+    if (!element || element.nodeType !== Node.ELEMENT_NODE) return false;
+    const selectors = window.chatgptConfig?.selectors;
+    if (!selectors) return false;
+    const tagNameLower = element.tagName.toLowerCase();
+    return (element.matches(selectors.codeBlockContainer)) ||
+           (element.matches(selectors.imageContainerAssistant) && !element.closest('div.markdown.prose')) ||
+           (element.matches(selectors.interactiveBlockContainer)) ||
+           (element.closest(selectors.userMessageContainer) && element.matches('span.hint-pill'));
   }
 
-  /**
-   * Configuration structure for the ChatGPT platform.
-   * Selectors and logic based on analysis of chat.openai.com DOM structure
-   */
+  function processList(el, listType) { // Unchanged
+      let lines = []; let itemIndex = 0;
+      const listItems = el.querySelectorAll(':scope > li');
+      listItems.forEach(li => {
+          const itemMarkdown = QAClipper.Utils.htmlToMarkdown(li, { skipElementCheck: shouldSkipElement, ignoreTags: ['ul', 'ol'] }).trim();
+          if (itemMarkdown) {
+              const marker = listType === 'ul' ? '-' : `${itemIndex + 1}.`;
+              lines.push(`${marker} ${itemMarkdown.replace(/\n+/g, ' ')}`);
+              if (listType === 'ol') itemIndex++;
+          }
+      });
+      return lines.length > 0 ? { type: 'text', content: lines.join('\n') } : null;
+  }
+
+  function processCodeBlock(el) { // Unchanged
+      const selectors = window.chatgptConfig.selectors;
+      const wrapperDiv = el.querySelector(':scope > div.contain-inline-size');
+      const langIndicatorContainer = wrapperDiv ? wrapperDiv.querySelector(':scope > div:first-child') : el.querySelector(':scope > div:first-child[class*="flex items-center"]');
+      let language = null; if (langIndicatorContainer) { language = langIndicatorContainer.textContent?.trim(); }
+      if (!language || ['text', ''].includes(language.toLowerCase())) language = null;
+      const codeElement = el.querySelector(selectors.codeBlockContent);
+      const code = codeElement ? codeElement.textContent.trimEnd() : '';
+      if (!code.trim() && !language) return null;
+      return { type: 'code_block', language: language, content: code };
+  }
+
+   function processAssistantImage(el) { // Uses v9 simplified logic
+       // console.log("[Extractor v13] Processing Image Container:", el);
+       const selectors = window.chatgptConfig.selectors;
+       const targetImgElement = el.querySelector(selectors.imageElementAssistant);
+       if (!targetImgElement) {
+           console.error("[Extractor v13] Image element not found using selector:", selectors.imageElementAssistant, "in container:", el);
+           const anyImg = el.querySelector('img[src*="oaiusercontent"]');
+           if (!anyImg) return null;
+           console.warn("[Extractor v13] Using broader fallback image search.");
+           targetImgElement = anyImg;
+       }
+       const src = targetImgElement.getAttribute('src');
+       if (!src || src.startsWith('data:') || src.startsWith('blob:')) { console.error("[Extractor v13] Selected image has invalid src:", src); return null; }
+       // console.log("[Extractor v13] Successfully selected image src:", src);
+       let altText = targetImgElement.getAttribute('alt')?.trim();
+       const extractedContent = (altText && altText !== "생성된 이미지") ? altText : "Generated Image";
+       try { const absoluteSrc = new URL(src, window.location.origin).href; return { type: 'image', src: absoluteSrc, alt: altText || "Generated Image", extractedContent: extractedContent }; }
+       catch (e) { console.error("[Extractor v13] Error parsing assistant image URL:", e, src); return null; }
+   }
+
+   function processInteractiveBlockTitle(el) { // Unchanged
+      const selectors = window.chatgptConfig.selectors;
+      const titleElement = el.querySelector(selectors.interactiveBlockTitle);
+      const title = titleElement ? titleElement.textContent?.trim() : null;
+      if (title) return { type: 'text', content: `> **${title}**` };
+      return { type: 'text', content: `> [Interactive Block]` };
+   }
+
+  // --- Main Configuration Object ---
   const chatgptConfig = {
-    platformName: 'ChatGPT',
+    platformName: 'Chatgpt',
+    version: 13, // Config version identifier
     selectors: {
-      // --- General ---
-      // Each turn container often holds one user message OR one assistant message block.
-      // We might need to adjust the main extractor loop if turns aren't strictly paired within one container.
-      // For now, assuming extractor.js iterates through these and determines role for each.
-      turnContainer: 'div[data-testid^="conversation-turn-"]', // Matches the article element in old script
-
-      // --- User Turn Specific ---
-      // Find the element with role='user' within the turnContainer
-      userMessageContainer: '[data-message-author-role="user"]', 
-      // Content selectors *within* the userMessageContainer
-      userText: '.markdown, div[class*="prose"], .text-message',
-      userImageContainer: 'button[aria-haspopup="dialog"]',
-      userImageItem: 'img', // User images appear within the user message container
-
-      userFileContainer: '.file-attachment-container', // Container for file attachments
-      userFileItem: '.file-attachment-link', // File download link
-      userFileName: '.file-attachment-name', // File name element
-      userFileType: '.file-attachment-type', // File type indicator
-
-      // --- Assistant Turn Specific ---
-      // Find the element with role='assistant' within the turnContainer
-      assistantMessageContainer: '[data-message-author-role="assistant"]',
-      // Content area *within* the assistantMessageContainer. Process children of the first match.
-      assistantContentArea: '.markdown, div[class*="prose"], .text-message',
-      // Selectors for specific item types within the assistantContentArea
-      textContentBlock: 'p, ul, ol, blockquote, h1, h2, h3, h4, h5, h6, table', // Added headings and tables
+      turnContainer: 'article[data-testid^="conversation-turn-"]',
+      userMessageContainer: 'div[data-message-author-role="user"]',
+      userText: 'div[data-message-author-role="user"] .whitespace-pre-wrap',
+      userImageContainer: 'div[data-message-author-role="user"] div.overflow-hidden.rounded-lg img[src]',
+      userFileContainer: 'div[data-message-author-role="user"] div[class*="group text-token-text-primary"]',
+      userFileName: 'div.truncate.font-semibold',
+      userFileType: 'div.text-token-text-secondary.truncate',
+      // relevantBlocksInTextContainer: Simplified selector for blocks *within* the text container
+      relevantBlocksInTextContainer: `
+        div.markdown.prose > p,
+        div.markdown.prose > ul,
+        div.markdown.prose > ol,
+        div.markdown.prose > pre,
+        div.markdown.prose > h1,
+        div.markdown.prose > h2,
+        div.markdown.prose > h3,
+        div.markdown.prose > h4,
+        div.markdown.prose > h5,
+        div.markdown.prose > h6,
+        div.markdown.prose > hr,
+        div.markdown.prose > table,
+        :scope > pre /* Pre directly under text container */
+      `,
+      // Selector for the main text container itself
+      assistantTextContainer: 'div[data-message-author-role="assistant"]',
+      listItem: 'li',
       codeBlockContainer: 'pre',
       codeBlockContent: 'code',
-      codeBlockLangIndicatorClassPrefix: 'language-',
-
-      imageElement: 'img',
-      // ChatGPT interactive block selectors (placeholders, to be updated with specific details)
-      interactiveBlockContainer: '.chat-plugin-element', // Placeholder for tool/plugin output container
-      interactiveBlockButton: '.chat-plugin-title', // Placeholder for interactive title element
-      interactiveBlockTitle: '.chat-plugin-title-text', // Placeholder for title text element
-      interactiveBlockType: '.chat-plugin-type', // Placeholder for type indicator
-      // ChatGPT side container (Canvas) selectors
-      sideContainer: '.popover flex',
-      sideContainerContent: '.cm-content',
-      sideContainerLangIndicator: 'data-language',
+      codeBlockLangIndicatorContainer: ':scope > div.contain-inline-size > div:first-child, :scope > div:first-child[class*="flex items-center"]',
+      // v13: Direct selector for image container (used in extractAssistantContent)
+      imageContainerAssistant: 'div.group\\/imagegen-image',
+      // v13: Selector for img *within* the container (used in processAssistantImage)
+      imageElementAssistant: 'img[alt="생성된 이미지"][src*="oaiusercontent"]',
+      imageCaption: null,
+      // v13: Direct selector for interactive block (used in extractAssistantContent)
+      interactiveBlockContainer: 'div[id^="textdoc-message-"]',
+      interactiveBlockTitle: 'span.min-w-0.truncate',
     },
 
-    /**
-     * Determines the role ('user' or 'assistant') of a given turn element.
-     * @param {Element} turnElement - The DOM element matching selectors.turnContainer.
-     * @returns {'user'|'assistant'|null} The role, or null if indeterminable.
-     */
-    getRole: (turnElement) => {
-      // Check if userMessageContainer exists.
-      if (turnElement.querySelector(chatgptConfig.selectors.userMessageContainer)) {
-        return 'user';
-      // If userMessageContainer doesn't exist, check if assistantMessageContainer exists.
-      } else if (turnElement.querySelector(chatgptConfig.selectors.assistantMessageContainer)) {
-        return 'assistant';
-      }
-      // Return null if neither exists.
-      return null; 
-    },
+    // --- Extraction Functions ---
+    getRole: (turnElement) => { /* Unchanged */
+        const messageElement = turnElement.querySelector(':scope div[data-message-author-role]'); return messageElement ? messageElement.getAttribute('data-message-author-role') : null; },
+    extractUserText: (turnElement) => { /* Unchanged */
+        const textElement = turnElement.querySelector(chatgptConfig.selectors.userText); return textElement ? QAClipper.Utils.htmlToMarkdown(textElement, { skipElementCheck: shouldSkipElement }).trim() || null : null; },
+    extractUserUploadedImages: (turnElement) => { /* Unchanged */
+        const images = []; const imageElements = turnElement.querySelectorAll(chatgptConfig.selectors.userImageContainer); imageElements.forEach(imgElement => { const src = imgElement.getAttribute('src'); if (src && !src.startsWith('data:') && !src.startsWith('blob:')) { let altText = imgElement.getAttribute('alt')?.trim(); const extractedContent = altText && altText !== "업로드한 이미지" ? altText : "User Uploaded Image"; try { const absoluteSrc = new URL(src, window.location.origin).href; images.push({ type: 'image', sourceUrl: absoluteSrc, isPreviewOnly: false, extractedContent: extractedContent }); } catch (e) { console.error("Error parsing user image URL:", e, src); } } }); return images; },
+    extractUserUploadedFiles: (turnElement) => { /* Unchanged */
+        const files = []; const fileContainers = turnElement.querySelectorAll(chatgptConfig.selectors.userFileContainer); fileContainers.forEach(container => { const nameElement = container.querySelector(chatgptConfig.selectors.userFileName); const typeElement = container.querySelector(chatgptConfig.selectors.userFileType); const fileName = nameElement ? nameElement.textContent?.trim() : null; let fileType = typeElement ? typeElement.textContent?.trim() : 'File'; if (fileType && fileType.includes(' ') && !['kB', 'MB', 'GB'].some(unit => fileType.endsWith(unit))) { fileType = fileType.split(' ')[0]; } else if (fileType && ['kB', 'MB', 'GB'].some(unit => fileType.endsWith(unit))) { fileType = 'File'; } if (fileName) { const previewContent = null; files.push({ type: 'file', fileName: fileName, fileType: fileType, isPreviewOnly: !previewContent, extractedContent: previewContent }); } }); return files; },
 
     /**
-     * Extracts the primary text content from a user turn element.
-     * @param {Element} turnElement - The user turn DOM element (matching turnContainer).
-     * @returns {string|null} The extracted text, or null if not found.
-     */
-    extractUserText: (turnElement) => {
-      const userMsgContainer = turnElement.querySelector(chatgptConfig.selectors.userMessageContainer);
-      if (!userMsgContainer) return null;
-
-      const textElement = userMsgContainer.querySelector(chatgptConfig.selectors.userText);
-      // Fallback to the container itself if specific content selectors fail
-      const target = textElement || userMsgContainer;
-      
-      // Attempt to get text content, excluding potential code blocks inside user messages if any
-      let text = '';
-      target.childNodes.forEach(node => {
-          if (node.nodeType === Node.TEXT_NODE) {
-              text += node.textContent;
-          } else if (node.nodeType === Node.ELEMENT_NODE && !node.matches('pre') /* Exclude code blocks */) {
-              // Crude way to exclude image alt text or other non-primary text
-              if (!node.matches('img')) { 
-                 text += node.textContent; 
-              }
-          }
-      });
-
-      return text.trim() || null;
-    },
-
-    /**
-     * Extracts uploaded image attachments from a user turn element.
-     * @param {Element} turnElement - The user turn DOM element (matching turnContainer).
-     * @returns {Array<UserImage>} An array of UserImage objects.
-     */
-    extractUserUploadedImages: (turnElement) => {
-      const images = [];
-      const userMsgContainer = turnElement.querySelector(chatgptConfig.selectors.userMessageContainer);
-      if (!userMsgContainer) return images;
-
-      // Find the specific container for images within the user message container
-      const imageContainer = userMsgContainer.querySelector(chatgptConfig.selectors.userImageContainer);
-      // If the specific image container isn't found, fall back to searching within the whole user message container
-      // This provides some robustness if the DOM structure varies slightly.
-      const searchScope = imageContainer || userMsgContainer;
-
-      // Search for image items within the determined scope
-      searchScope.querySelectorAll(chatgptConfig.selectors.userImageItem).forEach(img => {
-        const src = img.getAttribute('src');
-        // Filter based on src and size, similar to old logic
-        if (src && !src.startsWith('data:')) {
-          const isOaiDomain = src.includes('oaiusercontent.com');
-          const width = img.naturalWidth || img.width;
-          const height = img.naturalHeight || img.height;
-          const looksLikeContent = width > 32 && height > 32;
-
-          if (isOaiDomain || looksLikeContent) {
-             // Basic check to avoid adding tiny icons that might slip through
-             if(width > 16 && height > 16) {
-                  images.push({
-                    type: 'image',
-                    sourceUrl: new URL(src, window.location.origin).href, // Ensure absolute URL
-                    isPreviewOnly: true,
-                    extractedContent: img.getAttribute('alt') || null, // Get alt text as content if available
-                  });
-             }
-          }
-        }
-      });
-      return images;
-    },
-
-    /**
-     * Extracts uploaded file attachments (non-images) from a user turn element.
-     * @param {Element} turnElement - The user turn DOM element.
-     * @returns {Array<UserFile>} An array of UserFile objects.
-     */
-    extractUserUploadedFiles: (turnElement) => {
-      const files = [];
-      const userMsgContainer = turnElement.querySelector(chatgptConfig.selectors.userMessageContainer);
-      if (!userMsgContainer) return files;
-
-      const fileContainers = userMsgContainer.querySelectorAll(chatgptConfig.selectors.userFileContainer);
-      fileContainers.forEach(container => {
-        const fileLink = container.querySelector(chatgptConfig.selectors.userFileItem);
-        const fileNameElement = container.querySelector(chatgptConfig.selectors.userFileName);
-        const fileTypeElement = container.querySelector(chatgptConfig.selectors.userFileType);
-        
-        if (fileNameElement) {
-          const fileName = fileNameElement.textContent?.trim();
-          const fileType = fileTypeElement?.textContent?.trim() || 'Unknown';
-          
-          // Try to find content preview if available
-          let extractedContent = null;
-          const contentPreview = container.querySelector('.file-content-preview') || 
-                                 container.querySelector('pre') || 
-                                 container.querySelector('.file-content');
-          if (contentPreview) {
-            extractedContent = contentPreview.textContent?.trim() || null;
-          }
-          
-          if (fileName) {
-            files.push({
-              type: 'file',
-              fileName: fileName,
-              fileType: fileType,
-              isPreviewOnly: false,
-              extractedContent: extractedContent
-            });
-          }
-        }
-      });
-
-      return files;
-    },
-
-    /**
-     * Extracts code from the side container (Canvas) that appears when interacting with an interactive block
-     * @returns {Object|null} An object containing code and language, or null if not found
-     */
-    extractSideContainerCode: () => {
-      // Find the side container in the DOM (Canvas in ChatGPT)
-      const sideContainer = document.querySelector(chatgptConfig.selectors.sideContainer);
-      if (!sideContainer) return null;
-      
-      // Find the content element with the actual code
-      const contentElement = sideContainer.querySelector(chatgptConfig.selectors.sideContainerContent);
-      if (!contentElement) return null;
-      
-      // Extract the code content
-      const code = contentElement.textContent?.trim() || '';
-      
-      // Try to determine the language
-      let language = null;
-      const langIndicator = contentElement.getAttribute(chatgptConfig.selectors.sideContainerLangIndicator) || 
-                           contentElement.parentElement?.getAttribute(chatgptConfig.selectors.sideContainerLangIndicator);
-      
-      if (langIndicator) {
-        language = langIndicator;
-      }
-      
-      return code ? { code, language } : null;
-    },
-
-    /**
-     * Extracts the structured content items from an assistant turn element.
-     * @param {Element} turnElement - The assistant turn DOM element (matching turnContainer).
-     * @returns {Array<ContentItem>} An array of ContentItem objects preserving order.
+     * v13: Extracts content by finding image/interactive/text containers separately within the turn.
      */
     extractAssistantContent: (turnElement) => {
-      const contentItems = [];
-      const assistantMsgContainer = turnElement.querySelector(chatgptConfig.selectors.assistantMessageContainer);
-      if (!assistantMsgContainer) return contentItems;
+        const contentItems = [];
+        const selectors = chatgptConfig.selectors;
 
-      const contentArea = assistantMsgContainer.querySelector(chatgptConfig.selectors.assistantContentArea);
-      const targetArea = contentArea || assistantMsgContainer; // Fallback to message container
+        console.log("[v13] Processing assistant turn:", turnElement);
 
-      if (!targetArea) {
-          console.warn("ChatGPT assistant content area not found within:", assistantMsgContainer);
-          return [];
-      }
-
-      // Iterate through direct child nodes of the target content area
-      targetArea.childNodes.forEach(node => {
-        // ---- 1. Element Node Handling ----
-        if (node.nodeType === Node.ELEMENT_NODE) {
-          const element = node;
-
-          // ---- Code Block (`pre`) ----
-          if (element.matches(chatgptConfig.selectors.codeBlockContainer)) {
-            const codeElement = element.querySelector(chatgptConfig.selectors.codeBlockContent);
-            const content = codeElement ? codeElement.textContent || '' : element.textContent || '';
-            let language = null;
-            if (codeElement) {
-               // Try extracting language from class name (e.g., class="language-python")
-              const langClass = Array.from(codeElement.classList).find(cls => cls.startsWith(chatgptConfig.selectors.codeBlockLangIndicatorClassPrefix));
-              if (langClass) {
-                language = langClass.substring(chatgptConfig.selectors.codeBlockLangIndicatorClassPrefix.length);
-              } else {
-                // Fallback: Check parent div for language attribute (sometimes used)
-                const parentWithLang = element.closest('div[class*="language-"]');
-                if (parentWithLang) {
-                     const langClassDiv = Array.from(parentWithLang.classList).find(cls => cls.startsWith(chatgptConfig.selectors.codeBlockLangIndicatorClassPrefix));
-                     if(langClassDiv) {
-                         language = langClassDiv.substring(chatgptConfig.selectors.codeBlockLangIndicatorClassPrefix.length);
-                     }
-                }
-              }
-            }
-            
-            // Add as a standalone code block - no longer checking for association with interactive blocks
-            contentItems.push({ type: 'code_block', language, content });
-          }
-
-          // ---- Interactive Block ----
-          else if (element.matches(chatgptConfig.selectors.interactiveBlockContainer) && 
-                   element.querySelector(chatgptConfig.selectors.interactiveBlockButton)) {
-            const titleElement = element.querySelector(chatgptConfig.selectors.interactiveBlockTitle);
-            const typeElement = element.querySelector(chatgptConfig.selectors.interactiveBlockType);
-            
-            const title = titleElement?.textContent?.trim() || 'Untitled Plugin/Tool';
-            const typeText = typeElement?.textContent?.trim() || 'Unknown'; 
-            
-            // Try to get code from the side container
-            const sideContainerData = chatgptConfig.extractSideContainerCode();
-            
-            const interactiveItem = {
-              type: 'interactive_block',
-              title: title,
-              code: sideContainerData?.code || null,
-              language: sideContainerData?.language || null,
-              platformSpecificData: {
-                chatgptToolType: typeText,
-              }
-            };
-            contentItems.push(interactiveItem);
-          }
-
-          // ---- Image (`img`) ----
-          else if (element.matches(chatgptConfig.selectors.imageElement)) {
-              const src = element.getAttribute('src');
-              const alt = element.getAttribute('alt');
-              // Filter based on src and size, similar to user image logic
-              if (src && !src.startsWith('data:')) {
-                   const isOaiDomain = src.includes('oaiusercontent.com');
-                   const width = element.naturalWidth || element.width;
-                   const height = element.naturalHeight || element.height;
-                   const looksLikeContent = width > 32 && height > 32;
-
-                   if ((isOaiDomain || looksLikeContent) && width > 16 && height > 16) {
-                       contentItems.push({
-                          type: 'image',
-                          src: new URL(src, window.location.origin).href, // Ensure absolute URL
-                          alt: alt || null,
-                          extractedContent: alt || null
-                       });
-                   }
-              }
-          }
-          
-          // ---- Standard Text/List/Table/Heading Content ----
-          else if (element.matches(chatgptConfig.selectors.textContentBlock)) {
-             // Use textContent for simplicity; complex HTML-to-Markdown is avoided
-             const text = element.textContent?.trim();
-             if (text) {
-                 // Merge with previous text item if possible
-                 const lastItem = contentItems.length > 0 ? contentItems[contentItems.length - 1] : null;
-                 if (lastItem && lastItem.type === 'text') {
-                   lastItem.content += `\n\n${text}`; // Add paragraph break
-                 } else {
-                   contentItems.push({ type: 'text', content: text });
-                 }
-             }
-          }
-
-          // ---- Fallback for Unhandled Element Nodes ----
-          // Capture text content of other unexpected elements if they seem substantial
-          else if (!element.matches(chatgptConfig.selectors.codeBlockContainer) && 
-                   !element.matches(chatgptConfig.selectors.imageElement)) { // Avoid re-capturing handled types
-               const fallbackText = element.textContent?.trim();
-               if (fallbackText && fallbackText.length > 5) { // Avoid tiny fragments
-                  console.warn("ChatGPT: Unhandled element type in assistant content, capturing text:", element);
-                  const lastItem = contentItems.length > 0 ? contentItems[contentItems.length - 1] : null;
-                   if (lastItem && lastItem.type === 'text') {
-                       lastItem.content += `\n\n${fallbackText}`;
-                   } else {
-                       contentItems.push({ type: 'text', content: fallbackText });
-                   }
-               }
-          }
+        // 1. Find and Process Image Container(s) - Use direct selector
+        const imageContainer = turnElement.querySelector(`:scope ${selectors.imageContainerAssistant}`);
+        if (imageContainer) {
+            console.log("[v13] Found image container:", imageContainer);
+            const imageItem = processAssistantImage(imageContainer);
+            if (imageItem) contentItems.push(imageItem);
+        } else {
+             console.log("[v13] No image container found using selector:", selectors.imageContainerAssistant);
         }
-        // ---- 2. Text Node Handling ----
-        // Capture text nodes that are direct children of the contentArea
-        else if (node.nodeType === Node.TEXT_NODE) {
-          const text = node.textContent?.trim();
-          if (text) {
-            const lastItem = contentItems.length > 0 ? contentItems[contentItems.length - 1] : null;
-            if (lastItem && lastItem.type === 'text') {
-              lastItem.content += ' ' + text; // Append with space
-            } else {
-              contentItems.push({ type: 'text', content: text });
-            }
-          }
-        }
-      }); // End loop through childNodes
 
-      return contentItems;
+        // 2. Find and Process Interactive Block(s) - Use direct selector (TITLE ONLY)
+        const interactiveBlock = turnElement.querySelector(`:scope ${selectors.interactiveBlockContainer}`);
+         if (interactiveBlock) {
+             console.log("[v13] Found interactive block:", interactiveBlock);
+             const titleItem = processInteractiveBlockTitle(interactiveBlock);
+             if (titleItem) contentItems.push(titleItem);
+             // Code is expected in a following <pre> tag found in step 3
+         } else {
+              console.log("[v13] No interactive block found using selector:", selectors.interactiveBlockContainer);
+         }
+
+        // 3. Find and Process the Main Text/Code Container
+        const textContainer = turnElement.querySelector(selectors.assistantTextContainer);
+        if (textContainer) {
+            console.log("[v13] Found text container:", textContainer);
+            const relevantElements = textContainer.querySelectorAll(selectors.relevantBlocksInTextContainer);
+            console.log(`[v13] Found ${relevantElements.length} relevant elements inside text container.`);
+            processRelevantElements(relevantElements, contentItems); // Process elements *within* text container
+        } else {
+             console.warn("[v13] Assistant text container not found in turn:", turnElement);
+             // If text container is missing, but we found image/interactive, that might be okay.
+             // If nothing found at all, it's an empty turn.
+        }
+
+        console.log("[Extractor - ChatGPT v13] Final contentItems:", JSON.stringify(contentItems, null, 2));
+        return contentItems;
     },
-  };
 
-  // Expose to window scope
+  }; // End chatgptConfig
+
+
+  /**
+   * Helper function to process relevant elements found *within the text container*.
+   */
+   function processRelevantElements(elements, contentItems) { // v12 logic (Markdown grouping)
+       const processedElements = new Set();
+       let consecutiveMdBlockElements = [];
+
+       function flushMdBlock() {
+           if (consecutiveMdBlockElements.length > 0) {
+               // console.log(`  -> Flushing ${consecutiveMdBlockElements.length} accumulated MD blocks.`);
+               const tempDiv = document.createElement('div');
+               consecutiveMdBlockElements.forEach(el => tempDiv.appendChild(el.cloneNode(true)));
+               const combinedMarkdown = QAClipper.Utils.htmlToMarkdown(tempDiv, { skipElementCheck: shouldSkipElement }).trim();
+               if (combinedMarkdown) { QAClipper.Utils.addTextItem(contentItems, combinedMarkdown); }
+               consecutiveMdBlockElements = [];
+           }
+       }
+
+       elements.forEach((element) => {
+           if (processedElements.has(element)) return;
+           const tagNameLower = element.tagName.toLowerCase();
+           const isStandardMdBlock = ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'hr', 'table'].includes(tagNameLower); // No need to check closest('prose') anymore
+           let handledSeparately = false;
+
+           // --- Handle Special Blocks First (Interrupt Grouping) ---
+           // Images & Interactive titles are handled *outside* this function now
+           if (tagNameLower === 'pre') {
+               flushMdBlock();
+               const item = processCodeBlock(element);
+               if (item) contentItems.push(item);
+               processedElements.add(element);
+               element.querySelectorAll('*').forEach(child => processedElements.add(child));
+               handledSeparately = true;
+           }
+           else if (tagNameLower === 'ul' || tagNameLower === 'ol') {
+               flushMdBlock();
+               const listItem = processList(element, tagNameLower);
+               if (listItem) contentItems.push(listItem);
+               processedElements.add(element);
+               element.querySelectorAll('*').forEach(child => processedElements.add(child));
+               handledSeparately = true;
+           }
+
+           // --- Accumulate Standard Blocks ---
+           if (!handledSeparately) {
+               if (isStandardMdBlock) {
+                   consecutiveMdBlockElements.push(element);
+                   processedElements.add(element);
+               } else {
+                   flushMdBlock(); // Flush before fallback
+                   console.warn(`  -> Fallback [Text Container]: Unhandled element: <${tagNameLower}>`, element);
+                   const fallbackText = QAClipper.Utils.htmlToMarkdown(element, { skipElementCheck: shouldSkipElement }).trim();
+                   if (fallbackText) { QAClipper.Utils.addTextItem(contentItems, fallbackText); }
+                   processedElements.add(element);
+               }
+           }
+       });
+       flushMdBlock(); // Final flush
+   } // End processRelevantElements
+
+
   window.chatgptConfig = chatgptConfig;
-  console.log("chatgptConfig initialized successfully");
-})(); 
+  console.log("chatgptConfig initialized (v13)");
+
+})();
+// --- END OF FILE chatgptConfigs.js ---
