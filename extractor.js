@@ -122,9 +122,13 @@
           // 1. Select all conversation turn elements using config.selectors.turnContainer
           const turnElements = Array.from(document.querySelectorAll(config.selectors.turnContainer));
           if (!turnElements || turnElements.length === 0) {
-            console.warn(`Chatbot Clipper: No conversation turns found for selector: ${config.selectors.turnContainer}`);
-            // Decide if we should return null or an empty conversation object
-            return { platform, conversationTurns: [] }; 
+            console.log(`Chatbot Clipper: No conversation turns found for selector: ${config.selectors.turnContainer}`);
+            // Return a valid empty conversation structure rather than null
+            console.log(`Chatbot Clipper: Returning empty conversation structure for ${platform} - this is normal for new chats`);
+            return { 
+              platform, 
+              conversationTurns: [] 
+            }; 
           }
 
           const conversationTurns = [];

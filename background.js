@@ -661,6 +661,20 @@ async function extractQA() {
       return; // Stop execution
     }
 
+    // Check for empty conversation (valid structure but no content)
+    if (response && response.data && response.data.platform && 
+        Array.isArray(response.data.conversationTurns) && 
+        response.data.conversationTurns.length === 0) {
+      console.log(`Empty conversation detected on tab ${currentTabId} (${tabUrl}) - normal case for new chat`);
+      await showToast(currentTabId, `No conversation to extract yet.`, 2000);
+      sendMessageToPopup({
+        action: 'extraction-complete',
+        success: true,
+        message: `No conversation to extract yet.`
+      });
+      return; // Stop execution but don't log as error
+    }
+
     // Ensure data is in the new expected format
     if (response && response.data && response.data.platform && Array.isArray(response.data.conversationTurns)) {
       console.log(`Received ${response.data.conversationTurns.length} items for platform ${response.data.platform} on tab ${currentTabId}`);
