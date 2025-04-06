@@ -1,12 +1,12 @@
-// geminiConfigs.js (v30 - Fixed nested list formatting)
+// geminiConfigs.js (v31 - All Headings Support Simplified)
 
 (function() {
     // Initialization check
-    // v30: Increment version number
-    if (window.geminiConfig && window.geminiConfig.version >= 30) { return; }
-  
+    // v31: Increment version number and add h1-h6 support
+    if (window.geminiConfig && window.geminiConfig.version >= 31) { return; }
+
     // --- Helper Functions ---
-  
+
     /**
      * Determines if an element should be skipped during markdown conversion at the top level.
      * @param {HTMLElement} element - The element to check
@@ -17,7 +17,7 @@
       const selectors = window.geminiConfig?.selectors;
       if (!selectors) return false;
       const tagNameLower = element.tagName.toLowerCase();
-  
+
       // Skip elements handled by dedicated processors
       return (selectors.interactiveBlockContainer && element.matches(selectors.interactiveBlockContainer)) ||
              (selectors.imageContainerAssistant && element.matches(selectors.imageContainerAssistant)) ||
@@ -25,7 +25,7 @@
              tagNameLower === 'ul' || tagNameLower === 'ol' || tagNameLower === 'pre' ||
              tagNameLower === 'table'; // Skip table at top level
     }
-  
+
     /**
      * Processes list elements (ul, ol) into markdown text.
      * v30: Improved nested list support by preserving line breaks in nested elements
@@ -48,11 +48,11 @@
             let directContent = '';
             for (let node of li.childNodes) {
                 // Skip nested lists
-                if (node.nodeType === Node.ELEMENT_NODE && 
+                if (node.nodeType === Node.ELEMENT_NODE &&
                     (node.tagName.toLowerCase() === 'ul' || node.tagName.toLowerCase() === 'ol')) {
                     continue;
                 }
-                
+
                 // For text or non-list elements, add to direct content
                 if (node.nodeType === Node.TEXT_NODE) {
                     directContent += node.textContent;
@@ -61,23 +61,23 @@
                     let elementContent = QAClipper.Utils.htmlToMarkdown(node, {
                         ignoreTags: ['ul', 'ol']
                     });
-                    
+
                     // Enhanced HTML tag handling: wrap HTML tags in backticks
                     elementContent = elementContent.replace(/<(\/?[a-zA-Z][a-zA-Z0-9]*(?:\s[^>]*)?)>/g, '`<$1>`');
-                    
+
                     directContent += elementContent;
                 }
             }
-            
+
             // Trim and format the direct content
             directContent = directContent.trim();
-            
+
             if (directContent) {
                 const marker = listType === 'ul' ? '-' : `${startNum + itemIndex}.`;
                 const indent = '  '.repeat(nestLevel);
                 lines.push(`${indent}${marker} ${directContent}`);
                 if (listType === 'ol') itemIndex++;
-                
+
                 // Process any nested lists
                 const nestedLists = li.querySelectorAll(':scope > ul, :scope > ol');
                 nestedLists.forEach(nestedList => {
@@ -91,7 +91,7 @@
         });
         return lines.length > 0 ? { type: 'text', content: lines.join('\n') } : null;
     }
-  
+
     /**
      * Processes code block elements into a structured object.
      * @param {HTMLElement} el - The code-block element.
@@ -106,7 +106,7 @@
         const language = langElement ? langElement.textContent?.trim() : null;
         return code.trim() ? { type: 'code_block', language: language, content: code.trim() } : null;
     }
-  
+
     /**
      * Processes image elements into a structured object.
      * @param {HTMLElement} el - The image container or image element.
@@ -117,7 +117,7 @@
         const imgSelector = geminiConfig.selectors.imageElementAssistant || 'img.image.loaded';
         let imgElement = null, captionElement = null;
         const containerSelector = geminiConfig.selectors.imageContainerAssistant || 'single-image';
-  
+
         if (el.matches(containerSelector)) {
             imgElement = el.querySelector(imgSelector);
             captionElement = el.querySelector(captionSelector);
@@ -126,19 +126,19 @@
             const container = el.closest(containerSelector);
             if (container) captionElement = container.querySelector(captionSelector);
         }
-  
+
         if (!imgElement) return null;
         const src = imgElement.getAttribute('src');
         if (!src || src.startsWith('blob:') || src.startsWith('data:')) return null;
-  
+
         let altText = captionElement ? captionElement.textContent?.trim() : null;
         if (!altText) altText = imgElement.getAttribute('alt')?.trim();
         if (!altText) altText = "Image";
-  
+
         const absoluteSrc = new URL(src, window.location.origin).href;
         return { type: 'image', src: absoluteSrc, alt: altText, extractedContent: altText };
     }
-  
+
     /**
      * v30: Manually processes an HTML table element into a Markdown table string.
      * Added logic to skip tbody header row during data processing.
@@ -149,13 +149,13 @@
         if (!tableElement || tableElement.tagName.toLowerCase() !== 'table') {
             return null;
         }
-        console.log("  -> [Table Processor v30] Processing table:", tableElement);
-  
+        console.log("  -> [Table Processor v31] Processing table:", tableElement);
+
         const markdownRows = [];
         let columnCount = 0;
         let headerRowCount = 0; // To count rows added for header/separator
         let tbodyHeaderRow = null; // v30: To store the row if header is found in tbody
-  
+
         // Process Header (thead)
         const thead = tableElement.querySelector(':scope > thead');
         if (thead) {
@@ -171,15 +171,15 @@
                     markdownRows.push(`| ${headerContent.join(' | ')} |`);
                     markdownRows.push(`|${'---|'.repeat(columnCount)}`);
                     headerRowCount = 2; // Header + Separator
-                    console.log(`  -> [Table Processor v30] Header found in thead with ${columnCount} columns.`);
-                } else { console.log("  -> [Table Processor v30] thead row found but no 'th' cells."); }
-            } else { console.log("  -> [Table Processor v30] 'thead' found but no 'tr' inside."); }
-        } else { console.log("  -> [Table Processor v30] No 'thead' found in table."); }
-  
+                    console.log(`  -> [Table Processor v31] Header found in thead with ${columnCount} columns.`);
+                } else { console.log("  -> [Table Processor v31] thead row found but no 'th' cells."); }
+            } else { console.log("  -> [Table Processor v31] 'thead' found but no 'tr' inside."); }
+        } else { console.log("  -> [Table Processor v31] No 'thead' found in table."); }
+
         // If no header found in thead, try tbody
         const tbody = tableElement.querySelector(':scope > tbody');
         if (columnCount === 0 && tbody) {
-            console.log("  -> [Table Processor v30] Attempting to find header row in 'tbody'.");
+            console.log("  -> [Table Processor v31] Attempting to find header row in 'tbody'.");
             const firstRow = tbody.querySelector(':scope > tr');
             if (firstRow) {
                 // v30: Store the potential header row from tbody
@@ -194,7 +194,7 @@
                      markdownRows.push(`| ${headerContent.join(' | ')} |`);
                      markdownRows.push(`|${'---|'.repeat(columnCount)}`);
                      headerRowCount = 2;
-                     console.log(`  -> [Table Processor v30] Found 'th' header row in 'tbody' with ${columnCount} columns.`);
+                     console.log(`  -> [Table Processor v31] Found 'th' header row in 'tbody' with ${columnCount} columns.`);
                 } else {
                     const firstRowTds = Array.from(firstRow.querySelectorAll(':scope > td'));
                     if (firstRowTds.length > 0) {
@@ -206,29 +206,29 @@
                         markdownRows.push(`| ${headerContent.join(' | ')} |`);
                         markdownRows.push(`|${'---|'.repeat(columnCount)}`);
                         headerRowCount = 2;
-                        console.warn(`  -> [Table Processor v30] Using first 'tbody' row with TDs as header (${columnCount} columns).`);
+                        console.warn(`  -> [Table Processor v31] Using first 'tbody' row with TDs as header (${columnCount} columns).`);
                     }
                 }
             }
         }
-  
+
         // Abort if no header could be determined
         if (columnCount === 0) {
-            console.warn("[Extractor v30 - Table] Table has no discernible header. Cannot generate Markdown.", tableElement);
+            console.warn("[Extractor v31 - Table] Table has no discernible header. Cannot generate Markdown.", tableElement);
             return null;
         }
-  
+
         // Process Body (tbody)
         if (tbody) {
             const bodyRows = tbody.querySelectorAll(':scope > tr');
-            console.log(`  -> [Table Processor v30] Processing ${bodyRows.length} rows in 'tbody'.`);
+            console.log(`  -> [Table Processor v31] Processing ${bodyRows.length} rows in 'tbody'.`);
             bodyRows.forEach((row, rowIndex) => {
                 // *** v30: ADDED CHECK ***: Skip the row if it was identified as the tbody header row
                 if (row === tbodyHeaderRow) {
-                    console.log(`  -> [Table Processor v30] Skipping row ${rowIndex+1} as it was used as tbody header.`);
+                    console.log(`  -> [Table Processor v31] Skipping row ${rowIndex+1} as it was used as tbody header.`);
                     return; // Skip this iteration
                 }
-  
+
                 // Now, look for data cells (td) in the remaining rows
                 const cells = Array.from(row.querySelectorAll(':scope > td'));
                 if (cells.length === columnCount) {
@@ -239,37 +239,38 @@
                     markdownRows.push(`| ${cellContent.join(' | ')} |`);
                 } else {
                     // This warning should now only appear for actual data rows with mismatched columns
-                    console.warn(`  -> [Table Processor v30] Data row ${rowIndex+1} skipped. Expected ${columnCount} 'td' cells, found ${cells.length}.`, row);
+                    console.warn(`  -> [Table Processor v31] Data row ${rowIndex+1} skipped. Expected ${columnCount} 'td' cells, found ${cells.length}.`, row);
                 }
             });
         } else {
-            console.log("  -> [Table Processor v30] No 'tbody' found in table.");
+            console.log("  -> [Table Processor v31] No 'tbody' found in table.");
         }
-  
+
         // Need header + separator (already counted in headerRowCount) + optional data rows
         if (headerRowCount > 0) { // Check if header was successfully added
-             console.log("  -> [Table Processor v30] Successfully generated Markdown table.");
+             console.log("  -> [Table Processor v31] Successfully generated Markdown table.");
              // Ensure there's at least header + separator before joining
              return markdownRows.length >= 2 ? markdownRows.join('\n') : null;
         } else {
              // This path shouldn't be reached if columnCount > 0 check passed, but added for safety
-             console.warn("  -> [Table Processor v30] Failed to generate valid Markdown (header processing failed).");
+             console.warn("  -> [Table Processor v31] Failed to generate valid Markdown (header processing failed).");
              return null;
         }
     }
-  
-  
+
+
     // --- Main Configuration Object ---
     const geminiConfig = {
       platformName: 'Gemini',
-      version: 30, // v30: Config version identifier
+      version: 31, // v31: Config version identifier
       selectors: {
         turnContainer: 'user-query, model-response',
         userMessageContainer: 'user-query', userText: '.query-text',
         userImageContainer: 'user-query-file-preview', userImageLink: 'a[href^="https://lens.google.com/uploadbyurl?url="]',
         userFileContainer: '.file-preview-container', userFileItem: '.file-upload-link', userFileName: '.new-file-name', userFileType: '.new-file-type',
         assistantContentArea: 'div.markdown.markdown-main-panel',
-        relevantBlocks: 'p, ul, ol, code-block, single-image, div.attachment-container.immersive-entry-chip, table',
+        // Added all heading levels (h1-h6) to relevantBlocks
+        relevantBlocks: 'p, h1, h2, h3, h4, h5, h6, ul, ol, code-block, single-image, div.attachment-container.immersive-entry-chip, table',
         listItem: 'li',
         codeBlockContent: 'pre > code', codeBlockLangIndicator: 'div.code-block-decoration > span',
         imageContainerAssistant: 'single-image', imageElementAssistant: 'img.image.loaded', imageCaption: 'div.caption', imageElement: 'img',
@@ -278,7 +279,7 @@
         interactiveBlockTitle: 'div[data-test-id="artifact-text"]',
         interactiveBlockContent: null,
       },
-  
+
       // --- Extraction Functions ---
       getRole: (turnElement) => {if(!turnElement||typeof turnElement.tagName!=='string')return null;const t=turnElement.tagName.toLowerCase();if(t==='user-query')return 'user';if(t==='model-response')return 'assistant';return null; },
       extractUserText: (turnElement) => {
@@ -305,7 +306,7 @@
                               const extractedContent = altText || "User Uploaded Image";
                               images.push({ type: 'image', sourceUrl: decodedUrl, isPreviewOnly: false, extractedContent: extractedContent });
                           }
-                      } catch (e) { console.error("[Extractor v30] Error parsing user image URL:", e, href); }
+                      } catch (e) { console.error("[Extractor v31] Error parsing user image URL:", e, href); }
                   }
               }
           });
@@ -313,36 +314,51 @@
       },
       extractUserUploadedFiles: (turnElement) => { const f=[]; turnElement.querySelectorAll(':scope '+geminiConfig.selectors.userFileContainer).forEach(c=>{const nE=c.querySelector(geminiConfig.selectors.userFileName),tE=c.querySelector(geminiConfig.selectors.userFileType); if(nE){const n=nE.textContent?.trim(),t=tE?.textContent?.trim()||'U';let eC=null;const p=c.querySelector('.file-preview-content,.text-preview,pre');if(p)eC=p.textContent?.trim()||null; if(n)f.push({type:'file',fileName:n,fileType:t,isPreviewOnly:!eC,extractedContent:eC});}}); return f; },
       extractSideContainerCode: () => { return null; },
-  
+
       /**
        * Extracts structured content using querySelectorAll.
-       * v30: Uses updated processList function for better nested list support
+       * v31: Added handling for all heading tags (h1-h6).
        */
       extractAssistantContent: (turnElement) => {
           const contentItems = [];
           const contentArea = turnElement.querySelector(geminiConfig.selectors.assistantContentArea);
-          if (!contentArea) { console.warn("[Extractor v30] Gemini markdown content area not found."); return []; }
-  
-          console.log("[Extractor v30] Starting assistant extraction (Fixed nested list formatting)");
-  
+          if (!contentArea) { console.warn("[Extractor v31] Gemini markdown content area not found."); return []; }
+
+          console.log("[Extractor v31] Starting assistant extraction (Added h1-h6 support)");
+
           const relevantElements = contentArea.querySelectorAll(geminiConfig.selectors.relevantBlocks);
-          console.log(`[Extractor v30] Found ${relevantElements.length} relevant block elements.`);
+          console.log(`[Extractor v31] Found ${relevantElements.length} relevant block elements.`);
           const processedElements = new Set();
-  
+
           relevantElements.forEach((element, index) => {
               if (processedElements.has(element)) return;
-  
+
               const tagNameLower = element.tagName.toLowerCase();
+              const isHeading = tagNameLower.match(/^h[1-6]$/);
               const isInteractiveBlock = element.matches(geminiConfig.selectors.interactiveBlockContainer);
               const isImageContainer = element.matches(geminiConfig.selectors.imageContainerAssistant);
               const isCodeBlock = tagNameLower === 'code-block';
               const isTable = tagNameLower === 'table';
-  
-              console.log(`[Extractor v30] Processing Element #${index}: <${tagNameLower}>`);
+
+              console.log(`[Extractor v31] Processing Element #${index}: <${tagNameLower}>`);
               let item = null;
-  
+
               // --- Process based on type ---
-              if (isInteractiveBlock) {
+              if (isHeading) {
+                  console.log(`  -> Handling as Heading (${tagNameLower})`);
+                  
+                  // Simple heading processing without separate function
+                  const level = parseInt(tagNameLower.charAt(1));
+                  const headingMarkup = '#'.repeat(level);
+                  const headingText = element.textContent.trim();
+                  
+                  if (headingText) {
+                      QAClipper.Utils.addTextItem(contentItems, `${headingMarkup} ${headingText}`);
+                  }
+                  
+                  processedElements.add(element);
+              }
+              else if (isInteractiveBlock) {
                   console.log("  -> Handling as Interactive Block");
                   const titleElement = element.querySelector(geminiConfig.selectors.interactiveBlockTitle);
                   const title = titleElement ? titleElement.textContent?.trim() : '[Interactive Block]';
@@ -411,13 +427,13 @@
                    element.querySelectorAll('*').forEach(child => processedElements.add(child));
               }
           }); // End loop
-  
-          console.log("[Extractor v30] Final contentItems generated:", JSON.stringify(contentItems, null, 2));
+
+          console.log("[Extractor v31] Final contentItems generated:", JSON.stringify(contentItems, null, 2));
           return contentItems;
       }, // End extractAssistantContent
-  
+
     }; // End geminiConfig
-  
+
     window.geminiConfig = geminiConfig;
-    console.log("geminiConfig initialized (v30 - Fixed nested list formatting)");
-  })(); // End of IIFE
+    console.log("geminiConfig initialized (v31 - Added h1-h6 support)");
+})(); // End of IIFE
