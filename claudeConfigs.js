@@ -1,8 +1,8 @@
-// claudeConfig.js (v4 - 직계 자식 순차 처리)
+// claudeConfig.js (v5 - Table Handling)
 
 (function() {
   // Initialization check to prevent re-running the script if already loaded
-  if (window.claudeConfig && window.claudeConfig.version >= 4) {
+  if (window.claudeConfig && window.claudeConfig.version >= 5) {
     console.log("Claude config already initialized (v" + window.claudeConfig.version + "), skipping.");
     return;
   }
@@ -25,6 +25,7 @@
     return tagNameLower === 'ul' ||
            tagNameLower === 'ol' ||
            tagNameLower === 'pre' || // Handled by processCodeBlock
+           tagNameLower === 'table' || // Skip tables (handled separately)
            element.closest(selectors.artifactButton); // Check if element is INSIDE an artifact button/cell
   }
 
@@ -64,6 +65,14 @@
    */
   function processCodeBlock(el) {
     const selectors = window.claudeConfig.selectors;
+    
+    // Special handling: case of table container (table pre)
+    const tableElement = el.querySelector('table');
+    if (tableElement) {
+      return processTableToMarkdown(tableElement);
+    }
+    
+    // General code block processing
     const codeElement = el.querySelector(selectors.codeBlockContent);
     const code = codeElement ? codeElement.textContent : '';
     // Language is often in the class name like 'language-python'
@@ -86,6 +95,101 @@
     return code.trim() ? { type: 'code_block', language: language, content: code.trimEnd() } : null;
   }
 
+  /**
+   * Converts table elements to Markdown table strings.
+   * @param {HTMLTableElement} tableElement - The table element to process
+   * @returns {object|null} - A text item containing the Markdown table or null
+   */
+  function processTableToMarkdown(tableElement) {
+    if (!tableElement || tableElement.tagName.toLowerCase() !== 'table') {
+      console.warn("[Claude Extractor v5] Invalid table element:", tableElement);
+      return null;
+    }
+
+    console.log("[Claude Extractor v5] Processing table to Markdown");
+    const markdownRows = [];
+    let columnCount = 0;
+
+    // Header processing (thead)
+    const thead = tableElement.querySelector(':scope > thead');
+    if (thead) {
+      const headerRow = thead.querySelector(':scope > tr');
+      if (headerRow) {
+        const headerCells = Array.from(headerRow.querySelectorAll(':scope > th'));
+        columnCount = headerCells.length;
+        if (columnCount > 0) {
+          const headerContent = headerCells.map(th => {
+            // Convert cell content to Markdown (escape pipe characters)
+            return QAClipper.Utils.htmlToMarkdown(th, { 
+              skipElementCheck: shouldSkipElement, 
+              ignoreTags: ['table', 'tr', 'th', 'td'] 
+            }).trim().replace(/\|/g, '\\|');
+          });
+          markdownRows.push(`| ${headerContent.join(' | ')} |`);
+          // Add separator line
+          markdownRows.push(`|${'---|'.repeat(columnCount)}`);
+        }
+      }
+    }
+
+    if (columnCount === 0) {
+      console.warn("[Claude Extractor v5] Table has no header (thead > tr > th). Trying fallback to first row.");
+      // If there is no header, attempt to use the first row as the header
+      const firstRow = tableElement.querySelector(':scope > tbody > tr:first-child');
+      if (firstRow) {
+        const cells = Array.from(firstRow.querySelectorAll(':scope > td'));
+        columnCount = cells.length;
+        if (columnCount > 0) {
+          const firstRowContent = cells.map(td => {
+            return QAClipper.Utils.htmlToMarkdown(td, {
+              skipElementCheck: shouldSkipElement,
+              ignoreTags: ['table', 'tr', 'th', 'td']
+            }).trim().replace(/\|/g, '\\|');
+          });
+          markdownRows.push(`| ${firstRowContent.join(' | ')} |`);
+          markdownRows.push(`|${'---|'.repeat(columnCount)}`);
+        }
+      }
+    }
+
+    if (columnCount === 0) {
+      console.warn("[Claude Extractor v5] Cannot determine table structure. Skipping.");
+      return null;
+    }
+
+    // Body processing (tbody)
+    const tbody = tableElement.querySelector(':scope > tbody');
+    if (tbody) {
+      const bodyRows = tbody.querySelectorAll(':scope > tr');
+      // If thead was absent and the first row was used as header, skip the first row
+      const startIdx = markdownRows.length === 2 && !thead ? 1 : 0;
+      
+      for (let i = startIdx; i < bodyRows.length; i++) {
+        const row = bodyRows[i];
+        const cells = Array.from(row.querySelectorAll(':scope > td'));
+        
+        // Check if the number of cells matches the column count
+        if (cells.length === columnCount) {
+          const cellContent = cells.map(td => {
+            return QAClipper.Utils.htmlToMarkdown(td, {
+              skipElementCheck: shouldSkipElement,
+              ignoreTags: ['table', 'tr', 'th', 'td']
+            }).trim().replace(/\|/g, '\\|').replace(/\n+/g, ' '); // Escape pipes and handle line breaks
+          });
+          markdownRows.push(`| ${cellContent.join(' | ')} |`);
+        } else {
+          console.warn("[Claude Extractor v5] Table row skipped due to column count mismatch:", cells.length, "vs", columnCount);
+        }
+      }
+    }
+
+    // Check if there is at least a header + separator + data row
+    const markdownTable = markdownRows.length > 2 ? markdownRows.join('\n') : null;
+    console.log("[Claude Extractor v5] Generated Markdown table:", markdownTable);
+    
+    return markdownTable ? { type: 'text', content: markdownTable } : null;
+  }
+
    /**
    * Processes artifact buttons/cells within assistant messages to extract title only.
    * @param {HTMLElement} artifactCellEl - The artifact cell element (`div.artifact-block-cell`).
@@ -97,7 +201,7 @@
     const titleElement = artifactCellEl.querySelector(selectors.artifactTitle);
     const title = titleElement ? titleElement.textContent?.trim() : '[Artifact]'; // Default title
 
-    console.log(`[Claude Extractor v4] Found artifact cell with title: "${title}". Code extraction skipped.`);
+    console.log(`[Claude Extractor v5] Found artifact cell with title: "${title}". Code extraction skipped.`);
 
     // Return an interactive_block item with only the title
     return {
@@ -111,7 +215,7 @@
   // --- Main Configuration Object ---
   const claudeConfig = {
     platformName: 'Claude',
-    version: 4, // Config version identifier
+    version: 5, // Update config version identifier
     selectors: {
       // Container for a single turn (user or assistant)
       turnContainer: 'div[data-test-render-count]',
@@ -128,9 +232,9 @@
 
       // --- Assistant Turn Selectors ---
       assistantMessageContainer: 'div.font-claude-message',
-      // Selector for the grid *inside* a tabindex div (used in v4 logic)
+      // Selector for the grid *inside* a tabindex div (used in v5 logic)
       assistantContentGridInTabindex: ':scope > div.grid-cols-1',
-      // Selector for content elements *inside* the grid (used in v4 logic)
+      // Selector for content elements *inside* the grid (used in v5 logic)
       assistantContentElementsInGrid: ':scope > :is(p, ol, ul, pre)',
 
       // --- Content Block Selectors (within assistant turn) ---
@@ -138,6 +242,10 @@
       codeBlockContainer: 'pre', // Still needed for processCodeBlock if found
       codeBlockContent: 'code[class*="language-"]',
       codeBlockLangIndicator: 'div.text-text-300.absolute',
+      
+      // --- Table Selectors ---
+      tableContainer: 'pre.font-styrene', // The pre element containing the table
+      tableElement: 'table', // The actual table element
 
       // --- Artifact (Interactive Block) Selectors ---
       artifactContainerDiv: 'div.py-2', // The div containing the artifact button/cell
@@ -145,8 +253,6 @@
       artifactTitle: 'div.leading-tight', // Title text within the artifact cell
 
       // --- Unused Selectors ---
-      // potentialBlocks: 'p, ol, ul, pre, div.py-2', // Removed in v4
-      // assistantContentGrid: ':scope > div > div.grid-cols-1', // Changed usage in v4
       imageContainerAssistant: null,
       imageElementAssistant: null,
       imageCaption: null,
@@ -176,7 +282,7 @@
           let absoluteSrc = src;
           if (src && !src.startsWith('http') && !src.startsWith('blob:') && !src.startsWith('data:')) {
               try { absoluteSrc = new URL(src, window.location.origin).href; }
-              catch (e) { console.error("[Claude Extractor v4] Error creating absolute URL for image:", e, src); }
+              catch (e) { console.error("[Claude Extractor v5] Error creating absolute URL for image:", e, src); }
           }
           if (absoluteSrc && !absoluteSrc.startsWith('blob:') && !absoluteSrc.startsWith('data:')) {
              images.push({ type: 'image', sourceUrl: absoluteSrc, isPreviewOnly: src !== absoluteSrc, extractedContent: alt });
@@ -195,7 +301,7 @@
             const previewElement = container.querySelector(selectors.userFilePreviewContent);
             const fileName = nameElement ? nameElement.textContent?.trim() : null;
             let fileType = typeElement ? typeElement.textContent?.trim().split('\n')[0] : 'File';
-            if (fileType && fileType.includes('줄')) { fileType = fileType.split(' ')[0]; }
+            if (fileType && fileType.includes('line')) { fileType = fileType.split(' ')[0]; }
             let previewContent = previewElement ? previewElement.textContent?.trim() : null;
             if (fileName) {
                 files.push({ type: 'file', fileName: fileName, fileType: fileType, isPreviewOnly: !previewContent, extractedContent: previewContent });
@@ -214,16 +320,16 @@
       const selectors = claudeConfig.selectors;
       const assistantContainer = turnElement.querySelector(selectors.assistantMessageContainer);
       if (!assistantContainer) {
-          console.warn("[Claude Extractor v4] Assistant message container not found.");
+          console.warn("[Claude Extractor v5] Assistant message container not found.");
           return [];
       }
 
-      console.log(`[Claude Extractor v4] Processing direct children of assistant container.`);
+      console.log(`[Claude Extractor v5] Processing direct children of assistant container.`);
       const directChildren = Array.from(assistantContainer.children);
 
       directChildren.forEach((child, index) => {
           const tagNameLower = child.tagName.toLowerCase();
-          console.log(`[Claude Extractor v4] Processing Child #${index}: <${tagNameLower}>`);
+          console.log(`[Claude Extractor v5] Processing Child #${index}: <${tagNameLower}>`);
           let item = null; // Define item here
 
           // Case 1: Child is a container for text, lists, or code blocks (div with tabindex)
@@ -232,7 +338,21 @@
               // Find the grid inside this div
               const gridInside = child.querySelector(selectors.assistantContentGridInTabindex);
               if (gridInside) {
-                  // Find relevant content elements inside the grid
+                  // Find table containers first (Added in v5)
+                  const tableContainers = gridInside.querySelectorAll(selectors.tableContainer);
+                  if (tableContainers.length > 0) {
+                      console.log(`  -> Found ${tableContainers.length} table containers`);
+                      tableContainers.forEach(tableContainer => {
+                          const tableElement = tableContainer.querySelector(selectors.tableElement);
+                          if (tableElement) {
+                              console.log("  -> Processing table element");
+                              const tableItem = processTableToMarkdown(tableElement);
+                              if (tableItem) contentItems.push(tableItem);
+                          }
+                      });
+                  }
+                  
+                  //  Process existing content elements
                   const contentElements = gridInside.querySelectorAll(selectors.assistantContentElementsInGrid);
                   contentElements.forEach(contentElement => {
                       const contentTagName = contentElement.tagName.toLowerCase();
@@ -246,19 +366,45 @@
                           item = processList(contentElement, 'ol');
                           if (item) contentItems.push(item);
                       } else if (contentTagName === 'pre') {
-                          item = processCodeBlock(contentElement);
+                          // Check if there's a table and apply appropriate processing
+                          const hasTable = contentElement.querySelector(selectors.tableElement);
+                          if (hasTable) {
+                              console.log("  -> Processing table inside pre");
+                              item = processTableToMarkdown(hasTable);
+                          } else {
+                              console.log("  -> Processing code block");
+                              item = processCodeBlock(contentElement);
+                          }
                           if (item) contentItems.push(item);
                       }
                   });
               } else {
                    console.warn("  -> Grid not found inside tabindex div. Trying to process direct content.");
-                   // Fallback: If no grid, try finding content elements directly within the tabindex div
+                   // Fallback: If grid is not found, find content elements directly within the tabindex div
                    const directContent = child.querySelectorAll(':scope > :is(p, ol, ul, pre)');
                    directContent.forEach(contentElement => {
                         const contentTagName = contentElement.tagName.toLowerCase();
-                        if (contentTagName === 'p') { /* ... process p ... */ }
-                        else if (contentTagName === 'ul') { /* ... process ul ... */ }
-                        // ... etc. (Add full processing if this fallback is common)
+                        if (contentTagName === 'p') {
+                            const markdownText = QAClipper.Utils.htmlToMarkdown(contentElement, { skipElementCheck: shouldSkipElement }).trim();
+                            if (markdownText) QAClipper.Utils.addTextItem(contentItems, markdownText);
+                        }
+                        else if (contentTagName === 'ul') { 
+                            item = processList(contentElement, 'ul');
+                            if (item) contentItems.push(item);
+                        }
+                        else if (contentTagName === 'ol') {
+                            item = processList(contentElement, 'ol');
+                            if (item) contentItems.push(item);
+                        }
+                        else if (contentTagName === 'pre') {
+                            const hasTable = contentElement.querySelector(selectors.tableElement);
+                            if (hasTable) {
+                                item = processTableToMarkdown(hasTable);
+                            } else {
+                                item = processCodeBlock(contentElement);
+                            }
+                            if (item) contentItems.push(item);
+                        }
                    });
               }
           }
@@ -277,13 +423,10 @@
           // Case 3: Unhandled direct child
           else {
               console.warn(`  -> Skipping unhandled direct child type <${tagNameLower}>`);
-              // Optional: Add fallback to extract raw text content if needed
-              // const fallbackText = child.textContent?.trim();
-              // if (fallbackText) QAClipper.Utils.addTextItem(contentItems, fallbackText);
           }
       }); // End forEach loop
 
-      console.log("[Claude Extractor v4] Final assistant contentItems:", JSON.stringify(contentItems, null, 2));
+      console.log("[Claude Extractor v5] Final assistant contentItems:", JSON.stringify(contentItems, null, 2));
       return contentItems;
     }, // End extractAssistantContent
 

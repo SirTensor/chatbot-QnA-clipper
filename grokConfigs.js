@@ -367,7 +367,7 @@
       userAttachmentChip: 'div.flex.flex-row.items-center.rounded-xl.bg-chip',
       userAttachmentFilename: 'span.truncate',
       userAttachmentImagePreviewDiv: 'div[style*="background-image"]',
-      userAttachmentFileIcon: 'svg[aria-label="텍스트 파일"]',
+      userAttachmentFileIcon: 'svg[aria-label="Text File"]',
       assistantContentContainer: 'div.message-bubble',
       assistantRelevantBlocks: ':scope > :is(p, h1, h2, h3, h4, h5, h6, ol, ul, div.not-prose, div.grid, div.overflow-x-auto)',
       listItem: 'li',
