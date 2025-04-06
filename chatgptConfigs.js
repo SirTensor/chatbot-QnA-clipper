@@ -1,11 +1,9 @@
-// --- START OF FILE chatgptConfigs.js ---
-
-// chatgptConfigs.js (v16 - Manual Markdown Table Generation)
+// chatgptConfigs.js (v17 - Nested Bullet Point Fix)
 
 (function() {
     // Initialization check
-    // v16: Increment version number
-    if (window.chatgptConfig && window.chatgptConfig.version === 16) { return; }
+    // v17: Increment version number
+    if (window.chatgptConfig && window.chatgptConfig.version === 17) { return; }
 
     // --- Helper Functions ---
 
@@ -21,17 +19,61 @@
              (element.closest(selectors.userMessageContainer) && element.matches('span.hint-pill'));
     }
 
-    function processList(el, listType) { // Unchanged
-        let lines = []; let itemIndex = 0;
+    /**
+     * Process a list element (ul/ol) and its children, including nested lists
+     * @param {HTMLElement} el - The list element to process
+     * @param {string} listType - Either 'ul' or 'ol'
+     * @param {number} level - Indentation level for nested lists (0 for top level)
+     * @returns {object|null} - The processed list content or null if empty
+     */
+    function processList(el, listType, level = 0) {
+        let lines = []; 
+        let itemIndex = 0;
         const listItems = el.querySelectorAll(':scope > li');
+        
         listItems.forEach(li => {
-            const itemMarkdown = QAClipper.Utils.htmlToMarkdown(li, { skipElementCheck: shouldSkipElement, ignoreTags: ['ul', 'ol'] }).trim();
-            if (itemMarkdown) {
+            // Use a custom approach to get only the direct text content, excluding nested lists
+            // First, clone the li element to avoid modifying the original
+            const liClone = li.cloneNode(true);
+            
+            // Remove any nested lists from the clone
+            const nestedLists = Array.from(liClone.querySelectorAll('ul, ol'));
+            nestedLists.forEach(nestedList => {
+                if (nestedList.parentNode) {
+                    nestedList.parentNode.removeChild(nestedList);
+                }
+            });
+            
+            // Now get the text content without nested lists
+            const itemText = QAClipper.Utils.htmlToMarkdown(liClone, { 
+                skipElementCheck: shouldSkipElement 
+            }).trim();
+            
+            if (itemText) {
+                // Generate proper marker based on list type
                 const marker = listType === 'ul' ? '-' : `${itemIndex + 1}.`;
-                lines.push(`${marker} ${itemMarkdown.replace(/\n+/g, ' ')}`);
+                // Add indentation based on nesting level
+                const indent = '  '.repeat(level);
+                
+                // Add main list item text
+                lines.push(`${indent}${marker} ${itemText.replace(/\n+/g, ' ')}`);
+                
+                // Process any nested lists within this list item
+                const nestedLists = li.querySelectorAll(':scope > ul, :scope > ol');
+                nestedLists.forEach(nestedList => {
+                    const nestedType = nestedList.tagName.toLowerCase();
+                    const nestedContent = processList(nestedList, nestedType, level + 1);
+                    
+                    if (nestedContent && nestedContent.content) {
+                        // For nested lists, directly append each line to maintain hierarchy
+                        lines = lines.concat(nestedContent.content.split('\n'));
+                    }
+                });
+                
                 if (listType === 'ol') itemIndex++;
             }
         });
+        
         return lines.length > 0 ? { type: 'text', content: lines.join('\n') } : null;
     }
 
@@ -51,15 +93,15 @@
          const selectors = window.chatgptConfig.selectors;
          const targetImgElement = el.querySelector(selectors.imageElementAssistant);
          if (!targetImgElement) {
-             console.error("[Extractor v16] Image element not found using selector:", selectors.imageElementAssistant, "in container:", el);
+             console.error("[Extractor v17] Image element not found using selector:", selectors.imageElementAssistant, "in container:", el);
              const anyImg = el.querySelector('img[src*="oaiusercontent"]');
              if (!anyImg) return null;
-             console.warn("[Extractor v16] Using broader fallback image search.");
+             console.warn("[Extractor v17] Using broader fallback image search.");
              targetImgElement = anyImg;
          }
          const src = targetImgElement.getAttribute('src');
          if (!src || src.startsWith('data:') || src.startsWith('blob:')) {
-             console.error("[Extractor v16] Selected image has invalid src:", src);
+             console.error("[Extractor v17] Selected image has invalid src:", src);
              return null;
          }
          let altText = targetImgElement.getAttribute('alt')?.trim();
@@ -69,13 +111,13 @@
              return { type: 'image', src: absoluteSrc, alt: altText || "Generated Image", extractedContent: extractedContent };
          }
          catch (e) {
-             console.error("[Extractor v16] Error parsing assistant image URL:", e, src);
+             console.error("[Extractor v17] Error parsing assistant image URL:", e, src);
              return null;
          }
      }
 
      function processInteractiveBlock(el) { // Unchanged
-        console.log("[Extractor v16] Processing Interactive Block:", el);
+        console.log("[Extractor v17] Processing Interactive Block:", el);
         const selectors = window.chatgptConfig.selectors;
         let title = null; let code = null; let language = null;
         const titleElement = el.querySelector(selectors.interactiveBlockTitle);
@@ -86,10 +128,10 @@
             codeLines.forEach(line => { codeContent += line.textContent + '\n'; });
             code = codeContent.trimEnd();
         } else {
-             console.log("[Extractor v16] CodeMirror content not found in interactive block:", el);
+             console.log("[Extractor v17] CodeMirror content not found in interactive block:", el);
               const preCode = el.querySelector('pre > code');
               if(preCode) {
-                  console.log("[Extractor v16] Found fallback pre>code inside interactive block.");
+                  console.log("[Extractor v17] Found fallback pre>code inside interactive block.");
                   code = preCode.textContent.trimEnd();
               }
         }
@@ -104,17 +146,12 @@
         if (title || code) {
             return { type: 'interactive_block', title: title || '[Interactive Block]', code: code, language: language };
         } else {
-            console.error("[Extractor v16] Failed to extract title or code from interactive block:", el);
+            console.error("[Extractor v17] Failed to extract title or code from interactive block:", el);
             return null;
         }
      }
 
-    /**
-     * v16: Manually processes an HTML table element into a Markdown table string.
-     * @param {HTMLTableElement} tableElement - The table element to process.
-     * @returns {string|null} - The Markdown table string or null if invalid.
-     */
-    function processTableToMarkdown(tableElement) {
+    function processTableToMarkdown(tableElement) { // Unchanged
         if (!tableElement || tableElement.tagName.toLowerCase() !== 'table') {
             return null;
         }
@@ -139,7 +176,7 @@
         }
 
         if (columnCount === 0) { // Abort if no header found
-            console.warn("[Extractor v16] Table has no header (thead > tr > th). Cannot generate Markdown.", tableElement);
+            console.warn("[Extractor v17] Table has no header (thead > tr > th). Cannot generate Markdown.", tableElement);
             return null;
         }
 
@@ -154,7 +191,7 @@
                     const cellContent = cells.map(td => QAClipper.Utils.htmlToMarkdown(td, { skipElementCheck: shouldSkipElement, ignoreTags: ['table', 'tr', 'th', 'td'] }).trim().replace(/\|/g, '\\|').replace(/\n+/g, ' ')); // Escape pipes and replace newlines in cells
                     markdownRows.push(`| ${cellContent.join(' | ')} |`);
                 } else {
-                    console.warn("[Extractor v16] Table row skipped due to column count mismatch.", row);
+                    console.warn("[Extractor v17] Table row skipped due to column count mismatch.", row);
                 }
             });
         }
@@ -166,8 +203,8 @@
     // --- Main Configuration Object ---
     const chatgptConfig = {
       platformName: 'ChatGPT',
-      version: 16, // v16: Config version identifier
-      selectors: { // Mostly unchanged selectors
+      version: 17, // v17: Updated version identifier
+      selectors: { // Unchanged selectors
         turnContainer: 'article[data-testid^="conversation-turn-"]',
         userMessageContainer: 'div[data-message-author-role="user"]',
         userText: 'div[data-message-author-role="user"] .whitespace-pre-wrap',
@@ -210,12 +247,12 @@
       extractUserText: (turnElement) => { /* Unchanged */
           const textElement = turnElement.querySelector(chatgptConfig.selectors.userText); return textElement ? QAClipper.Utils.htmlToMarkdown(textElement, { skipElementCheck: shouldSkipElement }).trim() || null : null; },
       extractUserUploadedImages: (turnElement) => { /* Unchanged */
-          const images = []; const imageElements = turnElement.querySelectorAll(chatgptConfig.selectors.userImageContainer); imageElements.forEach(imgElement => { const src = imgElement.getAttribute('src'); if (src && !src.startsWith('data:') && !src.startsWith('blob:')) { let altText = imgElement.getAttribute('alt')?.trim(); const extractedContent = altText && altText !== "업로드한 이미지" ? altText : "User Uploaded Image"; try { const absoluteSrc = new URL(src, window.location.origin).href; images.push({ type: 'image', sourceUrl: absoluteSrc, isPreviewOnly: false, extractedContent: extractedContent }); } catch (e) { console.error("[Extractor v16] Error parsing user image URL:", e, src); } } }); return images; },
+          const images = []; const imageElements = turnElement.querySelectorAll(chatgptConfig.selectors.userImageContainer); imageElements.forEach(imgElement => { const src = imgElement.getAttribute('src'); if (src && !src.startsWith('data:') && !src.startsWith('blob:')) { let altText = imgElement.getAttribute('alt')?.trim(); const extractedContent = altText && altText !== "업로드한 이미지" ? altText : "User Uploaded Image"; try { const absoluteSrc = new URL(src, window.location.origin).href; images.push({ type: 'image', sourceUrl: absoluteSrc, isPreviewOnly: false, extractedContent: extractedContent }); } catch (e) { console.error("[Extractor v17] Error parsing user image URL:", e, src); } } }); return images; },
       extractUserUploadedFiles: (turnElement) => { /* Unchanged */
           const files = []; const fileContainers = turnElement.querySelectorAll(chatgptConfig.selectors.userFileContainer); fileContainers.forEach(container => { const nameElement = container.querySelector(chatgptConfig.selectors.userFileName); const typeElement = container.querySelector(chatgptConfig.selectors.userFileType); const fileName = nameElement ? nameElement.textContent?.trim() : null; let fileType = typeElement ? typeElement.textContent?.trim() : 'File'; if (fileType && fileType.includes(' ') && !['kB', 'MB', 'GB'].some(unit => fileType.endsWith(unit))) { fileType = fileType.split(' ')[0]; } else if (fileType && ['kB', 'MB', 'GB'].some(unit => fileType.endsWith(unit))) { fileType = 'File'; } if (fileName) { const previewContent = null; files.push({ type: 'file', fileName: fileName, fileType: fileType, isPreviewOnly: !previewContent, extractedContent: previewContent }); } }); return files; },
 
       /**
-       * v16: Extracts content. Uses processTableToMarkdown for tables.
+       * v17: Updated extraction function to properly handle nested lists
        */
       extractAssistantContent: (turnElement) => {
           const contentItems = [];
@@ -239,12 +276,11 @@
           const textContainer = turnElement.querySelector(selectors.assistantTextContainer);
           if (textContainer) {
               const relevantElements = textContainer.querySelectorAll(selectors.relevantBlocksInTextContainer);
-              processRelevantElements(relevantElements, contentItems); // Use updated processor
+              processRelevantElements(relevantElements, contentItems);
           } else if (contentItems.length === 0) {
-               console.warn("[v16] Assistant text container (.prose) not found and no other blocks either in turn:", turnElement);
+               console.warn("[v17] Assistant text container (.prose) not found and no other blocks either in turn:", turnElement);
           }
 
-          // console.log("[Extractor - ChatGPT v16] Final contentItems:", JSON.stringify(contentItems, null, 2));
           return contentItems;
       },
 
@@ -252,8 +288,8 @@
 
 
     /**
-     * v16: Helper function to process relevant elements found *within the text container*.
-     * Uses processTableToMarkdown for tables.
+     * v17: Updated helper function to process relevant elements found within the text container
+     * with improved handling for nested lists
      */
      function processRelevantElements(elements, contentItems) {
          const processedElements = new Set();
@@ -275,7 +311,6 @@
              if (processedElements.has(element)) return;
 
              const tagNameLower = element.tagName.toLowerCase();
-             // v16: Check if the element is a table or a div containing a table
              const isTableContainer = tagNameLower === 'table' || (tagNameLower === 'div' && element.classList.contains('overflow-x-auto') && element.querySelector(':scope > table'));
              const tableElement = isTableContainer ? (tagNameLower === 'table' ? element : element.querySelector(':scope > table')) : null;
 
@@ -293,30 +328,24 @@
              }
              else if (tagNameLower === 'ul' || tagNameLower === 'ol') {
                  flushMdBlock();
-                 const listItem = processList(element, tagNameLower);
+                 // Call the updated processList function with level=0 for top-level lists
+                 const listItem = processList(element, tagNameLower, 0);
                  if (listItem) contentItems.push(listItem);
                  processedElements.add(element);
                  element.querySelectorAll('*').forEach(child => processedElements.add(child));
                  handledSeparately = true;
              }
-             // v16: Handle tables using the new manual processor
              else if (tableElement) {
                  flushMdBlock();
-                 // Use the new function to generate Markdown table string
                  const tableMarkdown = processTableToMarkdown(tableElement);
                  if (tableMarkdown) {
-                     QAClipper.Utils.addTextItem(contentItems, tableMarkdown); // Add table as its own text item
+                     QAClipper.Utils.addTextItem(contentItems, tableMarkdown);
                  } else {
-                     // Fallback if manual processing fails? Or just log?
-                     console.warn("[Extractor v16] Failed to manually process table to Markdown:", tableElement);
-                     // Optionally, try the old method as a fallback:
-                     // const fallbackMarkdown = QAClipper.Utils.htmlToMarkdown(tableElement, { skipElementCheck: shouldSkipElement }).trim();
-                     // if (fallbackMarkdown) QAClipper.Utils.addTextItem(contentItems, fallbackMarkdown);
+                     console.warn("[Extractor v17] Failed to manually process table to Markdown:", tableElement);
                  }
-                 // Mark the container div (if any) and the table itself + children as processed
-                 processedElements.add(element); // Mark the outer element (table or div)
-                 processedElements.add(tableElement); // Mark the table itself
-                 tableElement.querySelectorAll('*').forEach(child => processedElements.add(child)); // Mark all descendants
+                 processedElements.add(element);
+                 processedElements.add(tableElement);
+                 tableElement.querySelectorAll('*').forEach(child => processedElements.add(child));
                  handledSeparately = true;
              }
 
@@ -327,8 +356,7 @@
                      processedElements.add(element);
                  } else {
                      flushMdBlock();
-                     // Fallback for unexpected elements within the text container
-                     if (!isTableContainer) { // Avoid double processing if it was a failed table container
+                     if (!isTableContainer) {
                         console.warn(`  -> Fallback [Text Container]: Unhandled element: <${tagNameLower}>`, element);
                         const fallbackText = QAClipper.Utils.htmlToMarkdown(element, { skipElementCheck: shouldSkipElement }).trim();
                         if (fallbackText) {
@@ -345,7 +373,6 @@
 
     // Assign the config object to the window
     window.chatgptConfig = chatgptConfig;
-    console.log("chatgptConfig initialized (v16 - Manual Table Markdown)");
+    console.log("chatgptConfig initialized (v17 - Nested List Fix)");
 
 })();
-// --- END OF FILE chatgptConfigs.js ---
