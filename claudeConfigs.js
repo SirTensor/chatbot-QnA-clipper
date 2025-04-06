@@ -1,373 +1,296 @@
-// claudeConfigs.js
+// claudeConfig.js (v4 - 직계 자식 순차 처리)
 
-// Wrap in an immediately invoked function expression (IIFE) to prevent duplicate declarations
-// when the script is injected multiple times
 (function() {
-  // Only set up if not already initialized
-  if (window.claudeConfig) {
-    console.log("claudeConfig already initialized, skipping re-initialization");
+  // Initialization check to prevent re-running the script if already loaded
+  if (window.claudeConfig && window.claudeConfig.version >= 4) {
+    console.log("Claude config already initialized (v" + window.claudeConfig.version + "), skipping.");
     return;
   }
 
+  // --- Helper Functions ---
+
   /**
-   * Configuration structure for the Claude platform.
-   * Selectors and logic based on analysis of claude.ai DOM structure
+   * Checks if an HTML element should be skipped during markdown conversion.
+   * Skips elements handled by dedicated processors (lists, code blocks, artifact buttons).
+   * @param {HTMLElement} element - The element to check.
+   * @returns {boolean} - True if the element should be skipped.
    */
+  function shouldSkipElement(element) {
+    if (!element || element.nodeType !== Node.ELEMENT_NODE) return false;
+    const selectors = window.claudeConfig?.selectors;
+    if (!selectors) return false; // Config not loaded yet
+    const tagNameLower = element.tagName.toLowerCase();
+
+    // Skip elements handled by dedicated functions
+    return tagNameLower === 'ul' ||
+           tagNameLower === 'ol' ||
+           tagNameLower === 'pre' || // Handled by processCodeBlock
+           element.closest(selectors.artifactButton); // Check if element is INSIDE an artifact button/cell
+  }
+
+  /**
+   * Processes <li> elements within a <ul> or <ol> list.
+   * @param {HTMLElement} el - The <ul> or <ol> element.
+   * @param {string} listType - 'ul' or 'ol'.
+   * @returns {object|null} - A text content item or null.
+   */
+  function processList(el, listType) {
+    let lines = [];
+    let startNum = 1;
+    if (listType === 'ol') {
+      startNum = parseInt(el.getAttribute('start') || '1', 10);
+      if (isNaN(startNum)) startNum = 1;
+    }
+    let itemIndex = 0;
+    // Process only direct li children
+    el.querySelectorAll(':scope > li').forEach(li => {
+      // Use QAClipper.Utils.htmlToMarkdown with skip logic
+      const itemMarkdown = QAClipper.Utils.htmlToMarkdown(li, {
+        skipElementCheck: shouldSkipElement // Pass skip check to handle nested blocks inside li
+      }).trim();
+      if (itemMarkdown) {
+        const marker = listType === 'ul' ? '-' : `${startNum + itemIndex}.`;
+        lines.push(`${marker} ${itemMarkdown.replace(/\n+/g, ' ')}`); // Replace potential newlines within li
+        if (listType === 'ol') itemIndex++;
+      }
+    });
+    return lines.length > 0 ? { type: 'text', content: lines.join('\n') } : null;
+  }
+
+  /**
+   * Processes <pre> elements containing code blocks.
+   * @param {HTMLElement} el - The <pre> element.
+   * @returns {object|null} - A code_block content item or null.
+   */
+  function processCodeBlock(el) {
+    const selectors = window.claudeConfig.selectors;
+    const codeElement = el.querySelector(selectors.codeBlockContent);
+    const code = codeElement ? codeElement.textContent : '';
+    // Language is often in the class name like 'language-python'
+    let language = null;
+    if (codeElement) {
+        const langClass = Array.from(codeElement.classList).find(cls => cls.startsWith('language-'));
+        if (langClass) {
+            language = langClass.replace('language-', '');
+        }
+    }
+    // Fallback: Check the language indicator div if class name fails
+    if (!language) {
+        const langIndicator = el.querySelector(selectors.codeBlockLangIndicator);
+        if (langIndicator) {
+            language = langIndicator.textContent?.trim().toLowerCase();
+        }
+    }
+
+    // Return null if code is just whitespace
+    return code.trim() ? { type: 'code_block', language: language, content: code.trimEnd() } : null;
+  }
+
+   /**
+   * Processes artifact buttons/cells within assistant messages to extract title only.
+   * @param {HTMLElement} artifactCellEl - The artifact cell element (`div.artifact-block-cell`).
+   * @returns {object|null} - An interactive_block content item with title only.
+   */
+  function processArtifactButton(artifactCellEl) { // Renamed parameter for clarity
+    const selectors = window.claudeConfig.selectors;
+    // Find title within the artifact cell div
+    const titleElement = artifactCellEl.querySelector(selectors.artifactTitle);
+    const title = titleElement ? titleElement.textContent?.trim() : '[Artifact]'; // Default title
+
+    console.log(`[Claude Extractor v4] Found artifact cell with title: "${title}". Code extraction skipped.`);
+
+    // Return an interactive_block item with only the title
+    return {
+        type: 'interactive_block',
+        title: title,
+        code: null, // Explicitly set code to null
+        language: null // Explicitly set language to null
+    };
+  }
+
+  // --- Main Configuration Object ---
   const claudeConfig = {
     platformName: 'Claude',
+    version: 4, // Config version identifier
     selectors: {
-      // --- General ---
-      turnContainer: 'div[data-test-render-count]', // Container for a full user or assistant turn
-      // Role detection relies on checking for user/assistant specific message containers within the turnContainer
+      // Container for a single turn (user or assistant)
+      turnContainer: 'div[data-test-render-count]',
 
-      // --- User Turn Specific ---
-      userMessageContainer: 'div[data-testid="user-message"]', // Main container for user message text
-      userText: 'div[data-testid="user-message"]', // Often the same as container, holds the text
-      userImageContainer: '.relative.group/thumbnail', // Container often holding image previews (needs verification)
-      userImageItem: 'img', // User attachments are primarily images currently
+      // --- User Turn Selectors ---
+      userMessageContainer: 'div[data-testid="user-message"]',
+      userText: 'p.whitespace-pre-wrap',
+      userImageThumbnailContainer: 'div.group\\/thumbnail',
+      userImageElement: 'img[alt]',
+      userFileThumbnailContainer: 'div[data-testid="file-thumbnail"]',
+      userFileName: 'h3',
+      userFileType: 'p',
+      userFilePreviewContent: 'div.whitespace-pre-wrap',
 
-      userFileContainer: 'div.pb-2 div[class*="uploaded-file"]', // Container for file uploads
-      userFileItem: 'a[href*="download"]', // File download links
-      userFileName: 'div.text-sm', // File name element
-      userFileType: 'div.text-xs', // File type/size element
-      // userAttachmentFileName: '', // Not typically shown directly for user images
-      // userAttachmentImageSrc: '', // Source is attribute of the img tag itself
+      // --- Assistant Turn Selectors ---
+      assistantMessageContainer: 'div.font-claude-message',
+      // Selector for the grid *inside* a tabindex div (used in v4 logic)
+      assistantContentGridInTabindex: ':scope > div.grid-cols-1',
+      // Selector for content elements *inside* the grid (used in v4 logic)
+      assistantContentElementsInGrid: ':scope > :is(p, ol, ul, pre)',
 
-      // --- Assistant Turn Specific ---
-      assistantContentArea: 'div.font-claude-message div[tabindex="0"] > div', // The direct parent of diverse content blocks (p, pre, div.py-2 etc.)
-      // Selectors for different content item types within the assistant's response:
-      // These are checked against *direct children* of assistantContentArea in extractAssistantContent
-      textContentBlock: 'p, ul, ol, blockquote', // Standard text/list elements
-      codeBlockContainer: 'pre', // Container for a full code block
-      codeBlockContent: 'code', // The actual code element inside the container (often has language class)
-      codeBlockLangIndicatorClassPrefix: 'language-', // Class prefix on the code element (e.g., class="language-python")
-      interactiveBlockContainer: 'div.py-2', // Container for artifact buttons (often followed by code)
-      interactiveBlockButton: 'button.flex.text-left', // The button itself within the container
-      interactiveBlockTitle: 'button.flex.text-left div.leading-tight.text-sm', // Title within the button
-      interactiveBlockType: 'button.flex.text-left div.text-sm.text-text-300', // Type text within the button (e.g., "Code · 123 lines")
-      // interactiveBlockCode is handled by checking the next sibling of interactiveBlockContainer if it's a 'pre'
-      imageElement: 'img', // Selector for images within the assistant response
-      // imageAltText is the 'alt' attribute of the img element
+      // --- Content Block Selectors (within assistant turn) ---
+      listItem: 'li',
+      codeBlockContainer: 'pre', // Still needed for processCodeBlock if found
+      codeBlockContent: 'code[class*="language-"]',
+      codeBlockLangIndicator: 'div.text-text-300.absolute',
 
-      // Claude side container (Artifact) selectors
-      sideContainer: '.max-md:absolute', // Container for artifact buttons and content
-      sideContainerContent: '.prismjs.code-block__code', 
-      sideContainerLangIndicatorClassPrefix: 'language-', 
+      // --- Artifact (Interactive Block) Selectors ---
+      artifactContainerDiv: 'div.py-2', // The div containing the artifact button/cell
+      artifactButton: 'div.artifact-block-cell', // The inner div passed to processArtifactButton
+      artifactTitle: 'div.leading-tight', // Title text within the artifact cell
+
+      // --- Unused Selectors ---
+      // potentialBlocks: 'p, ol, ul, pre, div.py-2', // Removed in v4
+      // assistantContentGrid: ':scope > div > div.grid-cols-1', // Changed usage in v4
+      imageContainerAssistant: null,
+      imageElementAssistant: null,
+      imageCaption: null,
     },
 
-    /**
-     * Determines the role ('user' or 'assistant') of a given turn element.
-     * @param {Element} turnElement - The DOM element representing a conversation turn (matching selectors.turnContainer).
-     * @returns {'user'|'assistant'|null} The role, or null if indeterminable.
-     */
+    // --- Extraction Functions ---
+
     getRole: (turnElement) => {
-      // Check for the presence of user or assistant specific message containers
-      if (turnElement.querySelector(claudeConfig.selectors.userMessageContainer)) {
-        return 'user';
-      } else if (turnElement.querySelector('div.font-claude-message')) { // Use the broader assistant message wrapper for role detection
-        return 'assistant';
-      }
-      // console.warn("Claude role detection: Neither user nor assistant container found in:", turnElement);
-      return null; // Explicitly return null if role cannot be determined
+      if (turnElement.querySelector(claudeConfig.selectors.userMessageContainer)) return 'user';
+      if (turnElement.querySelector(claudeConfig.selectors.assistantMessageContainer)) return 'assistant';
+      return null;
     },
 
-    /**
-     * Extracts the primary text content from a user turn element.
-     * @param {Element} turnElement - The user turn DOM element.
-     * @returns {string|null} The extracted text, or null if not found.
-     */
     extractUserText: (turnElement) => {
       const textElement = turnElement.querySelector(claudeConfig.selectors.userText);
-      // Use textContent and trim; null if element not found or no text
-      return textElement ? textElement.textContent?.trim() || null : null;
+      return textElement ? QAClipper.Utils.htmlToMarkdown(textElement, { skipElementCheck: shouldSkipElement }).trim() || null : null;
     },
 
-    /**
-     * Extracts uploaded image attachments from a user turn element.
-     * @param {Element} turnElement - The user turn DOM element.
-     * @returns {Array<UserImage>} An array of UserImage objects.
-     */
     extractUserUploadedImages: (turnElement) => {
       const images = [];
-      const processedSources = new Set(); // Avoid duplicates
-
-      // Look for images within the specific preview container first
-      const specificPreviewContainer = turnElement.querySelector(claudeConfig.selectors.userImageContainer);
-      if (specificPreviewContainer) {
-        specificPreviewContainer.querySelectorAll(claudeConfig.selectors.userImageItem).forEach(img => {
-          const src = img.getAttribute('src');
-          if (src && !src.startsWith('blob:') && !src.startsWith('data:')) {
-            const absoluteSrc = src.startsWith('/') ? new URL(src, window.location.origin).href : src;
-            if (!processedSources.has(absoluteSrc)) {
-              images.push({
-                type: 'image',
-                sourceUrl: absoluteSrc,
-                isPreviewOnly: true,
-                extractedContent: img.getAttribute('alt') || null, // Get alt text as content if available
-              });
-              processedSources.add(absoluteSrc);
-            }
+      const selectors = claudeConfig.selectors;
+      turnElement.querySelectorAll(selectors.userImageThumbnailContainer).forEach(container => {
+        const imgElement = container.querySelector(selectors.userImageElement);
+        if (imgElement) {
+          const src = imgElement.getAttribute('src');
+          const alt = imgElement.getAttribute('alt')?.trim() || 'User Uploaded Image';
+          let absoluteSrc = src;
+          if (src && !src.startsWith('http') && !src.startsWith('blob:') && !src.startsWith('data:')) {
+              try { absoluteSrc = new URL(src, window.location.origin).href; }
+              catch (e) { console.error("[Claude Extractor v4] Error creating absolute URL for image:", e, src); }
           }
-        });
-      }
-
-      // Fallback: Look for images that might be direct children or in other containers *before* the message text
-      // This is less reliable and might need adjustment based on structure variations
-      const userMessageElement = turnElement.querySelector(claudeConfig.selectors.userMessageContainer);
-      if (userMessageElement) {
-          let sibling = userMessageElement.previousElementSibling;
-          while (sibling) {
-              sibling.querySelectorAll(claudeConfig.selectors.userImageItem).forEach(img => {
-                   const src = img.getAttribute('src');
-                   if (src && !src.startsWith('blob:') && !src.startsWith('data:')) {
-                      const absoluteSrc = src.startsWith('/') ? new URL(src, window.location.origin).href : src;
-                      // Only add if not already found via the specific container
-                      if (!processedSources.has(absoluteSrc)) {
-                          images.push({
-                          type: 'image',
-                          sourceUrl: absoluteSrc,
-                          isPreviewOnly: true,
-                          extractedContent: img.getAttribute('alt') || null, // Get alt text as content if available
-                          });
-                          processedSources.add(absoluteSrc);
-                      }
-                   }
-              });
-              sibling = sibling.previousElementSibling;
-          }
-      }
-
-      return images;
-    },
-
-    /**
-     * Extracts uploaded file attachments (non-images) from a user turn element.
-     * @param {Element} turnElement - The user turn DOM element.
-     * @returns {Array<UserFile>} An array of UserFile objects.
-     */
-    extractUserUploadedFiles: (turnElement) => {
-      const files = [];
-      const processedFiles = new Set(); // Avoid duplicates
-
-      // Find file containers
-      const fileContainers = turnElement.querySelectorAll(claudeConfig.selectors.userFileContainer);
-      fileContainers.forEach(container => {
-        const fileLink = container.querySelector(claudeConfig.selectors.userFileItem);
-        const fileNameElement = container.querySelector(claudeConfig.selectors.userFileName);
-        const fileTypeElement = container.querySelector(claudeConfig.selectors.userFileType);
-        
-        if (fileLink && fileNameElement) {
-          const fileName = fileNameElement.textContent?.trim();
-          const fileType = fileTypeElement?.textContent?.trim()?.split('·')[0]?.trim() || 'Unknown';
-          
-          // Try to find content preview if available (e.g., text content shown in the UI)
-          let extractedContent = null;
-          const contentPreview = container.querySelector('.file-content-preview') || 
-                                 container.querySelector('pre') || 
-                                 container.querySelector('.preview-text');
-          if (contentPreview) {
-            extractedContent = contentPreview.textContent?.trim() || null;
-          }
-          
-          if (fileName && !processedFiles.has(fileName)) {
-            files.push({
-              type: 'file',
-              fileName: fileName,
-              fileType: fileType,
-              isPreviewOnly: false,
-              extractedContent: extractedContent
-            });
-            processedFiles.add(fileName);
+          if (absoluteSrc && !absoluteSrc.startsWith('blob:') && !absoluteSrc.startsWith('data:')) {
+             images.push({ type: 'image', sourceUrl: absoluteSrc, isPreviewOnly: src !== absoluteSrc, extractedContent: alt });
           }
         }
       });
-
-      return files;
+      return images;
     },
 
-    /**
-     * Extracts code from the side container (Artifact) that appears when interacting with an interactive block
-     * @returns {Object|null} An object containing code and language, or null if not found
-     */
-    extractSideContainerCode: () => {
-      // Find the side container in the DOM
-      const sideContainer = document.querySelector(claudeConfig.selectors.sideContainer);
-      if (!sideContainer) return null;
-      
-      // Find the content elements with the actual code
-      const codeBlocks = sideContainer.querySelectorAll(claudeConfig.selectors.sideContainerContent);
-      if (!codeBlocks || codeBlocks.length === 0) return null;
-      
-      // Use the first code block found (assuming only one is relevant)
-      const codeBlock = codeBlocks[0];
-      
-      // Extract code content from all spans
-      let code = '';
-      const spans = codeBlock.querySelectorAll('span');
-      if (spans && spans.length > 0) {
-        spans.forEach(span => {
-          code += span.textContent || '';
+    extractUserUploadedFiles: (turnElement) => {
+        const files = [];
+        const selectors = claudeConfig.selectors;
+        turnElement.querySelectorAll(selectors.userFileThumbnailContainer).forEach(container => {
+            const nameElement = container.querySelector(selectors.userFileName);
+            const typeElement = container.querySelector(selectors.userFileType);
+            const previewElement = container.querySelector(selectors.userFilePreviewContent);
+            const fileName = nameElement ? nameElement.textContent?.trim() : null;
+            let fileType = typeElement ? typeElement.textContent?.trim().split('\n')[0] : 'File';
+            if (fileType && fileType.includes('줄')) { fileType = fileType.split(' ')[0]; }
+            let previewContent = previewElement ? previewElement.textContent?.trim() : null;
+            if (fileName) {
+                files.push({ type: 'file', fileName: fileName, fileType: fileType, isPreviewOnly: !previewContent, extractedContent: previewContent });
+            }
         });
-      } else {
-        // Fallback: get text directly from code block if no spans
-        code = codeBlock.textContent || '';
-      }
-      
-      // Try to determine the language from the class attribute
-      let language = null;
-      const classes = codeBlock.className.split(' ');
-      for (const cls of classes) {
-        if (cls.startsWith(claudeConfig.selectors.sideContainerLangIndicatorClassPrefix)) {
-          language = cls.substring(claudeConfig.selectors.sideContainerLangIndicatorClassPrefix.length);
-          break;
-        }
-      }
-      
-      return code.trim() ? { code: code.trim(), language } : null;
+        return files;
     },
 
     /**
-     * Extracts the structured content items from an assistant turn element.
-     * Implements the "Unified Content Stream" approach by iterating through direct children
-     * of the `assistantContentArea`.
-     * @param {Element} turnElement - The assistant turn DOM element (matching selectors.turnContainer).
-     * @returns {Array<ContentItem>} An array of ContentItem objects preserving order.
+     * Extracts structured content items from an assistant turn by processing direct children.
+     * @param {HTMLElement} turnElement - The assistant turn container element.
+     * @returns {Array<object>} - An array of content items (text, code_block, interactive_block).
      */
     extractAssistantContent: (turnElement) => {
       const contentItems = [];
-      const contentArea = turnElement.querySelector(claudeConfig.selectors.assistantContentArea);
-
-      if (!contentArea) {
-        console.warn("Claude assistant content area not found with selector:", claudeConfig.selectors.assistantContentArea);
-        return [];
+      const selectors = claudeConfig.selectors;
+      const assistantContainer = turnElement.querySelector(selectors.assistantMessageContainer);
+      if (!assistantContainer) {
+          console.warn("[Claude Extractor v4] Assistant message container not found.");
+          return [];
       }
 
-      // Iterate through direct child nodes of the content area to maintain order
-      contentArea.childNodes.forEach((node, index) => {
-        // ---- 1. Element Node Handling ----
-        if (node.nodeType === Node.ELEMENT_NODE) {
-          const element = node; // Alias for clarity
+      console.log(`[Claude Extractor v4] Processing direct children of assistant container.`);
+      const directChildren = Array.from(assistantContainer.children);
 
-          // ---- Code Block (`pre`) ----
-          if (element.matches(claudeConfig.selectors.codeBlockContainer)) {
-            const codeElement = element.querySelector(claudeConfig.selectors.codeBlockContent);
-            const content = codeElement ? codeElement.textContent || '' : element.textContent || '';
-            let language = null;
-            if (codeElement) {
-              const langClass = Array.from(codeElement.classList).find(cls => cls.startsWith(claudeConfig.selectors.codeBlockLangIndicatorClassPrefix));
-              if (langClass) {
-                language = langClass.substring(claudeConfig.selectors.codeBlockLangIndicatorClassPrefix.length);
-              }
-            }
-             
-            // Add as a standalone code block - no longer checking for association with interactive blocks
-            contentItems.push({ type: 'code_block', language, content });
-          }
+      directChildren.forEach((child, index) => {
+          const tagNameLower = child.tagName.toLowerCase();
+          console.log(`[Claude Extractor v4] Processing Child #${index}: <${tagNameLower}>`);
+          let item = null; // Define item here
 
-          // ---- Interactive Block (Artifact Button Container `div.py-2`) ----
-          else if (element.matches(claudeConfig.selectors.interactiveBlockContainer) && element.querySelector(claudeConfig.selectors.interactiveBlockButton)) {
-            const titleElement = element.querySelector(claudeConfig.selectors.interactiveBlockTitle);
-            const typeElement = element.querySelector(claudeConfig.selectors.interactiveBlockType);
-
-            const title = titleElement?.textContent?.trim() || 'Untitled Artifact';
-            const typeText = typeElement?.textContent?.trim().split('·')[0].trim() || 'Unknown'; // Extract base type
-
-            // Try to get code from the side container
-            const sideContainerData = claudeConfig.extractSideContainerCode();
-            
-            const interactiveItem = {
-              type: 'interactive_block',
-              title: title,
-              code: sideContainerData?.code || null,
-              language: sideContainerData?.language || null,
-              platformSpecificData: {
-                claudeArtifactType: typeText,
-              }
-            };
-            contentItems.push(interactiveItem);
-          }
-
-          // ---- Image (`img`) ----
-          // Ensure it's not inside an interactive block button (already handled)
-          else if (element.matches(claudeConfig.selectors.imageElement) && !element.closest(claudeConfig.selectors.interactiveBlockButton)) {
-            const src = element.getAttribute('src');
-            const alt = element.getAttribute('alt');
-            const width = element.naturalWidth || element.width;
-            const height = element.naturalHeight || element.height;
-
-            // Basic filtering for potentially meaningful images vs tiny icons
-            // Exclude blob/data URIs as they aren't easily portable
-            if (src && !src.startsWith('blob:') && !src.startsWith('data:') && (width > 32 || height > 32)) {
-               const absoluteSrc = src.startsWith('/') ? new URL(src, window.location.origin).href : src;
-               contentItems.push({
-                  type: 'image',
-                  src: absoluteSrc,
-                  alt: alt || null // Use null if alt is empty
-               });
-            }
-          }
-
-          // ---- Standard Text/List Content (`p`, `ul`, `ol`, `blockquote`) ----
-          // Make sure it's not *part* of an already handled block (e.g., text inside artifact button)
-          else if (element.matches(claudeConfig.selectors.textContentBlock) && !element.closest(claudeConfig.selectors.interactiveBlockButton)) {
-            // Extract semantic HTML content for potential conversion later
-            // Or just use textContent for simplicity? Let's try textContent first.
-            const text = element.textContent?.trim();
-            if (text) {
-              // Merge with previous text item if possible
-              const lastItem = contentItems.length > 0 ? contentItems[contentItems.length - 1] : null;
-              if (lastItem && lastItem.type === 'text') {
-                // Use template literal for correct newline handling
-                lastItem.content += `
-
-${text}`;
+          // Case 1: Child is a container for text, lists, or code blocks (div with tabindex)
+          if (tagNameLower === 'div' && child.hasAttribute('tabindex')) {
+              console.log("  -> Handling as Text/List/Code Container (tabindex div)");
+              // Find the grid inside this div
+              const gridInside = child.querySelector(selectors.assistantContentGridInTabindex);
+              if (gridInside) {
+                  // Find relevant content elements inside the grid
+                  const contentElements = gridInside.querySelectorAll(selectors.assistantContentElementsInGrid);
+                  contentElements.forEach(contentElement => {
+                      const contentTagName = contentElement.tagName.toLowerCase();
+                      if (contentTagName === 'p') {
+                          const markdownText = QAClipper.Utils.htmlToMarkdown(contentElement, { skipElementCheck: shouldSkipElement }).trim();
+                          if (markdownText) QAClipper.Utils.addTextItem(contentItems, markdownText);
+                      } else if (contentTagName === 'ul') {
+                          item = processList(contentElement, 'ul');
+                          if (item) contentItems.push(item);
+                      } else if (contentTagName === 'ol') {
+                          item = processList(contentElement, 'ol');
+                          if (item) contentItems.push(item);
+                      } else if (contentTagName === 'pre') {
+                          item = processCodeBlock(contentElement);
+                          if (item) contentItems.push(item);
+                      }
+                  });
               } else {
-                contentItems.push({ type: 'text', content: text });
+                   console.warn("  -> Grid not found inside tabindex div. Trying to process direct content.");
+                   // Fallback: If no grid, try finding content elements directly within the tabindex div
+                   const directContent = child.querySelectorAll(':scope > :is(p, ol, ul, pre)');
+                   directContent.forEach(contentElement => {
+                        const contentTagName = contentElement.tagName.toLowerCase();
+                        if (contentTagName === 'p') { /* ... process p ... */ }
+                        else if (contentTagName === 'ul') { /* ... process ul ... */ }
+                        // ... etc. (Add full processing if this fallback is common)
+                   });
               }
-            }
           }
-
-          // ---- Fallback for Unhandled Element Nodes ----
-          // Capture text content of other unexpected elements if they seem substantial
-          else if (!element.matches(claudeConfig.selectors.codeBlockContainer) && /* already handled */
-                   !element.matches(claudeConfig.selectors.interactiveBlockContainer) && /* already handled */
-                   !element.matches(claudeConfig.selectors.imageElement) /* already handled */ )
-          {
-               const fallbackText = element.textContent?.trim();
-               if (fallbackText && fallbackText.length > 10) { // Avoid capturing tiny bits of text/whitespace
-                  console.warn("Claude: Unhandled element type in assistant content, capturing text:", element);
-                  const lastItem = contentItems.length > 0 ? contentItems[contentItems.length - 1] : null;
-                   if (lastItem && lastItem.type === 'text') {
-                       // Use template literal for correct newline handling
-                       lastItem.content += `
-
-${fallbackText}`;
-                   } else {
-                       contentItems.push({ type: 'text', content: fallbackText });
-                   }
-               }
+          // Case 2: Child is the container for an artifact button
+          else if (child.matches(selectors.artifactContainerDiv)) { // Handle div.py-2
+             // Find the interactive cell *inside* this container
+             const artifactCell = child.querySelector(selectors.artifactButton); // artifactButton selects div.artifact-block-cell
+             if (artifactCell) {
+                 console.log("  -> Handling as Artifact Container Div");
+                 item = processArtifactButton(artifactCell); // Pass the cell div
+                 if (item) contentItems.push(item);
+             } else {
+                  console.warn("  -> Found artifact container div, but no artifact cell inside. Skipping.");
+             }
           }
-        }
-        // ---- 2. Text Node Handling ----
-        // Capture text nodes that are direct children of the contentArea (e.g., simple text replies)
-        else if (node.nodeType === Node.TEXT_NODE) {
-          const text = node.textContent?.trim();
-          if (text) {
-            const lastItem = contentItems.length > 0 ? contentItems[contentItems.length - 1] : null;
-            if (lastItem && lastItem.type === 'text') {
-              lastItem.content += ' ' + text; // Append to previous text block with a space
-            } else {
-              contentItems.push({ type: 'text', content: text });
-            }
+          // Case 3: Unhandled direct child
+          else {
+              console.warn(`  -> Skipping unhandled direct child type <${tagNameLower}>`);
+              // Optional: Add fallback to extract raw text content if needed
+              // const fallbackText = child.textContent?.trim();
+              // if (fallbackText) QAClipper.Utils.addTextItem(contentItems, fallbackText);
           }
-        }
-      }); // End loop through childNodes
+      }); // End forEach loop
 
+      console.log("[Claude Extractor v4] Final assistant contentItems:", JSON.stringify(contentItems, null, 2));
       return contentItems;
-    },
-  };
+    }, // End extractAssistantContent
 
-  // Expose to window scope
+  }; // End claudeConfig
+
+  // Assign to window object
   window.claudeConfig = claudeConfig;
-  console.log("claudeConfig initialized successfully");
-})(); 
+  console.log("claudeConfig.js initialized (v" + claudeConfig.version + ")");
+
+})(); // End of IIFE
