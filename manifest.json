@@ -52,7 +52,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["chatgptConfigs.js", "geminiConfigs.js","claudeConfigs.js","grokConfigs.js"],
+      "resources": [],
       "matches": [
         "https://chatgpt.com/*",
         "https://chat.openai.com/*",
