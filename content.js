@@ -30,6 +30,7 @@
         claudeConfigLoaded: !!window.claudeConfig,
         chatgptConfigLoaded: !!window.chatgptConfig,
         geminiConfigLoaded: !!window.geminiConfig,
+        grokConfigLoaded: !!window.grokConfig,
         extractConversationLoaded: !!window.extractConversation,
         documentReady: document.readyState === 'complete',
         platformDetected: null,
@@ -50,12 +51,8 @@
       // Try to detect platform early to provide more diagnostics
       try {
         let platformClue = null;
-        if (window.location.href.includes('claude.ai')) {
-          platformClue = 'claude';
-          // Test selectors
-          const turnCount = document.querySelectorAll('div[data-test-render-count]').length;
-          diagnosticData.selectors = { platform: 'claude', turnCount: turnCount };
-        } else if (window.location.href.includes('chat.openai.com')) {
+        
+        if (window.location.href.includes('chatgpt.com')) {
           platformClue = 'chatgpt';
           // Test selectors
           const turnCount = document.querySelectorAll('div[data-testid^="conversation-turn-"]').length;
@@ -65,6 +62,16 @@
           // Test selectors
           const turnCount = document.querySelectorAll('user-query, model-response').length;
           diagnosticData.selectors = { platform: 'gemini', turnCount: turnCount };
+        } else if (window.location.href.includes('claude.ai')) {
+          platformClue = 'claude';
+          // Test selectors
+          const turnCount = document.querySelectorAll('div[data-test-render-count]').length;
+          diagnosticData.selectors = { platform: 'claude', turnCount: turnCount };
+        } else if (window.location.href.includes('grok.com')) {
+          platformClue = 'grok';
+          const turnSelector = 'div.relative.w-full.flex.flex-col.items-center > div:not(:empty) > div.relative.group.flex.flex-col.justify-center';
+          const turnCount = document.querySelectorAll(turnSelector).length;
+          diagnosticData.selectors = { platform: 'grok', turnCount: turnCount };
         }
         diagnosticData.platformDetected = platformClue;
         console.log(`Platform detection test: ${platformClue}, selectors:`, diagnosticData.selectors);

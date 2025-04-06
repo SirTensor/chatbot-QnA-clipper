@@ -19,14 +19,17 @@
     
     console.log('Chatbot Clipper: Attempting to identify platform. URL:', currentUrl, 'Hostname:', hostname);
     
-    if (currentUrl.includes('claude.ai')) {
-      return 'claude';
-    } else if (hostname === 'chat.openai.com' || currentUrl.includes('chat.openai.com') || 
+    if (hostname === 'chat.openai.com' || currentUrl.includes('chat.openai.com') || 
                hostname.endsWith('.chatgpt.com') || hostname === 'chatgpt.com') {
       return 'chatgpt';
     } else if (currentUrl.includes('gemini.google.com')) {
       return 'gemini';
+    } else if (currentUrl.includes('claude.ai')) {
+      return 'claude';
+    } else if (currentUrl.includes('grok.com')) {
+      return 'grok';
     }
+
     
     // Additional checks for ChatGPT - check DOM elements specific to ChatGPT
     if (document.querySelector('[data-testid^="conversation-turn-"]') || 
@@ -50,9 +53,10 @@
       console.log(`Chatbot Clipper: Checking if config exists for platform: ${platform}`);
       
       // Check if config is already loaded
-      if ((platform === 'claude' && window.claudeConfig) || 
-          (platform === 'chatgpt' && window.chatgptConfig) || 
-          (platform === 'gemini' && window.geminiConfig)) {
+      if ((platform === 'chatgpt' && window.chatgptConfig) || 
+          (platform === 'gemini' && window.geminiConfig) ||
+          (platform === 'claude' && window.claudeConfig) ||
+          (platform === 'grok' && window.grokConfig)) {
         console.log(`${platform} config is loaded and available`);
         resolve(true);
         return;

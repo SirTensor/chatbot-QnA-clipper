@@ -7,6 +7,7 @@ A Chrome extension that extracts and formats Q&A conversations from AI chatbot p
 - **ChatGPT** (chatgpt.com)
 - **Gemini** (gemini.google.com)
 - **Claude** (claude.ai)
+- **Grok** (grok.com)
 
 ## Features
 
@@ -30,7 +31,7 @@ A Chrome extension that extracts and formats Q&A conversations from AI chatbot p
 
 ## Usage
 
-1. Navigate to any supported chatbot website (ChatGPT, Claude, or Gemini)
+1. Navigate to any supported chatbot website (ChatGPT, Claude, Gemini, Grok)
 2. Have a conversation with the chatbot
 3. Click the extension icon in your browser toolbar
 4. Click "Copy Q&A to Clipboard" or use the keyboard shortcut (Alt+3 by default)

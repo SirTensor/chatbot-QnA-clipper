@@ -29,7 +29,8 @@ const formatter = {
        const displayNames = {
         'chatgpt': 'ChatGPT',
         'gemini': 'Gemini',
-        'claude': 'Claude'
+        'claude': 'Claude',
+        'grok': 'Grok'
         // Add other platforms here if needed in the future
       };
       // Use the display name if available, otherwise fallback to the original platform name

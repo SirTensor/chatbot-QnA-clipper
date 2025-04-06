@@ -317,8 +317,9 @@ async function ensureContentScriptLoaded(tabId) {
         const status = response.status || {};
         if (status.extractConversationLoaded && 
             status.chatgptConfigLoaded && 
-            status.claudeConfigLoaded && 
-            status.geminiConfigLoaded) {
+            status.geminiConfigLoaded &&
+            status.claudeConfigLoaded &&
+            status.grokConfigLoaded) {
           console.log(`All required scripts confirmed loaded on tab ${tabId}`);
           return true;
         } else {
@@ -354,7 +355,7 @@ async function ensureContentScriptLoaded(tabId) {
     // Always inject these scripts to ensure they're available
     const utilityScripts = ['utils.js']; // utils.js must be loaded first as other scripts depend on it
     const extractorScripts = ['extractor.js']; // extractor.js should be loaded before platform configs
-    const platformScripts = ['chatgptConfigs.js', 'claudeConfigs.js', 'geminiConfigs.js']; // Platform configs
+    const platformScripts = ['chatgptConfigs.js', 'geminiConfigs.js', 'claudeConfigs.js', 'grokConfigs.js']; // Platform configs
     
     // Combine scripts in a specific order to respect dependencies
     const allScriptsToInject = [
