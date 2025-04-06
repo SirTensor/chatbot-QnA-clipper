@@ -1,9 +1,9 @@
-// geminiConfigs.js (v29 - Fixed tbody header row warning)
+// geminiConfigs.js (v30 - Fixed nested list formatting)
 
 (function() {
     // Initialization check
-    // v29: Increment version number
-    if (window.geminiConfig && window.geminiConfig.version >= 29) { return; }
+    // v30: Increment version number
+    if (window.geminiConfig && window.geminiConfig.version >= 30) { return; }
   
     // --- Helper Functions ---
   
@@ -28,11 +28,14 @@
   
     /**
      * Processes list elements (ul, ol) into markdown text.
+     * v30: Improved nested list support by preserving line breaks in nested elements
+     * and proper code formatting for HTML tags
      * @param {HTMLElement} el - The list element (ul or ol).
      * @param {string} listType - 'ul' or 'ol'.
+     * @param {number} nestLevel - The nesting level of the list (0 for top level).
      * @returns {object|null} - A text content item or null.
      */
-    function processList(el, listType) {
+    function processList(el, listType, nestLevel = 0) {
         let lines = [];
         let startNum = 1;
         if (listType === 'ol') {
@@ -41,14 +44,49 @@
         }
         let itemIndex = 0;
         el.querySelectorAll(':scope > li').forEach(li => {
-            const itemMarkdown = QAClipper.Utils.htmlToMarkdown(li, {
-              ignoreTags: ['ul', 'ol']
-            }).trim();
-            if (itemMarkdown) {
+            // First, get the direct text content of this list item (before any nested lists)
+            let directContent = '';
+            for (let node of li.childNodes) {
+                // Skip nested lists
+                if (node.nodeType === Node.ELEMENT_NODE && 
+                    (node.tagName.toLowerCase() === 'ul' || node.tagName.toLowerCase() === 'ol')) {
+                    continue;
+                }
+                
+                // For text or non-list elements, add to direct content
+                if (node.nodeType === Node.TEXT_NODE) {
+                    directContent += node.textContent;
+                } else if (node.nodeType === Node.ELEMENT_NODE) {
+                    // Get element content with proper code formatting
+                    let elementContent = QAClipper.Utils.htmlToMarkdown(node, {
+                        ignoreTags: ['ul', 'ol']
+                    });
+                    
+                    // Enhanced HTML tag handling: wrap HTML tags in backticks
+                    elementContent = elementContent.replace(/<(\/?[a-zA-Z][a-zA-Z0-9]*(?:\s[^>]*)?)>/g, '`<$1>`');
+                    
+                    directContent += elementContent;
+                }
+            }
+            
+            // Trim and format the direct content
+            directContent = directContent.trim();
+            
+            if (directContent) {
                 const marker = listType === 'ul' ? '-' : `${startNum + itemIndex}.`;
-                const indent = li.closest('ul ul, ul ol, ol ul, ol ol') ? '  ' : '';
-                lines.push(`${indent}${marker} ${itemMarkdown.replace(/\n+/g, ' ')}`);
+                const indent = '  '.repeat(nestLevel);
+                lines.push(`${indent}${marker} ${directContent}`);
                 if (listType === 'ol') itemIndex++;
+                
+                // Process any nested lists
+                const nestedLists = li.querySelectorAll(':scope > ul, :scope > ol');
+                nestedLists.forEach(nestedList => {
+                    const nestedType = nestedList.tagName.toLowerCase();
+                    const nestedResult = processList(nestedList, nestedType, nestLevel + 1);
+                    if (nestedResult && nestedResult.content) {
+                        lines.push(nestedResult.content);
+                    }
+                });
             }
         });
         return lines.length > 0 ? { type: 'text', content: lines.join('\n') } : null;
@@ -102,7 +140,7 @@
     }
   
     /**
-     * v29: Manually processes an HTML table element into a Markdown table string.
+     * v30: Manually processes an HTML table element into a Markdown table string.
      * Added logic to skip tbody header row during data processing.
      * @param {HTMLTableElement} tableElement - The table element to process.
      * @returns {string|null} - The Markdown table string or null if invalid.
@@ -111,12 +149,12 @@
         if (!tableElement || tableElement.tagName.toLowerCase() !== 'table') {
             return null;
         }
-        console.log("  -> [Table Processor v29] Processing table:", tableElement);
+        console.log("  -> [Table Processor v30] Processing table:", tableElement);
   
         const markdownRows = [];
         let columnCount = 0;
         let headerRowCount = 0; // To count rows added for header/separator
-        let tbodyHeaderRow = null; // v29: To store the row if header is found in tbody
+        let tbodyHeaderRow = null; // v30: To store the row if header is found in tbody
   
         // Process Header (thead)
         const thead = tableElement.querySelector(':scope > thead');
@@ -133,18 +171,18 @@
                     markdownRows.push(`| ${headerContent.join(' | ')} |`);
                     markdownRows.push(`|${'---|'.repeat(columnCount)}`);
                     headerRowCount = 2; // Header + Separator
-                    console.log(`  -> [Table Processor v29] Header found in thead with ${columnCount} columns.`);
-                } else { console.log("  -> [Table Processor v29] thead row found but no 'th' cells."); }
-            } else { console.log("  -> [Table Processor v29] 'thead' found but no 'tr' inside."); }
-        } else { console.log("  -> [Table Processor v29] No 'thead' found in table."); }
+                    console.log(`  -> [Table Processor v30] Header found in thead with ${columnCount} columns.`);
+                } else { console.log("  -> [Table Processor v30] thead row found but no 'th' cells."); }
+            } else { console.log("  -> [Table Processor v30] 'thead' found but no 'tr' inside."); }
+        } else { console.log("  -> [Table Processor v30] No 'thead' found in table."); }
   
         // If no header found in thead, try tbody
         const tbody = tableElement.querySelector(':scope > tbody');
         if (columnCount === 0 && tbody) {
-            console.log("  -> [Table Processor v29] Attempting to find header row in 'tbody'.");
+            console.log("  -> [Table Processor v30] Attempting to find header row in 'tbody'.");
             const firstRow = tbody.querySelector(':scope > tr');
             if (firstRow) {
-                // v29: Store the potential header row from tbody
+                // v30: Store the potential header row from tbody
                 tbodyHeaderRow = firstRow;
                 const potentialHeaderCells = Array.from(firstRow.querySelectorAll(':scope > th'));
                 if (potentialHeaderCells.length > 0) {
@@ -156,7 +194,7 @@
                      markdownRows.push(`| ${headerContent.join(' | ')} |`);
                      markdownRows.push(`|${'---|'.repeat(columnCount)}`);
                      headerRowCount = 2;
-                     console.log(`  -> [Table Processor v29] Found 'th' header row in 'tbody' with ${columnCount} columns.`);
+                     console.log(`  -> [Table Processor v30] Found 'th' header row in 'tbody' with ${columnCount} columns.`);
                 } else {
                     const firstRowTds = Array.from(firstRow.querySelectorAll(':scope > td'));
                     if (firstRowTds.length > 0) {
@@ -168,7 +206,7 @@
                         markdownRows.push(`| ${headerContent.join(' | ')} |`);
                         markdownRows.push(`|${'---|'.repeat(columnCount)}`);
                         headerRowCount = 2;
-                        console.warn(`  -> [Table Processor v29] Using first 'tbody' row with TDs as header (${columnCount} columns).`);
+                        console.warn(`  -> [Table Processor v30] Using first 'tbody' row with TDs as header (${columnCount} columns).`);
                     }
                 }
             }
@@ -176,18 +214,18 @@
   
         // Abort if no header could be determined
         if (columnCount === 0) {
-            console.warn("[Extractor v29 - Table] Table has no discernible header. Cannot generate Markdown.", tableElement);
+            console.warn("[Extractor v30 - Table] Table has no discernible header. Cannot generate Markdown.", tableElement);
             return null;
         }
   
         // Process Body (tbody)
         if (tbody) {
             const bodyRows = tbody.querySelectorAll(':scope > tr');
-            console.log(`  -> [Table Processor v29] Processing ${bodyRows.length} rows in 'tbody'.`);
+            console.log(`  -> [Table Processor v30] Processing ${bodyRows.length} rows in 'tbody'.`);
             bodyRows.forEach((row, rowIndex) => {
-                // *** v29: ADDED CHECK ***: Skip the row if it was identified as the tbody header row
+                // *** v30: ADDED CHECK ***: Skip the row if it was identified as the tbody header row
                 if (row === tbodyHeaderRow) {
-                    console.log(`  -> [Table Processor v29] Skipping row ${rowIndex+1} as it was used as tbody header.`);
+                    console.log(`  -> [Table Processor v30] Skipping row ${rowIndex+1} as it was used as tbody header.`);
                     return; // Skip this iteration
                 }
   
@@ -201,21 +239,21 @@
                     markdownRows.push(`| ${cellContent.join(' | ')} |`);
                 } else {
                     // This warning should now only appear for actual data rows with mismatched columns
-                    console.warn(`  -> [Table Processor v29] Data row ${rowIndex+1} skipped. Expected ${columnCount} 'td' cells, found ${cells.length}.`, row);
+                    console.warn(`  -> [Table Processor v30] Data row ${rowIndex+1} skipped. Expected ${columnCount} 'td' cells, found ${cells.length}.`, row);
                 }
             });
         } else {
-            console.log("  -> [Table Processor v29] No 'tbody' found in table.");
+            console.log("  -> [Table Processor v30] No 'tbody' found in table.");
         }
   
         // Need header + separator (already counted in headerRowCount) + optional data rows
         if (headerRowCount > 0) { // Check if header was successfully added
-             console.log("  -> [Table Processor v29] Successfully generated Markdown table.");
+             console.log("  -> [Table Processor v30] Successfully generated Markdown table.");
              // Ensure there's at least header + separator before joining
              return markdownRows.length >= 2 ? markdownRows.join('\n') : null;
         } else {
              // This path shouldn't be reached if columnCount > 0 check passed, but added for safety
-             console.warn("  -> [Table Processor v29] Failed to generate valid Markdown (header processing failed).");
+             console.warn("  -> [Table Processor v30] Failed to generate valid Markdown (header processing failed).");
              return null;
         }
     }
@@ -224,12 +262,12 @@
     // --- Main Configuration Object ---
     const geminiConfig = {
       platformName: 'Gemini',
-      version: 29, // v29: Config version identifier
+      version: 30, // v30: Config version identifier
       selectors: {
         turnContainer: 'user-query, model-response',
         userMessageContainer: 'user-query', userText: '.query-text',
         userImageContainer: 'user-query-file-preview', userImageLink: 'a[href^="https://lens.google.com/uploadbyurl?url="]',
-        userFileContainer: '.file-upload-container', userFileItem: '.file-upload-link', userFileName: '.file-name', userFileType: '.file-type',
+        userFileContainer: '.file-preview-container', userFileItem: '.file-upload-link', userFileName: '.new-file-name', userFileType: '.new-file-type',
         assistantContentArea: 'div.markdown.markdown-main-panel',
         relevantBlocks: 'p, ul, ol, code-block, single-image, div.attachment-container.immersive-entry-chip, table',
         listItem: 'li',
@@ -267,7 +305,7 @@
                               const extractedContent = altText || "User Uploaded Image";
                               images.push({ type: 'image', sourceUrl: decodedUrl, isPreviewOnly: false, extractedContent: extractedContent });
                           }
-                      } catch (e) { console.error("[Extractor v29] Error parsing user image URL:", e, href); }
+                      } catch (e) { console.error("[Extractor v30] Error parsing user image URL:", e, href); }
                   }
               }
           });
@@ -278,17 +316,17 @@
   
       /**
        * Extracts structured content using querySelectorAll.
-       * v29: Uses updated processTableToMarkdown which skips tbody header row if needed.
+       * v30: Uses updated processList function for better nested list support
        */
       extractAssistantContent: (turnElement) => {
           const contentItems = [];
           const contentArea = turnElement.querySelector(geminiConfig.selectors.assistantContentArea);
-          if (!contentArea) { console.warn("[Extractor v29] Gemini markdown content area not found."); return []; }
+          if (!contentArea) { console.warn("[Extractor v30] Gemini markdown content area not found."); return []; }
   
-          console.log("[Extractor v29] Starting assistant extraction (Fixed tbody header warning)");
+          console.log("[Extractor v30] Starting assistant extraction (Fixed nested list formatting)");
   
           const relevantElements = contentArea.querySelectorAll(geminiConfig.selectors.relevantBlocks);
-          console.log(`[Extractor v29] Found ${relevantElements.length} relevant block elements.`);
+          console.log(`[Extractor v30] Found ${relevantElements.length} relevant block elements.`);
           const processedElements = new Set();
   
           relevantElements.forEach((element, index) => {
@@ -300,7 +338,7 @@
               const isCodeBlock = tagNameLower === 'code-block';
               const isTable = tagNameLower === 'table';
   
-              console.log(`[Extractor v29] Processing Element #${index}: <${tagNameLower}>`);
+              console.log(`[Extractor v30] Processing Element #${index}: <${tagNameLower}>`);
               let item = null;
   
               // --- Process based on type ---
@@ -321,7 +359,7 @@
               }
               else if (isTable) { // Use the updated table processor
                    console.log("  -> Handling as Table");
-                   const tableMarkdown = processTableToMarkdown(element); // Calls v29 processor
+                   const tableMarkdown = processTableToMarkdown(element);
                    if (tableMarkdown) {
                        QAClipper.Utils.addTextItem(contentItems, tableMarkdown);
                    } else {
@@ -338,7 +376,8 @@
               }
               else if (tagNameLower === 'ul' || tagNameLower === 'ol') {
                   console.log(`  -> Handling as ${tagNameLower.toUpperCase()}`);
-                  item = processList(element, tagNameLower);
+                  // v30: Use the updated processList function with proper nesting support
+                  item = processList(element, tagNameLower, 0);
                   if (item) contentItems.push(item);
                   processedElements.add(element);
                   element.querySelectorAll('*').forEach(child => processedElements.add(child));
@@ -373,13 +412,12 @@
               }
           }); // End loop
   
-          console.log("[Extractor v29] Final contentItems generated:", JSON.stringify(contentItems, null, 2));
+          console.log("[Extractor v30] Final contentItems generated:", JSON.stringify(contentItems, null, 2));
           return contentItems;
       }, // End extractAssistantContent
   
     }; // End geminiConfig
   
     window.geminiConfig = geminiConfig;
-    console.log("geminiConfig initialized (v29 - Fixed tbody header warning)");
+    console.log("geminiConfig initialized (v30 - Fixed nested list formatting)");
   })(); // End of IIFE
-  
