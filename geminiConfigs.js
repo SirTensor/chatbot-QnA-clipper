@@ -206,7 +206,7 @@
                 if (title) {
                     contentItems.push({ type: 'interactive_block', title: title, code: null, language: null });
                 } else {
-                    console.warn("  -> Found interactive block container but failed to extract title:", element);
+                    console.log("  -> Found interactive block container but failed to extract title:", element);
                     contentItems.push({ type: 'interactive_block', title: '[Interactive Block - Title Missing]', code: null, language: null });
                 }
                 processedElements.add(element);

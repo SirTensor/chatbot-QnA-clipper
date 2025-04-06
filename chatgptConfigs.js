@@ -90,7 +90,7 @@
             codeLines.forEach(line => { codeContent += line.textContent + '\n'; });
             code = codeContent.trimEnd(); // Remove final trailing newline only
         } else {
-             console.warn("[Extractor v14] CodeMirror content not found in interactive block:", el);
+             console.log("[Extractor v14] CodeMirror content not found in interactive block:", el);
              // As a fallback, check if there's a simple <pre><code> inside the interactive block
               const preCode = el.querySelector('pre > code');
               if(preCode) {
