@@ -95,6 +95,7 @@ The extension scans the current webpage's DOM to identify conversation elements 
 - No data is sent to remote servers
 - All processing happens locally in your browser
 - No tracking or analytics are included
+- For more detailed information, please see the full [Privacy Policy](privacy-policy.md).
 
 ## Important Notes & Limitations
 
