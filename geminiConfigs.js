@@ -172,9 +172,9 @@
                     markdownRows.push(`|${'---|'.repeat(columnCount)}`);
                     headerRowCount = 2; // Header + Separator
                     // console.log(`  -> [Table Processor v31] Header found in thead with ${columnCount} columns.`);
-                } else { // console.log("  -> [Table Processor v31] thead row found but no 'th' cells."); }
-            } else { // console.log("  -> [Table Processor v31] 'thead' found but no 'tr' inside."); }
-        } else { // console.log("  -> [Table Processor v31] No 'thead' found in table."); }
+                } else { } // console.log("  -> [Table Processor v31] thead row found but no 'th' cells.");
+            } else { } // console.log("  -> [Table Processor v31] 'thead' found but no 'tr' inside.");
+        } else { } // console.log("  -> [Table Processor v31] No 'thead' found in table.");
 
         // If no header found in thead, try tbody
         const tbody = tableElement.querySelector(':scope > tbody');

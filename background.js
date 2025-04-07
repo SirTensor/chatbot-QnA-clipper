@@ -103,7 +103,8 @@ chrome.runtime.onInstalled.addListener(() => {
         labelStyle: 'qa',
         numberFormat: 'space',
         imageFormat: 'bracketed',
-        imageLabel: ''
+        imageLabel: '',
+        includePlatform: true 
         // Note: customShortcut removed as it's now handled by Chrome's native commands API
       };
 
