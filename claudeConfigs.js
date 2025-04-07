@@ -74,21 +74,42 @@
     
     // General code block processing
     const codeElement = el.querySelector(selectors.codeBlockContent);
-    const code = codeElement ? codeElement.textContent : '';
-    // Language is often in the class name like 'language-python'
+    // If no code element is found using the specific selector, try a more general approach
+    const actualCodeElement = codeElement || el.querySelector('code');
+    
+    // Extract code text, default to empty string if element not found
+    const code = actualCodeElement ? actualCodeElement.textContent : '';
+    
+    // Language detection - try multiple approaches
     let language = null;
-    if (codeElement) {
-        const langClass = Array.from(codeElement.classList).find(cls => cls.startsWith('language-'));
+    
+    if (actualCodeElement) {
+        // Method 1: Check for language- classes
+        const langClass = Array.from(actualCodeElement.classList || []).find(cls => cls.startsWith('language-'));
         if (langClass) {
             language = langClass.replace('language-', '');
         }
+        
+        // Method 2: Special handling for pre > code without language class
+        if (!language && actualCodeElement.parentElement === el && !langClass) {
+            // This is a plain code block without language specification
+            language = "text";  // Use "text" as fallback language identifier
+        }
     }
-    // Fallback: Check the language indicator div if class name fails
+    
+    // Method 3: Check the language indicator div if class name fails
     if (!language) {
         const langIndicator = el.querySelector(selectors.codeBlockLangIndicator);
         if (langIndicator) {
-            language = langIndicator.textContent?.trim().toLowerCase();
+            const indicatorText = langIndicator.textContent?.trim();
+            language = indicatorText && indicatorText.toLowerCase() !== "" ? 
+                       indicatorText.toLowerCase() : "text";
         }
+    }
+    
+    // Final fallback - if we have code content but no language was detected
+    if (!language && code.trim()) {
+        language = "text";  // Default to "text" for unlabeled code blocks
     }
 
     // Return null if code is just whitespace
