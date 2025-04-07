@@ -13,7 +13,7 @@ const formatter = {
    * @returns {string} - Formatted markdown text
    */
   formatData: function(extractedData, settings = {}) {
-    console.log("[Formatter] Starting formatData with settings:", settings);
+    // console.log("[Formatter] Starting formatData with settings:", settings);
     const headerLevel = settings.headerLevel || '1';
     const labelStyle = settings.labelStyle || 'qa';
     const numberFormat = settings.numberFormat || 'space';
@@ -41,7 +41,7 @@ const formatter = {
     let pairIndex = 0;
 
     extractedData.conversationTurns.forEach((turn, turnIdx) => {
-        console.log(`[Formatter] Processing Turn #${turnIdx}, Role: ${turn.role}`);
+        // console.log(`[Formatter] Processing Turn #${turnIdx}, Role: ${turn.role}`);
         if (turn.role === 'user') {
             pairIndex++;
             const qLabel = this.getLabelByStyle(labelStyle, 'question');
@@ -63,7 +63,7 @@ const formatter = {
 
             if (turn.contentItems?.length > 0) {
                 turn.contentItems.forEach((item, itemIdx) => {
-                    console.log(`  [Formatter] Formatting Assistant Item #${itemIdx} (Type: ${item.type})`);
+                    // console.log(`  [Formatter] Formatting Assistant Item #${itemIdx} (Type: ${item.type})`);
                     const itemTextResult = this.formatContentItem(item, imageFormat, imageLabel);
                     formattedText += itemTextResult; // formatContentItem now ensures correct spacing
                 });
@@ -78,7 +78,7 @@ const formatter = {
              // Also attempt to format contentItems if they exist for unknown roles
               if (turn.contentItems?.length > 0) {
                   turn.contentItems.forEach((item, itemIdx) => {
-                      console.log(`  [Formatter] Formatting Unknown Role Item #${itemIdx} (Type: ${item.type})`);
+                      // console.log(`  [Formatter] Formatting Unknown Role Item #${itemIdx} (Type: ${item.type})`);
                       const itemTextResult = this.formatContentItem(item, imageFormat, imageLabel);
                       formattedText += itemTextResult;
                   });

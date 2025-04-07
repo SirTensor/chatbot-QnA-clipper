@@ -90,11 +90,11 @@ async function copyToClipboardViaOffscreen(text) {
 
 // On installation, set up the extension
 chrome.runtime.onInstalled.addListener(() => {
-  console.log('Chatbot Q&A Clipper extension installed');
+  // console.log('Chatbot Q&A Clipper extension installed');
 
   // Check the current shortcut settings
   chrome.storage.local.get('formatSettings', (data) => {
-    console.log('Current format settings:', data.formatSettings);
+    // console.log('Current format settings:', data.formatSettings);
 
     // If no settings exist, initialize with defaults
     if (!data.formatSettings) {
@@ -108,7 +108,7 @@ chrome.runtime.onInstalled.addListener(() => {
       };
 
       chrome.storage.local.set({ formatSettings: defaultSettings }, () => {
-        console.log('Initialized default settings:', defaultSettings);
+        // console.log('Initialized default settings:', defaultSettings);
       });
     }
   });
@@ -116,20 +116,20 @@ chrome.runtime.onInstalled.addListener(() => {
 
 // Listen for commands from the Chrome Commands API
 chrome.commands.onCommand.addListener((command) => {
-  console.log('Command received:', command);
+  // console.log('Command received:', command);
 
   // Check if this is our extraction command
   if (command === 'trigger-extraction') {
     // Debounce to prevent multiple rapid triggers (increased debounce time)
     const now = Date.now();
     if (now - lastTriggerTime < 1000) { // Increased to 1000ms
-      console.log('Ignoring rapid shortcut trigger');
+      // console.log('Ignoring rapid shortcut trigger');
       return;
     }
     lastTriggerTime = now;
 
     // Trigger the extraction process
-    console.log('Shortcut triggered extraction');
+    // console.log('Shortcut triggered extraction');
     extractQA(); // Call the async function, but don't need to await here
   }
 });
@@ -137,12 +137,12 @@ chrome.commands.onCommand.addListener((command) => {
 // Listen for messages from popup or content scripts
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'start-extraction') {
-    console.log('Received extraction request from popup');
+    // console.log('Received extraction request from popup');
 
     // Apply debounce here too for consistency
     const now = Date.now();
     if (now - lastTriggerTime < 1000) { // Use same debounce as shortcut
-      console.log('Ignoring rapid popup trigger');
+      // console.log('Ignoring rapid popup trigger');
       sendResponse({ success: false, error: 'Ignoring rapid trigger (debounce)' });
       return false; // Indicate synchronous response
     }
@@ -182,7 +182,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
         // Check if URL uses http/https protocol (excludes chrome://, file://, etc.)
         if (!tabUrl.startsWith('http:') && !tabUrl.startsWith('https:')) {
-          console.log(`Non-web URL detected (${tabUrl}) for popup extraction - showing error`);
+          // console.log(`Non-web URL detected (${tabUrl}) for popup extraction - showing error`);
           sendResponse({ success: false, error: 'Unsupported page.' });
           sendMessageToPopup({
             action: 'extraction-complete',
@@ -225,7 +225,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   // Handle other messages if necessary
-  console.log("Received unhandled message:", request);
+  // console.log("Received unhandled message:", request);
   return false; // Indicate synchronous response or no handler found
 });
 
@@ -311,7 +311,7 @@ async function ensureContentScriptLoaded(tabId) {
     try {
       const response = await chrome.tabs.sendMessage(tabId, { action: 'ping' }, { frameId: 0 }); // Target main frame
       if (response && response.pong === true) {
-        console.log(`Content script already loaded on tab ${tabId}:`, response.status || 'No status info');
+        // console.log(`Content script already loaded on tab ${tabId}:`, response.status || 'No status info');
         
         // Check if all required scripts are already loaded and available
         const status = response.status || {};
@@ -320,10 +320,10 @@ async function ensureContentScriptLoaded(tabId) {
             status.geminiConfigLoaded &&
             status.claudeConfigLoaded &&
             status.grokConfigLoaded) {
-          console.log(`All required scripts confirmed loaded on tab ${tabId}`);
+          // console.log(`All required scripts confirmed loaded on tab ${tabId}`);
           return true;
         } else {
-          console.log(`Content script is loaded on tab ${tabId}, but some required scripts are missing. Will inject all scripts.`);
+          // console.log(`Content script is loaded on tab ${tabId}, but some required scripts are missing. Will inject all scripts.`);
           contentScriptLoaded = true;
           // We'll proceed to inject ALL scripts to ensure everything is loaded
         }
@@ -334,7 +334,7 @@ async function ensureContentScriptLoaded(tabId) {
     } catch (err) {
       // Error likely means content script isn't loaded or listening
       if (err.message.includes("Could not establish connection")) {
-        console.log(`Content script not responding on tab ${tabId}. Will inject content script and all required scripts.`);
+        // console.log(`Content script not responding on tab ${tabId}. Will inject content script and all required scripts.`);
       } else {
         console.warn(`Error pinging content script on tab ${tabId}: ${err.message}. Will attempt injection.`);
       }
@@ -366,17 +366,17 @@ async function ensureContentScriptLoaded(tabId) {
     ];
 
     // Log injection plan
-    console.log(`Ensuring scripts are loaded in tab ${tabId} in this order:`, allScriptsToInject.join(', '));
+    // console.log(`Ensuring scripts are loaded in tab ${tabId} in this order:`, allScriptsToInject.join(', '));
 
     // 3. Inject scripts in sequence to maintain proper initialization order
     for (const script of allScriptsToInject) {
       try {
-        console.log(`Injecting ${script} into tab ${tabId}...`);
+        // console.log(`Injecting ${script} into tab ${tabId}...`);
         await chrome.scripting.executeScript({
           target: { tabId: tabId, allFrames: false }, // Inject only into main frame
           files: [script]
         });
-        console.log(`Successfully injected ${script} into tab ${tabId}`);
+        // console.log(`Successfully injected ${script} into tab ${tabId}`);
       } catch (injectionError) {
         // Handle script injection errors
         console.error(`Failed to inject script ${script} into tab ${tabId}:`, injectionError);
@@ -414,7 +414,7 @@ async function ensureContentScriptLoaded(tabId) {
           action: 'scripts-injected', 
           scripts: allScriptsToInject 
         });
-        console.log(`Notified content script about successful injection in tab ${tabId}`);
+        // console.log(`Notified content script about successful injection in tab ${tabId}`);
       } catch (notifyError) {
         console.warn(`Unable to notify content script about injection in tab ${tabId}:`, notifyError);
         // This is non-fatal
@@ -424,7 +424,7 @@ async function ensureContentScriptLoaded(tabId) {
     // 5. Add a final delay to ensure all scripts initialize properly
     await new Promise(resolve => setTimeout(resolve, 200));
     
-    console.log(`Script injection complete for tab ${tabId}`);
+    // console.log(`Script injection complete for tab ${tabId}`);
     return true;
   } catch (error) {
     console.error(`Error ensuring scripts loaded in tab ${tabId}:`, error);
@@ -469,23 +469,23 @@ async function extractQA() {
     // ADDITIONAL VALIDATION CHECKS
     // Check if the URL exists and is a valid http/https URL
     if (!tab.url) {
-      console.log('Tab URL is missing - silently ignoring shortcut trigger');
+      // console.log('Tab URL is missing - silently ignoring shortcut trigger');
       return; // Silently stop execution without notification
     }
     
     // Check if URL uses http/https protocol (excludes chrome://, file://, etc.)
     if (!tab.url.startsWith('http:') && !tab.url.startsWith('https:')) {
-      console.log(`Non-web URL detected (${tab.url}) - silently ignoring shortcut trigger`);
+      // console.log(`Non-web URL detected (${tab.url}) - silently ignoring shortcut trigger`);
       return; // Silently stop execution without notification
     }
     
     currentTabId = tab.id; // Store the valid tab ID
     tabUrl = tab.url; // Store URL for logging
-    console.log(`Starting extraction for tab: ${currentTabId}, URL: ${tabUrl}`);
+    // console.log(`Starting extraction for tab: ${currentTabId}, URL: ${tabUrl}`);
 
     // Simple URL validation - just check URL exists and protocol is valid
     if (!tabUrl) {
-      console.log('Tab URL is missing - silently ignoring trigger.');
+      // console.log('Tab URL is missing - silently ignoring trigger.');
       return;
     }
 
@@ -493,11 +493,11 @@ async function extractQA() {
     try {
       const urlObject = new URL(tabUrl);
       if (!['http:', 'https:'].includes(urlObject.protocol)) {
-        console.log(`Unsupported protocol (${urlObject.protocol}) at ${tabUrl} - silently ignoring trigger.`);
+        // console.log(`Unsupported protocol (${urlObject.protocol}) at ${tabUrl} - silently ignoring trigger.`);
         return;
       }
     } catch (urlError) {
-      console.log(`URL parsing error, ignoring trigger for ${tabUrl}:`, urlError);
+      // console.log(`URL parsing error, ignoring trigger for ${tabUrl}:`, urlError);
       return;
     }
 
@@ -523,7 +523,7 @@ async function extractQA() {
       });
 
       if (!hasPermission) {
-        console.log(`Extension does not have permission for origin: ${new URL(tabUrl).origin}. Silently ignoring trigger for unsupported site.`);
+        // console.log(`Extension does not have permission for origin: ${new URL(tabUrl).origin}. Silently ignoring trigger for unsupported site.`);
         // For popup triggers, we should show an error, but shortcut triggers should be silent.
         // Check if the trigger came from the popup. This is tricky to know directly here.
         // Let's send a message to the popup regardless, it will only be received if open.
@@ -536,7 +536,7 @@ async function extractQA() {
         });
         return; // Stop execution
       }
-      console.log(`Host permission granted for tab ${currentTabId}`);
+      // console.log(`Host permission granted for tab ${currentTabId}`);
 
     } catch (permError) {
       // Catch any unexpected error during the permission check process
@@ -564,14 +564,14 @@ async function extractQA() {
         });
         return; // Stop execution
       }
-      console.log(`Scripts confirmed loaded for tab ${currentTabId}`);
+      // console.log(`Scripts confirmed loaded for tab ${currentTabId}`);
     } catch (scriptError) {
       // Handle specific permission errors
       if (scriptError.message && (
           scriptError.message.includes("not supported by the extension") ||
           scriptError.message.includes("Missing host permission") ||
           scriptError.message.includes("Cannot access contents of url"))) {
-        console.log(`Website not supported error for tab ${currentTabId}: ${scriptError.message}`);
+        // console.log(`Website not supported error for tab ${currentTabId}: ${scriptError.message}`);
         await showToast(currentTabId, 'This website is not supported by the extension.', 3000);
         sendMessageToPopup({
           action: 'extraction-complete',
@@ -595,7 +595,7 @@ async function extractQA() {
     // Get the format settings
     const data = await chrome.storage.local.get('formatSettings');
     const formatSettings = data.formatSettings || {};
-    console.log('Using format settings:', formatSettings);
+    // console.log('Using format settings:', formatSettings);
 
     // Send message to content script to extract raw data
     let response;
@@ -618,7 +618,7 @@ async function extractQA() {
         
         // Race the extraction against the timeout
         response = await Promise.race([extractionPromise, timeoutPromise]);
-        console.log(`Received response from content script on tab ${currentTabId}:`, response);
+        // console.log(`Received response from content script on tab ${currentTabId}:`, response);
     } catch (commsError) {
          // Check if it was a timeout error
          if (commsError.message.includes("Receiving end does not exist") || commsError.message.includes("Could not establish connection")) {
@@ -666,7 +666,7 @@ async function extractQA() {
     if (response && response.data && response.data.platform && 
         Array.isArray(response.data.conversationTurns) && 
         response.data.conversationTurns.length === 0) {
-      console.log(`Empty conversation detected on tab ${currentTabId} (${tabUrl}) - normal case for new chat`);
+      // console.log(`Empty conversation detected on tab ${currentTabId} (${tabUrl}) - normal case for new chat`);
       await showToast(currentTabId, `No conversation to extract yet.`, 2000);
       sendMessageToPopup({
         action: 'extraction-complete',
@@ -678,20 +678,20 @@ async function extractQA() {
 
     // Ensure data is in the new expected format
     if (response && response.data && response.data.platform && Array.isArray(response.data.conversationTurns)) {
-      console.log(`Received ${response.data.conversationTurns.length} items for platform ${response.data.platform} on tab ${currentTabId}`);
+      // console.log(`Received ${response.data.conversationTurns.length} items for platform ${response.data.platform} on tab ${currentTabId}`);
 
       // Format the data using our formatter (needs update for new structure)
       // Pass the entire new data object to the formatter
       const formattedText = formatter.formatData(response.data, formatSettings);
-      console.log(`--- Formatter output start (length: ${formattedText.length}) ---`);
-      console.log(formattedText); // Output the exact string log
-      console.log(`--- Formatter output end ---`);
-      console.log(`Attempting to copy to clipboard for tab ${currentTabId}...`);
-      console.log(`Formatted text length for tab ${currentTabId}: ${formattedText.length}`);
+      // console.log(`--- Formatter output start (length: ${formattedText.length}) ---`);
+      // console.log(formattedText); // Output the exact string log
+      // console.log(`--- Formatter output end ---`);
+      // console.log(`Attempting to copy to clipboard for tab ${currentTabId}...`);
+      // console.log(`Formatted text length for tab ${currentTabId}: ${formattedText.length}`);
 
       // Copy the result to clipboard
       const copySuccess = await copyToClipboard(currentTabId, formattedText);
-      console.log(`Clipboard copy success for tab ${currentTabId}: ${copySuccess}`);
+      // console.log(`Clipboard copy success for tab ${currentTabId}: ${copySuccess}`);
 
       // Show success or error toast and notify popup
       if (copySuccess) {

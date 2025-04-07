@@ -117,7 +117,7 @@
      }
 
      function processInteractiveBlock(el) { // Unchanged
-        console.log("[Extractor v17] Processing Interactive Block:", el);
+        // console.log("[Extractor v17] Processing Interactive Block:", el);
         const selectors = window.chatgptConfig.selectors;
         let title = null; let code = null; let language = null;
         const titleElement = el.querySelector(selectors.interactiveBlockTitle);
@@ -128,10 +128,10 @@
             codeLines.forEach(line => { codeContent += line.textContent + '\n'; });
             code = codeContent.trimEnd();
         } else {
-             console.log("[Extractor v17] CodeMirror content not found in interactive block:", el);
+             // console.log("[Extractor v17] CodeMirror content not found in interactive block:", el);
               const preCode = el.querySelector('pre > code');
               if(preCode) {
-                  console.log("[Extractor v17] Found fallback pre>code inside interactive block.");
+                  // console.log("[Extractor v17] Found fallback pre>code inside interactive block.");
                   code = preCode.textContent.trimEnd();
               }
         }
@@ -373,6 +373,6 @@
 
     // Assign the config object to the window
     window.chatgptConfig = chatgptConfig;
-    console.log("chatgptConfig initialized (v17 - Nested List Fix)");
+    // console.log("chatgptConfig initialized (v17 - Nested List Fix)");
 
 })();

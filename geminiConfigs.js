@@ -149,7 +149,7 @@
         if (!tableElement || tableElement.tagName.toLowerCase() !== 'table') {
             return null;
         }
-        console.log("  -> [Table Processor v31] Processing table:", tableElement);
+        // console.log("  -> [Table Processor v31] Processing table:", tableElement);
 
         const markdownRows = [];
         let columnCount = 0;
@@ -171,15 +171,15 @@
                     markdownRows.push(`| ${headerContent.join(' | ')} |`);
                     markdownRows.push(`|${'---|'.repeat(columnCount)}`);
                     headerRowCount = 2; // Header + Separator
-                    console.log(`  -> [Table Processor v31] Header found in thead with ${columnCount} columns.`);
-                } else { console.log("  -> [Table Processor v31] thead row found but no 'th' cells."); }
-            } else { console.log("  -> [Table Processor v31] 'thead' found but no 'tr' inside."); }
-        } else { console.log("  -> [Table Processor v31] No 'thead' found in table."); }
+                    // console.log(`  -> [Table Processor v31] Header found in thead with ${columnCount} columns.`);
+                } else { // console.log("  -> [Table Processor v31] thead row found but no 'th' cells."); }
+            } else { // console.log("  -> [Table Processor v31] 'thead' found but no 'tr' inside."); }
+        } else { // console.log("  -> [Table Processor v31] No 'thead' found in table."); }
 
         // If no header found in thead, try tbody
         const tbody = tableElement.querySelector(':scope > tbody');
         if (columnCount === 0 && tbody) {
-            console.log("  -> [Table Processor v31] Attempting to find header row in 'tbody'.");
+            // console.log("  -> [Table Processor v31] Attempting to find header row in 'tbody'.");
             const firstRow = tbody.querySelector(':scope > tr');
             if (firstRow) {
                 // v30: Store the potential header row from tbody
@@ -194,7 +194,7 @@
                      markdownRows.push(`| ${headerContent.join(' | ')} |`);
                      markdownRows.push(`|${'---|'.repeat(columnCount)}`);
                      headerRowCount = 2;
-                     console.log(`  -> [Table Processor v31] Found 'th' header row in 'tbody' with ${columnCount} columns.`);
+                     // console.log(`  -> [Table Processor v31] Found 'th' header row in 'tbody' with ${columnCount} columns.`);
                 } else {
                     const firstRowTds = Array.from(firstRow.querySelectorAll(':scope > td'));
                     if (firstRowTds.length > 0) {
@@ -221,11 +221,11 @@
         // Process Body (tbody)
         if (tbody) {
             const bodyRows = tbody.querySelectorAll(':scope > tr');
-            console.log(`  -> [Table Processor v31] Processing ${bodyRows.length} rows in 'tbody'.`);
+            // console.log(`  -> [Table Processor v31] Processing ${bodyRows.length} rows in 'tbody'.`);
             bodyRows.forEach((row, rowIndex) => {
                 // *** v30: ADDED CHECK ***: Skip the row if it was identified as the tbody header row
                 if (row === tbodyHeaderRow) {
-                    console.log(`  -> [Table Processor v31] Skipping row ${rowIndex+1} as it was used as tbody header.`);
+                    // console.log(`  -> [Table Processor v31] Skipping row ${rowIndex+1} as it was used as tbody header.`);
                     return; // Skip this iteration
                 }
 
@@ -243,12 +243,12 @@
                 }
             });
         } else {
-            console.log("  -> [Table Processor v31] No 'tbody' found in table.");
+            // console.log("  -> [Table Processor v31] No 'tbody' found in table.");
         }
 
         // Need header + separator (already counted in headerRowCount) + optional data rows
         if (headerRowCount > 0) { // Check if header was successfully added
-             console.log("  -> [Table Processor v31] Successfully generated Markdown table.");
+             // console.log("  -> [Table Processor v31] Successfully generated Markdown table.");
              // Ensure there's at least header + separator before joining
              return markdownRows.length >= 2 ? markdownRows.join('\n') : null;
         } else {
@@ -324,10 +324,10 @@
           const contentArea = turnElement.querySelector(geminiConfig.selectors.assistantContentArea);
           if (!contentArea) { console.warn("[Extractor v31] Gemini markdown content area not found."); return []; }
 
-          console.log("[Extractor v31] Starting assistant extraction (Added h1-h6 support)");
+          // console.log("[Extractor v31] Starting assistant extraction (Added h1-h6 support)");
 
           const relevantElements = contentArea.querySelectorAll(geminiConfig.selectors.relevantBlocks);
-          console.log(`[Extractor v31] Found ${relevantElements.length} relevant block elements.`);
+          // console.log(`[Extractor v31] Found ${relevantElements.length} relevant block elements.`);
           const processedElements = new Set();
 
           relevantElements.forEach((element, index) => {
@@ -340,12 +340,12 @@
               const isCodeBlock = tagNameLower === 'code-block';
               const isTable = tagNameLower === 'table';
 
-              console.log(`[Extractor v31] Processing Element #${index}: <${tagNameLower}>`);
+              // console.log(`[Extractor v31] Processing Element #${index}: <${tagNameLower}>`);
               let item = null;
 
               // --- Process based on type ---
               if (isHeading) {
-                  console.log(`  -> Handling as Heading (${tagNameLower})`);
+                  // console.log(`  -> Handling as Heading (${tagNameLower})`);
                   
                   // Simple heading processing without separate function
                   const level = parseInt(tagNameLower.charAt(1));
@@ -359,7 +359,7 @@
                   processedElements.add(element);
               }
               else if (isInteractiveBlock) {
-                  console.log("  -> Handling as Interactive Block");
+                  // console.log("  -> Handling as Interactive Block");
                   const titleElement = element.querySelector(geminiConfig.selectors.interactiveBlockTitle);
                   const title = titleElement ? titleElement.textContent?.trim() : '[Interactive Block]';
                   contentItems.push({ type: 'interactive_block', title: title, code: null, language: null });
@@ -367,14 +367,14 @@
                   element.querySelectorAll('*').forEach(child => processedElements.add(child));
               }
               else if (isCodeBlock) {
-                  console.log("  -> Handling as Code Block");
+                  // console.log("  -> Handling as Code Block");
                   item = processCodeBlock(element);
                   if (item) contentItems.push(item);
                   processedElements.add(element);
                   element.querySelectorAll('*').forEach(child => processedElements.add(child));
               }
               else if (isTable) { // Use the updated table processor
-                   console.log("  -> Handling as Table");
+                   // console.log("  -> Handling as Table");
                    const tableMarkdown = processTableToMarkdown(element);
                    if (tableMarkdown) {
                        QAClipper.Utils.addTextItem(contentItems, tableMarkdown);
@@ -391,7 +391,7 @@
                    element.querySelectorAll('*').forEach(child => processedElements.add(child));
               }
               else if (tagNameLower === 'ul' || tagNameLower === 'ol') {
-                  console.log(`  -> Handling as ${tagNameLower.toUpperCase()}`);
+                  // console.log(`  -> Handling as ${tagNameLower.toUpperCase()}`);
                   // v30: Use the updated processList function with proper nesting support
                   item = processList(element, tagNameLower, 0);
                   if (item) contentItems.push(item);
@@ -399,14 +399,14 @@
                   element.querySelectorAll('*').forEach(child => processedElements.add(child));
               }
                else if (isImageContainer) {
-                   console.log("  -> Handling as Direct Image Container");
+                   // console.log("  -> Handling as Direct Image Container");
                    item = processImage(element);
                    if (item) contentItems.push(item);
                    processedElements.add(element);
                    element.querySelectorAll('*').forEach(child => processedElements.add(child));
                }
               else if (tagNameLower === 'p') {
-                   console.log("  -> Handling as P tag");
+                   // console.log("  -> Handling as P tag");
                    const blockMarkdown = QAClipper.Utils.htmlToMarkdown(element, {
                      skipElementCheck: shouldSkipElement
                    }).trim();
@@ -428,12 +428,12 @@
               }
           }); // End loop
 
-          console.log("[Extractor v31] Final contentItems generated:", JSON.stringify(contentItems, null, 2));
+          // console.log("[Extractor v31] Final contentItems generated:", JSON.stringify(contentItems, null, 2));
           return contentItems;
       }, // End extractAssistantContent
 
     }; // End geminiConfig
 
     window.geminiConfig = geminiConfig;
-    console.log("geminiConfig initialized (v31 - Added h1-h6 support)");
+    // console.log("geminiConfig initialized (v31 - Added h1-h6 support)");
 })(); // End of IIFE

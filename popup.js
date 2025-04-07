@@ -12,7 +12,7 @@ function saveSettings() {
   
   // Save to local storage
   chrome.storage.local.set({ formatSettings: settings }, () => {
-    console.log('Saved settings:', settings);
+    // console.log('Saved settings:', settings);
   });
   return settings;
 }

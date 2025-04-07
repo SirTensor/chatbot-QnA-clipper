@@ -24,10 +24,11 @@ A Chrome extension that extracts and formats Q&A conversations from AI chatbot p
 *Coming soon*
 
 ### Manual Installation
-1. Download or clone this repository
-2. Open Chrome and navigate to `chrome://extensions/`
-3. Enable "Developer mode" (toggle in the top-right corner)
-4. Click "Load unpacked" and select the extension directory
+1. Download or clone this repository.
+2. Open Chrome and navigate to `chrome://extensions/`.
+3. Enable "Developer mode" (toggle in the top-right corner).
+4. Click "Load unpacked" and select the extension directory **where you downloaded or cloned the repository**.
+5. **Important:** Keep this directory in place. Chrome loads the extension directly from this folder, so if you move or delete it, the extension will stop working.
 
 ## Usage
 
@@ -57,7 +58,7 @@ Select from various label formats:
 Customize how numbers appear:
 - `Question 1` (Space before number)
 - `Question-1` (Dash, no space)
-- `Question: 1` (Colon format)
+- `Question:1` (Colon format)
 - And many more variations
 
 ### Image URL Format
@@ -67,8 +68,8 @@ Choose how image links are formatted:
 - `https://...` (Plain URL)
 
 ### Other Options
-- Include platform name in the output
 - Custom image labels
+- Include platform name in the output
 
 ## Keyboard Shortcut
 
@@ -104,4 +105,5 @@ The extension scans the current webpage's DOM to identify conversation elements 
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details. 
+- The code for this project is licensed under the MIT License - see the `LICENSE` file for details.
+- Icons used in this extension are from [uxwing.com](https://uxwing.com/). For full icon license details, please visit [uxwing.com/license](https://uxwing.com/license/).

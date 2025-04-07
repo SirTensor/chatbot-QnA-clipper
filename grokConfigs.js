@@ -7,7 +7,7 @@
 (function() {
   // Initialization check
   if (window.grokConfig && window.grokConfig.version >= 7) { // Updated version check
-    console.log("Grok config already initialized (v" + window.grokConfig.version + "), skipping.");
+    // console.log("Grok config already initialized (v" + window.grokConfig.version + "), skipping.");
     return;
   }
 
@@ -260,7 +260,7 @@
 
         // Handle Code Blocks first
         if (node.matches(selectors.assistantCodeBlockOuterContainer)) {
-            console.log("  [processNode v7] Handling nested Code Block (div.not-prose)");
+            // console.log("  [processNode v7] Handling nested Code Block (div.not-prose)");
             const innerCodeContainer = node.querySelector(selectors.assistantCodeBlockInnerContainer);
             if (innerCodeContainer) {
                 const codeItem = processCodeBlock(innerCodeContainer); // Get structured data
@@ -276,14 +276,14 @@
         }
         // Handle nested Image Grids
         if (node.matches(selectors.assistantImageGrid)) {
-            console.log("  [processNode v7] Handling nested Image Grid");
+            // console.log("  [processNode v7] Handling nested Image Grid");
             const imageItems = processAssistantImageGrid(node);
             // Format images simply here. Add newlines for separation.
             return '\n' + imageItems.map(img => `[${img.alt}]: ${img.src}`).join('\n') + '\n';
         }
         // *** Handle nested lists ***
         if (tagName === 'ul' || tagName === 'ol') {
-            console.log("  [processNode v7] Handling nested List <" + tagName + ">");
+            // console.log("  [processNode v7] Handling nested List <" + tagName + ">");
             // Use processList to get the formatted list object { type: 'text', content: '...' }
             const listData = processList(node, tagName);
             // Return the formatted list content string. Add surrounding newlines for block separation.
@@ -291,7 +291,7 @@
         }
         // *** NEW IN v7: Handle tables ***
         if (tagName === 'table' || (tagName === 'div' && node.classList.contains('overflow-x-auto'))) {
-            console.log("  [processNode v7] Handling nested Table");
+            // console.log("  [processNode v7] Handling nested Table");
             // Generate Markdown for the table
             const tableMarkdown = processTableToMarkdown(node);
             // Return the markdown with surrounding newlines for block separation
@@ -408,7 +408,7 @@
         return [];
       }
 
-      console.log(`[Grok Extractor v7] Processing assistant message bubble.`);
+      // console.log(`[Grok Extractor v7] Processing assistant message bubble.`);
       // Select the relevant block elements directly within the message bubble
       const relevantBlocks = assistantContainer.querySelectorAll(selectors.assistantRelevantBlocks);
       const processedElements = new Set(); // Keep track of processed elements
@@ -418,14 +418,14 @@
           if (processedElements.has(block)) return;
 
           const tagNameLower = block.tagName.toLowerCase();
-          console.log(`[Grok Extractor v7] Processing Block #${index}: <${tagNameLower}>`);
+          // console.log(`[Grok Extractor v7] Processing Block #${index}: <${tagNameLower}>`);
           let item = null; // To hold the result of processing functions
 
           // --- Process based on block type ---
 
           // Check Image Grid First
           if (block.matches(selectors.assistantImageGrid)) {
-              console.log("  -> Handling as Top-Level Image Grid");
+              // console.log("  -> Handling as Top-Level Image Grid");
               const imageItems = processAssistantImageGrid(block);
               contentItems.push(...imageItems); // Add extracted image items
               processedElements.add(block);
@@ -433,7 +433,7 @@
           }
           // Check for Code Block Outer Container
           else if (block.matches(selectors.assistantCodeBlockOuterContainer)) {
-              console.log("  -> Handling as Top-Level Code Block");
+              // console.log("  -> Handling as Top-Level Code Block");
               const innerCodeContainer = block.querySelector(selectors.assistantCodeBlockInnerContainer);
               if (innerCodeContainer) {
                   // Double-check it's not an image grid (unlikely due to order)
@@ -444,14 +444,14 @@
                        console.warn("  -> Element matched both image grid and code block outer container, prioritizing image grid (already handled).");
                   }
               } else {
-                   console.log("  -> 'div.not-prose' found, but no inner code container. Skipping as code block.");
+                   // console.log("  -> 'div.not-prose' found, but no inner code container. Skipping as code block.");
               }
               processedElements.add(block);
               block.querySelectorAll('*').forEach(child => processedElements.add(child));
           }
           // NEW IN v7: Handle Tables
           else if (tagNameLower === 'div' && block.classList.contains('overflow-x-auto')) {
-              console.log("  -> Handling as Table Container");
+              // console.log("  -> Handling as Table Container");
               // Check if there's a table inside
               const tableElement = block.querySelector('table');
               if (tableElement) {
@@ -467,12 +467,12 @@
                   processedElements.add(tableElement);
                   tableElement.querySelectorAll('*').forEach(child => processedElements.add(child));
               } else {
-                  console.log("  -> div.overflow-x-auto found, but no table inside. Skipping.");
+                  // console.log("  -> div.overflow-x-auto found, but no table inside. Skipping.");
               }
           }
           // Handle Lists (using processList which uses processChildNodes -> processNode that now handles nested blocks)
           else if (tagNameLower === 'ul' || tagNameLower === 'ol') {
-              console.log(`  -> Handling as ${tagNameLower.toUpperCase()} List`);
+              // console.log(`  -> Handling as ${tagNameLower.toUpperCase()} List`);
               item = processList(block, tagNameLower); // processList returns { type: 'text', content: '...' }
               if (item) {
                   // Add the text item containing the fully formatted list (including nested items/blocks)
@@ -484,7 +484,7 @@
           }
           // Handle Paragraphs and Headings (using processChildNodes -> processNode that now handles nested blocks)
           else if (['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(tagNameLower)) {
-              console.log(`  -> Handling as ${tagNameLower.toUpperCase()}`);
+              // console.log(`  -> Handling as ${tagNameLower.toUpperCase()}`);
               // Use processChildNodes which now handles nested blocks via processNode
               // It will return a string potentially containing formatted blocks (like code, lists)
               const markdownContent = processChildNodes(block).trim();
@@ -507,7 +507,7 @@
           }
       }); // End forEach loop over relevantBlocks
 
-      console.log("[Grok Extractor v7] Final assistant contentItems:", JSON.stringify(contentItems, null, 2));
+      // console.log("[Grok Extractor v7] Final assistant contentItems:", JSON.stringify(contentItems, null, 2));
       return contentItems; // Return the array of extracted content items
     }, // End extractAssistantContent
 
@@ -515,7 +515,7 @@
 
   // Assign the configuration to the window object
   window.grokConfig = grokConfig;
-  console.log("grokConfig.js initialized (v" + grokConfig.version + ")");
+  // console.log("grokConfig.js initialized (v" + grokConfig.version + ")");
 
 })(); // End of IIFE
 // --- END OF UPDATED FILE grokConfigs.js ---

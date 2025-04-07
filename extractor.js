@@ -5,7 +5,7 @@
 (function() {
   // Only set up if already initialized
   if (window.extractConversation) {
-    console.log("extractConversation already initialized, skipping re-initialization");
+    // console.log("extractConversation already initialized, skipping re-initialization");
     return;
   }
 
@@ -17,7 +17,7 @@
     const currentUrl = window.location.href;
     const hostname = window.location.hostname;
     
-    console.log('Chatbot Clipper: Attempting to identify platform. URL:', currentUrl, 'Hostname:', hostname);
+    // console.log('Chatbot Clipper: Attempting to identify platform. URL:', currentUrl, 'Hostname:', hostname);
     
     if (hostname === 'chat.openai.com' || currentUrl.includes('chat.openai.com') || 
                hostname.endsWith('.chatgpt.com') || hostname === 'chatgpt.com') {
@@ -34,7 +34,7 @@
     // Additional checks for ChatGPT - check DOM elements specific to ChatGPT
     if (document.querySelector('[data-testid^="conversation-turn-"]') || 
         document.querySelector('[data-message-author-role]')) {
-      console.log('Chatbot Clipper: Identified ChatGPT by DOM elements');
+      // console.log('Chatbot Clipper: Identified ChatGPT by DOM elements');
       return 'chatgpt';
     }
     
@@ -50,14 +50,14 @@
    */
   function loadPlatformConfig(platform) {
     return new Promise((resolve, reject) => {
-      console.log(`Chatbot Clipper: Checking if config exists for platform: ${platform}`);
+      // console.log(`Chatbot Clipper: Checking if config exists for platform: ${platform}`);
       
       // Check if config is already loaded
       if ((platform === 'chatgpt' && window.chatgptConfig) || 
           (platform === 'gemini' && window.geminiConfig) ||
           (platform === 'claude' && window.claudeConfig) ||
           (platform === 'grok' && window.grokConfig)) {
-        console.log(`${platform} config is loaded and available`);
+        // console.log(`${platform} config is loaded and available`);
         resolve(true);
         return;
       }
@@ -98,12 +98,12 @@
         throw new Error(`Could not identify chatbot platform. Are you on a supported site? ${window.location.hostname}`);
       }
 
-      console.log(`Chatbot Clipper: Platform identified as ${platform}`);
+      // console.log(`Chatbot Clipper: Platform identified as ${platform}`);
 
       // Check if the platform-specific config is available
       try {
         await loadPlatformConfig(platform);
-        console.log(`Chatbot Clipper: ${platform} configuration is available`);
+        // console.log(`Chatbot Clipper: ${platform} configuration is available`);
       } catch (loadError) {
         console.error(`Chatbot Clipper: Configuration for ${platform} not available:`, loadError);
         throw new Error(`Configuration for ${platform} not available: ${loadError.message}`);
@@ -117,7 +117,7 @@
         throw new Error(`Configuration for ${platform} not found after loading`);
       }
 
-      console.log(`Chatbot Clipper: Starting extraction for ${platform}...`);
+      // console.log(`Chatbot Clipper: Starting extraction for ${platform}...`);
 
       // Race against timeout
       return await Promise.race([
@@ -126,9 +126,9 @@
           // 1. Select all conversation turn elements using config.selectors.turnContainer
           const turnElements = Array.from(document.querySelectorAll(config.selectors.turnContainer));
           if (!turnElements || turnElements.length === 0) {
-            console.log(`Chatbot Clipper: No conversation turns found for selector: ${config.selectors.turnContainer}`);
+            // console.log(`Chatbot Clipper: No conversation turns found for selector: ${config.selectors.turnContainer}`);
             // Return a valid empty conversation structure rather than null
-            console.log(`Chatbot Clipper: Returning empty conversation structure for ${platform} - this is normal for new chats`);
+            // console.log(`Chatbot Clipper: Returning empty conversation structure for ${platform} - this is normal for new chats`);
             return { 
               platform, 
               conversationTurns: [] 
@@ -195,5 +195,5 @@
 
   // Expose to window scope so content.js can call it
   window.extractConversation = extractConversation;
-  console.log("extractConversation initialized successfully");
+  // console.log("extractConversation initialized successfully");
 })(); 

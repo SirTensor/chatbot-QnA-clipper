@@ -8,11 +8,11 @@
 
 // Wrap the entire script in an IIFE to prevent variable leakage to global scope
 (function() {
-  console.log('Content script loaded for Chatbot Q&A Clipper. URL:', window.location.href, 'Hostname:', window.location.hostname);
+  // console.log('Content script loaded for Chatbot Q&A Clipper. URL:', window.location.href, 'Hostname:', window.location.hostname);
 
   // Track if we've initialized already to prevent double initialization
   if (window.qaClipperInitialized) {
-    console.log('Content script already initialized, skipping...');
+    // console.log('Content script already initialized, skipping...');
     return;
   }
 
@@ -21,7 +21,7 @@
 
   // Single message listener for all actions
   chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    console.log('Content script received message:', request);
+    // console.log('Content script received message:', request);
 
     if (request.action === 'extractRawData') {
       let diagnosticData = { // Initialize diagnostics early
@@ -38,7 +38,7 @@
       };
 
       // Log detailed debugging information
-      console.log("ExtractRawData called with diagnostics:", diagnosticData);
+      // console.log("ExtractRawData called with diagnostics:", diagnosticData);
 
       // Ensure the necessary functions are loaded
       if (!window.extractConversation) {
@@ -74,12 +74,12 @@
           diagnosticData.selectors = { platform: 'grok', turnCount: turnCount };
         }
         diagnosticData.platformDetected = platformClue;
-        console.log(`Platform detection test: ${platformClue}, selectors:`, diagnosticData.selectors);
+        // console.log(`Platform detection test: ${platformClue}, selectors:`, diagnosticData.selectors);
       } catch (selectorError) {
         console.error("Error testing selectors:", selectorError);
       }
 
-      console.log("Calling window.extractConversation with extra diagnostics:", diagnosticData);
+      // console.log("Calling window.extractConversation with extra diagnostics:", diagnosticData);
 
       // Set up a timeout just in case the promise never resolves or rejects
       let extractionTimeout = setTimeout(() => {
@@ -94,7 +94,7 @@
       window.extractConversation()
         .then(extractedData => {
           clearTimeout(extractionTimeout); // Clear the timeout
-          console.log("Extraction result:", extractedData);
+          // console.log("Extraction result:", extractedData);
           if (!extractedData) {
             // Handle cases where extraction failed (e.g., platform not identified, config missing)
             // The extractor.js should log specific errors.
@@ -171,7 +171,7 @@
         extractConversationLoaded: !!window.extractConversation,
       };
 
-      console.log('Received ping, responding with status:', statusInfo);
+      // console.log('Received ping, responding with status:', statusInfo);
       sendResponse({
         pong: true,
         url: window.location.href,
@@ -182,12 +182,12 @@
 
     } else if (request.action === 'scripts-injected') {
       // Notification that scripts were injected (can be sent from background)
-      console.log(`Received confirmation: Scripts ${request.scripts?.join(', ')} injected.`);
+      // console.log(`Received confirmation: Scripts ${request.scripts?.join(', ')} injected.`);
       sendResponse({ success: true });
       return true;
 
     } else {
-        console.log("Content script received unhandled message action:", request.action);
+        // console.log("Content script received unhandled message action:", request.action);
         return false; // No async response needed for unhandled actions
     }
   });

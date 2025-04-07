@@ -3,7 +3,7 @@
 (function() {
   // Initialization check to prevent re-running the script if already loaded
   if (window.claudeConfig && window.claudeConfig.version >= 5) {
-    console.log("Claude config already initialized (v" + window.claudeConfig.version + "), skipping.");
+    // console.log("Claude config already initialized (v" + window.claudeConfig.version + "), skipping.");
     return;
   }
 
@@ -106,7 +106,7 @@
       return null;
     }
 
-    console.log("[Claude Extractor v5] Processing table to Markdown");
+    // console.log("[Claude Extractor v5] Processing table to Markdown");
     const markdownRows = [];
     let columnCount = 0;
 
@@ -185,7 +185,7 @@
 
     // Check if there is at least a header + separator + data row
     const markdownTable = markdownRows.length > 2 ? markdownRows.join('\n') : null;
-    console.log("[Claude Extractor v5] Generated Markdown table:", markdownTable);
+    // console.log("[Claude Extractor v5] Generated Markdown table:", markdownTable);
     
     return markdownTable ? { type: 'text', content: markdownTable } : null;
   }
@@ -201,7 +201,7 @@
     const titleElement = artifactCellEl.querySelector(selectors.artifactTitle);
     const title = titleElement ? titleElement.textContent?.trim() : '[Artifact]'; // Default title
 
-    console.log(`[Claude Extractor v5] Found artifact cell with title: "${title}". Code extraction skipped.`);
+    // console.log(`[Claude Extractor v5] Found artifact cell with title: "${title}". Code extraction skipped.`);
 
     // Return an interactive_block item with only the title
     return {
@@ -324,28 +324,28 @@
           return [];
       }
 
-      console.log(`[Claude Extractor v5] Processing direct children of assistant container.`);
+      // console.log(`[Claude Extractor v5] Processing direct children of assistant container.`);
       const directChildren = Array.from(assistantContainer.children);
 
       directChildren.forEach((child, index) => {
           const tagNameLower = child.tagName.toLowerCase();
-          console.log(`[Claude Extractor v5] Processing Child #${index}: <${tagNameLower}>`);
+          // console.log(`[Claude Extractor v5] Processing Child #${index}: <${tagNameLower}>`);
           let item = null; // Define item here
 
           // Case 1: Child is a container for text, lists, or code blocks (div with tabindex)
           if (tagNameLower === 'div' && child.hasAttribute('tabindex')) {
-              console.log("  -> Handling as Text/List/Code Container (tabindex div)");
+              // console.log("  -> Handling as Text/List/Code Container (tabindex div)");
               // Find the grid inside this div
               const gridInside = child.querySelector(selectors.assistantContentGridInTabindex);
               if (gridInside) {
                   // Find table containers first (Added in v5)
                   const tableContainers = gridInside.querySelectorAll(selectors.tableContainer);
                   if (tableContainers.length > 0) {
-                      console.log(`  -> Found ${tableContainers.length} table containers`);
+                      // console.log(`  -> Found ${tableContainers.length} table containers`);
                       tableContainers.forEach(tableContainer => {
                           const tableElement = tableContainer.querySelector(selectors.tableElement);
                           if (tableElement) {
-                              console.log("  -> Processing table element");
+                              // console.log("  -> Processing table element");
                               const tableItem = processTableToMarkdown(tableElement);
                               if (tableItem) contentItems.push(tableItem);
                           }
@@ -369,10 +369,10 @@
                           // Check if there's a table and apply appropriate processing
                           const hasTable = contentElement.querySelector(selectors.tableElement);
                           if (hasTable) {
-                              console.log("  -> Processing table inside pre");
+                              // console.log("  -> Processing table inside pre");
                               item = processTableToMarkdown(hasTable);
                           } else {
-                              console.log("  -> Processing code block");
+                              // console.log("  -> Processing code block");
                               item = processCodeBlock(contentElement);
                           }
                           if (item) contentItems.push(item);
@@ -413,7 +413,7 @@
              // Find the interactive cell *inside* this container
              const artifactCell = child.querySelector(selectors.artifactButton); // artifactButton selects div.artifact-block-cell
              if (artifactCell) {
-                 console.log("  -> Handling as Artifact Container Div");
+                 // console.log("  -> Handling as Artifact Container Div");
                  item = processArtifactButton(artifactCell); // Pass the cell div
                  if (item) contentItems.push(item);
              } else {
@@ -426,7 +426,7 @@
           }
       }); // End forEach loop
 
-      console.log("[Claude Extractor v5] Final assistant contentItems:", JSON.stringify(contentItems, null, 2));
+      // console.log("[Claude Extractor v5] Final assistant contentItems:", JSON.stringify(contentItems, null, 2));
       return contentItems;
     }, // End extractAssistantContent
 
@@ -434,6 +434,6 @@
 
   // Assign to window object
   window.claudeConfig = claudeConfig;
-  console.log("claudeConfig.js initialized (v" + claudeConfig.version + ")");
+  // console.log("claudeConfig.js initialized (v" + claudeConfig.version + ")");
 
 })(); // End of IIFE
