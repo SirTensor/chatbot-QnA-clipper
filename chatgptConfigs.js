@@ -20,70 +20,138 @@
     }
 
     /**
-     * Process a list element (ul/ol) and its children, including nested lists
+     * Process a list element (ul/ol) and its children, including nested lists and code blocks within items
      * @param {HTMLElement} el - The list element to process
      * @param {string} listType - Either 'ul' or 'ol'
      * @param {number} level - Indentation level for nested lists (0 for top level)
      * @returns {object|null} - The processed list content or null if empty
      */
-    function processList(el, listType, level = 0) {
-        let lines = []; 
-        let itemIndex = 0;
-        const listItems = el.querySelectorAll(':scope > li');
-        
-        listItems.forEach(li => {
-            // Use a custom approach to get only the direct text content, excluding nested lists
-            // First, clone the li element to avoid modifying the original
-            const liClone = li.cloneNode(true);
-            
-            // Remove any nested lists from the clone
-            const nestedLists = Array.from(liClone.querySelectorAll('ul, ol'));
-            nestedLists.forEach(nestedList => {
-                if (nestedList.parentNode) {
-                    nestedList.parentNode.removeChild(nestedList);
+     function processList(el, listType, level = 0) {
+         let lines = [];
+         // Initialize itemIndex based on the 'start' attribute for <ol>, default to 0 otherwise
+         let itemIndex = 0;
+         if (listType === 'ol') {
+            const startAttribute = el.getAttribute('start');
+            if (startAttribute) {
+                const startIndex = parseInt(startAttribute, 10);
+                // Ensure startIndex is a valid number before using it
+                if (!isNaN(startIndex) && startIndex > 0) {
+                    itemIndex = startIndex - 1; // Adjust because we use itemIndex + 1 later
+                } else {
+                     console.warn(`[Extractor v17 processList] Invalid 'start' attribute found: ${startAttribute}`, el);
                 }
-            });
-            
-            // Now get the text content without nested lists
-            const itemText = QAClipper.Utils.htmlToMarkdown(liClone, { 
-                skipElementCheck: shouldSkipElement 
-            }).trim();
-            
-            if (itemText) {
-                // Generate proper marker based on list type
-                const marker = listType === 'ul' ? '-' : `${itemIndex + 1}.`;
-                // Add indentation based on nesting level
-                const indent = '  '.repeat(level);
-                
-                // Add main list item text with proper line breaks
-                const itemLines = itemText.split('\n').filter(line => line.trim());
-                const formattedText = itemLines.map((line, idx) => {
-                    if (idx === 0) {
-                        return `${indent}${marker} ${line}`;
-                    } else {
-                        return `${indent}    ${line}`; // Maintain line breaks within list items with additional indentation
-                    }
-                }).join('\n');
-                lines.push(formattedText);
-                
-                // Process any nested lists within this list item
-                const nestedLists = li.querySelectorAll(':scope > ul, :scope > ol');
-                nestedLists.forEach(nestedList => {
-                    const nestedType = nestedList.tagName.toLowerCase();
-                    const nestedContent = processList(nestedList, nestedType, level + 1);
-                    
-                    if (nestedContent && nestedContent.content) {
-                        // For nested lists, directly append each line to maintain hierarchy
-                        lines = lines.concat(nestedContent.content.split('\n'));
-                    }
-                });
-                
-                if (listType === 'ol') itemIndex++;
             }
-        });
-        
-        return lines.length > 0 ? { type: 'text', content: lines.join('\n') } : null;
-    }
+         }
+         const listItems = el.querySelectorAll(':scope > li');
+
+         listItems.forEach(li => {
+             const liClone = li.cloneNode(true);
+             let originalPreElements = []; // Store original <pre> elements found within this LI
+
+             // Find and remove nested lists and PRE elements from the clone
+             // Keep track of the original PRE elements to process them later in order
+             const nestedElementsToRemove = Array.from(liClone.querySelectorAll('ul, ol, pre'));
+             nestedElementsToRemove.forEach(nestedEl => {
+                 const tagNameLower = nestedEl.tagName.toLowerCase();
+                 if (tagNameLower === 'pre') {
+                     // Map the PRE in the clone back to the original LI's PRE elements based on order
+                     try {
+                        const allOriginalPres = Array.from(li.querySelectorAll('pre'));
+                        // Find the index of this 'pre' among *all* 'pre' elements within the clone *at this point*
+                        // This relies on querySelectorAll order being stable and consistent between original and clone before removal
+                        const currentIndexInClone = Array.from(liClone.querySelectorAll('pre')).indexOf(nestedEl);
+                        if (currentIndexInClone !== -1 && currentIndexInClone < allOriginalPres.length) {
+                            originalPreElements.push(allOriginalPres[currentIndexInClone]);
+                        } else {
+                            console.warn("[Extractor v17 processList] Could not map cloned PRE back to original. Index:", currentIndexInClone, "Original count:", allOriginalPres.length, nestedEl);
+                        }
+                     } catch (e) {
+                         console.error("[Extractor v17 processList] Error mapping PRE elements:", e, nestedEl);
+                     }
+                 }
+                 // Remove the nested list or pre from the clone
+                 if (nestedEl.parentNode) {
+                     nestedEl.parentNode.removeChild(nestedEl);
+                 }
+             });
+
+             // Now get the text content without nested lists/pre blocks
+             const itemText = QAClipper.Utils.htmlToMarkdown(liClone, {
+                 skipElementCheck: shouldSkipElement
+             }).trim();
+
+             let itemHasContent = false; // Track if we added text or code for this LI
+
+             // 1. Process the main item text (if any)
+             if (itemText) {
+                 const marker = listType === 'ul' ? '-' : `${itemIndex + 1}.`;
+                 const indent = '  '.repeat(level);
+                 const textIndent = '  '.repeat(level + 2); // Indentation for continuation lines
+
+                 const itemTextLines = itemText.split('\n').filter(line => line.trim());
+                 const formattedText = itemTextLines.map((line, idx) => {
+                     return idx === 0 ? `${indent}${marker} ${line}` : `${textIndent}${line}`;
+                 }).join('\n');
+                 lines.push(formattedText);
+                 itemHasContent = true;
+             }
+
+             // 2. Process the extracted PRE elements (if any) in order
+             if (originalPreElements.length > 0) {
+                 const codeBlockIndent = '  '.repeat(level + 2); // Code blocks indented like continuation text
+
+                 // Determine prefix/indent for the first line of the first code block
+                 const marker = listType === 'ul' ? '-' : `${itemIndex + 1}.`;
+                 // If no text preceded, the first line of code needs the list marker and base indent
+                 const firstCodeBlockInitialIndent = itemHasContent ? codeBlockIndent : '  '.repeat(level);
+                 const firstCodeBlockPrefix = itemHasContent ? '' : `${marker} `;
+
+                 originalPreElements.forEach((preEl, preIndex) => {
+                     const codeItem = processCodeBlock(preEl);
+                     if (codeItem) {
+                         let codeContentLines = [];
+                         const lang = codeItem.language || '';
+                         codeContentLines.push(`\`\`\`${lang}`);
+                         codeContentLines = codeContentLines.concat(codeItem.content.split('\n'));
+                         codeContentLines.push('```');
+
+                         const formattedCodeLines = codeContentLines.map((line, idx) => {
+                             if (!itemHasContent && preIndex === 0 && idx === 0) {
+                                 // First line of the *very first* block in an LI *with no preceding text*
+                                 return `${firstCodeBlockInitialIndent}${firstCodeBlockPrefix}${line}`;
+                             } else {
+                                 // Subsequent lines, or code blocks after text, or subsequent code blocks
+                                 return `${codeBlockIndent}${line}`;
+                             }
+                         }).join('\n');
+                         lines.push(formattedCodeLines);
+                         itemHasContent = true; // Mark that this LI produced content
+                     }
+                 });
+             }
+
+             // 3. Process nested lists (using original LI)
+             const nestedLists = li.querySelectorAll(':scope > ul, :scope > ol');
+             nestedLists.forEach(nestedList => {
+                 const nestedType = nestedList.tagName.toLowerCase();
+                 const nestedResult = processList(nestedList, nestedType, level + 1); // Recursive call
+
+                 if (nestedResult && nestedResult.content) {
+                     // The result from processList is already formatted text block with indents
+                     lines.push(nestedResult.content);
+                     itemHasContent = true; // Mark that this LI produced content (via nesting)
+                 }
+             });
+
+             // Increment index only if the list item actually produced some output
+             // AND only if it's an ordered list. For <ul>, the index doesn't matter for output.
+             if (itemHasContent && listType === 'ol') {
+                 itemIndex++;
+             }
+         });
+
+         return lines.length > 0 ? { type: 'text', content: lines.join('\n') } : null;
+     }
 
     function processCodeBlock(el) { // Unchanged
         const selectors = window.chatgptConfig.selectors;
@@ -207,6 +275,17 @@
         return markdownRows.length > 2 ? markdownRows.join('\n') : null; // Need header + separator + at least one data row
     }
 
+    function processBlockquote(element) {
+        // Get the inner text from the blockquote
+        const content = QAClipper.Utils.htmlToMarkdown(element, { 
+            skipElementCheck: shouldSkipElement 
+        }).trim();
+        
+        // Format with '>' prefix for each line
+        const formattedLines = content.split('\n').map(line => `> ${line}`).join('\n');
+        
+        return formattedLines;
+    }
 
     // --- Main Configuration Object ---
     const chatgptConfig = {
@@ -232,6 +311,7 @@
           div.markdown.prose > h5,
           div.markdown.prose > h6,
           div.markdown.prose > hr,
+          div.markdown.prose > blockquote,
           div.markdown.prose > table,
           div.markdown.prose > div.overflow-x-auto > table,
           div.markdown.prose div.tableContainer > table,
@@ -304,6 +384,8 @@
          const processedElements = new Set();
          let consecutiveMdBlockElements = [];
 
+         // --- REMOVED Pre-processing step for code blocks ---
+
          function flushMdBlock() {
              if (consecutiveMdBlockElements.length > 0) {
                  const tempDiv = document.createElement('div');
@@ -329,11 +411,13 @@
                element.querySelector('.tableContainer > table');
              const tableElement = isTableContainer ? (tagNameLower === 'table' ? element : element.querySelector(':scope > table')) : null;
 
-             const isStandardMdBlock = ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'hr'].includes(tagNameLower);
+             const isStandardMdBlock = ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'hr', 'blockquote'].includes(tagNameLower);
              let handledSeparately = false;
 
              // --- Handle Special Blocks (Code, Lists, Tables) ---
              if (tagNameLower === 'pre') {
+                 // Handle PRE blocks only if they are DIRECT children of the main container
+                 // PRE blocks inside lists are now handled by processList
                  flushMdBlock();
                  const item = processCodeBlock(element);
                  if (item) contentItems.push(item);
@@ -343,7 +427,7 @@
              }
              else if (tagNameLower === 'ul' || tagNameLower === 'ol') {
                  flushMdBlock();
-                 // Call the updated processList function with level=0 for top-level lists
+                 // Call the updated processList function which now handles PRE inside LIs
                  const listItem = processList(element, tagNameLower, 0);
                  if (listItem) contentItems.push(listItem);
                  processedElements.add(element);
@@ -352,6 +436,8 @@
              }
              else if (tableElement) {
                  flushMdBlock();
+                 // Check if table element itself or its container was already processed (e.g., nested)
+                 if (processedElements.has(element) || processedElements.has(tableElement)) return;
                  const tableMarkdown = processTableToMarkdown(tableElement);
                  if (tableMarkdown) {
                      QAClipper.Utils.addTextItem(contentItems, tableMarkdown);
@@ -360,7 +446,19 @@
                  }
                  processedElements.add(element);
                  processedElements.add(tableElement);
-                 tableElement.querySelectorAll('*').forEach(child => processedElements.add(child));
+                 // Add container and table descendants to processed set
+                 element.querySelectorAll('*').forEach(child => processedElements.add(child));
+                 handledSeparately = true;
+             }
+             else if (tagNameLower === 'blockquote') {
+                 flushMdBlock();
+                 if (processedElements.has(element)) return;
+                 const blockquoteMarkdown = processBlockquote(element);
+                 if (blockquoteMarkdown) {
+                     QAClipper.Utils.addTextItem(contentItems, blockquoteMarkdown);
+                 }
+                 processedElements.add(element);
+                 element.querySelectorAll('*').forEach(child => processedElements.add(child));
                  handledSeparately = true;
              }
 

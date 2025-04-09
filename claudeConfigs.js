@@ -33,9 +33,10 @@
    * Processes <li> elements within a <ul> or <ol> list.
    * @param {HTMLElement} el - The <ul> or <ol> element.
    * @param {string} listType - 'ul' or 'ol'.
-   * @returns {object|null} - A text content item or null.
+   * @param {number} [level=0] - The nesting level (for indentation).
+   * @returns {string} - The Markdown representation of the list. Returns an empty string if the list is empty.
    */
-  function processList(el, listType) {
+  function processList(el, listType, level = 0) {
     let lines = [];
     let startNum = 1;
     if (listType === 'ol') {
@@ -43,19 +44,61 @@
       if (isNaN(startNum)) startNum = 1;
     }
     let itemIndex = 0;
+    const indent = '  '.repeat(level); // 2 spaces per level
+
     // Process only direct li children
     el.querySelectorAll(':scope > li').forEach(li => {
-      // Use QAClipper.Utils.htmlToMarkdown with skip logic
-      const itemMarkdown = QAClipper.Utils.htmlToMarkdown(li, {
-        skipElementCheck: shouldSkipElement // Pass skip check to handle nested blocks inside li
+      // Clone the li to manipulate it without affecting the original DOM
+      const liClone = li.cloneNode(true);
+
+      // Find and remove direct child ul/ol elements from the clone
+      const nestedListsInClone = Array.from(liClone.children).filter(child =>
+        child.tagName.toLowerCase() === 'ul' || child.tagName.toLowerCase() === 'ol'
+      );
+      nestedListsInClone.forEach(list => liClone.removeChild(list));
+
+      // Get the markdown for the li content *without* the nested lists
+      // This should preserve inline formatting like <strong>, <code> etc.
+      let itemMarkdown = QAClipper.Utils.htmlToMarkdown(liClone, {
+        skipElementCheck: shouldSkipElement,
+        // No need to ignore ul/ol here as they were removed from the clone
       }).trim();
-      if (itemMarkdown) {
+
+      // Recursively process the *original* nested lists found directly within the li
+      let nestedListContent = '';
+      li.querySelectorAll(':scope > ul, :scope > ol').forEach(nestedList => {
+         const nestedListType = nestedList.tagName.toLowerCase();
+         const nestedResult = processList(nestedList, nestedListType, level + 1);
+         if (nestedResult) {
+             // Add a newline before appending nested list content
+             nestedListContent += '\n' + nestedResult;
+         }
+      });
+
+      // Combine the item markdown and nested list content
+      if (itemMarkdown || nestedListContent.trim()) {
         const marker = listType === 'ul' ? '-' : `${startNum + itemIndex}.`;
-        lines.push(`${marker} ${itemMarkdown.replace(/\n+/g, ' ')}`); // Replace potential newlines within li
+
+        // Assemble the line: marker, item content, then nested content
+        let line = `${indent}${marker} ${itemMarkdown}`;
+
+        // Append nested list content if it exists
+        if (nestedListContent.trim()) {
+            // If itemMarkdown was empty, avoid extra space after marker
+            if (!itemMarkdown) {
+                line = `${indent}${marker}`;
+            }
+            line += nestedListContent; // nestedListContent already starts with \n
+        }
+
+        // Add the processed line to our list
+        lines.push(line);
+
         if (listType === 'ol') itemIndex++;
       }
     });
-    return lines.length > 0 ? { type: 'text', content: lines.join('\n') } : null;
+    // Return the joined lines, or an empty string if no lines were generated
+    return lines.length > 0 ? lines.join('\n') : '';
   }
 
   /**
@@ -256,7 +299,7 @@
       // Selector for the grid *inside* a tabindex div (used in v5 logic)
       assistantContentGridInTabindex: ':scope > div.grid-cols-1',
       // Selector for content elements *inside* the grid (used in v5 logic)
-      assistantContentElementsInGrid: ':scope > :is(p, ol, ul, pre)',
+      assistantContentElementsInGrid: ':scope > :is(p, ol, ul, pre, h1, h2, h3, h4, h5, h6)',
 
       // --- Content Block Selectors (within assistant turn) ---
       listItem: 'li',
@@ -288,8 +331,14 @@
     },
 
     extractUserText: (turnElement) => {
-      const textElement = turnElement.querySelector(claudeConfig.selectors.userText);
-      return textElement ? QAClipper.Utils.htmlToMarkdown(textElement, { skipElementCheck: shouldSkipElement }).trim() || null : null;
+      const textElements = turnElement.querySelectorAll(claudeConfig.selectors.userText);
+      if (!textElements || textElements.length === 0) return null;
+      
+      const lines = Array.from(textElements).map(el => 
+        QAClipper.Utils.htmlToMarkdown(el, { skipElementCheck: shouldSkipElement }).trim()
+      );
+      const combinedText = lines.join('\n'); // Join with a standard newline character
+      return combinedText || null;
     },
 
     extractUserUploadedImages: (turnElement) => {
@@ -377,32 +426,44 @@
                   const contentElements = gridInside.querySelectorAll(selectors.assistantContentElementsInGrid);
                   contentElements.forEach(contentElement => {
                       const contentTagName = contentElement.tagName.toLowerCase();
+                      // console.log(`    -> Processing Grid Element: <${contentTagName}>`);
                       if (contentTagName === 'p') {
                           const markdownText = QAClipper.Utils.htmlToMarkdown(contentElement, { skipElementCheck: shouldSkipElement }).trim();
                           if (markdownText) QAClipper.Utils.addTextItem(contentItems, markdownText);
                       } else if (contentTagName === 'ul') {
-                          item = processList(contentElement, 'ul');
-                          if (item) contentItems.push(item);
+                          const listMarkdown = processList(contentElement, 'ul', 0); // Pass level 0
+                          if (listMarkdown) contentItems.push({ type: 'text', content: listMarkdown }); // Push result directly
                       } else if (contentTagName === 'ol') {
-                          item = processList(contentElement, 'ol');
-                          if (item) contentItems.push(item);
+                          const listMarkdown = processList(contentElement, 'ol', 0); // Pass level 0
+                          if (listMarkdown) contentItems.push({ type: 'text', content: listMarkdown }); // Push result directly
                       } else if (contentTagName === 'pre') {
-                          // Check if there's a table and apply appropriate processing
                           const hasTable = contentElement.querySelector(selectors.tableElement);
                           if (hasTable) {
-                              // console.log("  -> Processing table inside pre");
                               item = processTableToMarkdown(hasTable);
                           } else {
-                              // console.log("  -> Processing code block");
                               item = processCodeBlock(contentElement);
                           }
                           if (item) contentItems.push(item);
+                      } else if (contentTagName.match(/^h[1-6]$/)) { // Handle headings h1-h6
+                          const level = parseInt(contentTagName.substring(1), 10);
+                          const prefix = '#'.repeat(level);
+                          const headingText = QAClipper.Utils.htmlToMarkdown(contentElement, { 
+                              skipElementCheck: shouldSkipElement,
+                              // Optionally ignore specific tags within headings if needed
+                              // ignoreTags: [] 
+                          }).trim();
+                          if (headingText) {
+                              QAClipper.Utils.addTextItem(contentItems, `${prefix} ${headingText}`);
+                          }
+                      } else {
+                          // console.log(`    -> Skipping unhandled grid element: <${contentTagName}>`);
                       }
                   });
               } else {
                    console.warn("  -> Grid not found inside tabindex div. Trying to process direct content.");
                    // Fallback: If grid is not found, find content elements directly within the tabindex div
-                   const directContent = child.querySelectorAll(':scope > :is(p, ol, ul, pre)');
+                   // Include headings h1-h6 in fallback as well
+                   const directContent = child.querySelectorAll(':scope > :is(p, ol, ul, pre, h1, h2, h3, h4, h5, h6)');
                    directContent.forEach(contentElement => {
                         const contentTagName = contentElement.tagName.toLowerCase();
                         if (contentTagName === 'p') {
@@ -410,12 +471,12 @@
                             if (markdownText) QAClipper.Utils.addTextItem(contentItems, markdownText);
                         }
                         else if (contentTagName === 'ul') { 
-                            item = processList(contentElement, 'ul');
-                            if (item) contentItems.push(item);
+                            const listMarkdown = processList(contentElement, 'ul', 0); // Pass level 0
+                            if (listMarkdown) contentItems.push({ type: 'text', content: listMarkdown }); // Push result directly
                         }
                         else if (contentTagName === 'ol') {
-                            item = processList(contentElement, 'ol');
-                            if (item) contentItems.push(item);
+                            const listMarkdown = processList(contentElement, 'ol', 0); // Pass level 0
+                            if (listMarkdown) contentItems.push({ type: 'text', content: listMarkdown }); // Push result directly
                         }
                         else if (contentTagName === 'pre') {
                             const hasTable = contentElement.querySelector(selectors.tableElement);
@@ -425,6 +486,15 @@
                                 item = processCodeBlock(contentElement);
                             }
                             if (item) contentItems.push(item);
+                        } else if (contentTagName.match(/^h[1-6]$/)) { // Handle headings h1-h6 in fallback
+                            const level = parseInt(contentTagName.substring(1), 10);
+                            const prefix = '#'.repeat(level);
+                            const headingText = QAClipper.Utils.htmlToMarkdown(contentElement, { 
+                                skipElementCheck: shouldSkipElement 
+                            }).trim();
+                            if (headingText) {
+                                QAClipper.Utils.addTextItem(contentItems, `${prefix} ${headingText}`);
+                            }
                         }
                    });
               }

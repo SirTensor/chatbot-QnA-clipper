@@ -72,25 +72,36 @@
 
    /**
     * Calculates the nesting level of a list item relative to the message bubble.
-    * @param {HTMLElement} element - The list item element (<li>).
+    * A level of 0 means the list containing the item is a direct child of the message bubble.
+    * @param {HTMLElement} listItemElement - The list item element (<li>).
     * @param {string} listSelectors - CSS selectors for list tags (e.g., 'ul, ol').
     * @returns {number} - The nesting level (0 for top-level list items within the bubble).
     */
-   function getNestingLevel(element, listSelectors) {
+   function getNestingLevel(listItemElement, listSelectors) {
         let level = 0;
-        let parent = element.parentElement;
-        while (parent) {
+        // Start checking from the parent of the list element containing the list item
+        let listElement = listItemElement.parentElement;
+
+        // Ensure we have a valid list element containing the item
+        if (!listElement || !listElement.matches(listSelectors)) {
+            // Should not happen if called correctly, but provides safety
+            return 0;
+        }
+
+        let ancestor = listElement.parentElement; // Start search from the list's parent
+
+        while (ancestor) {
             // Stop counting when we reach the message bubble or body
-            if (parent.matches(window.grokConfig.selectors.messageBubble) || parent.tagName === 'BODY') {
+            if (ancestor.matches(window.grokConfig.selectors.messageBubble) || ancestor.tagName === 'BODY') {
                 break;
             }
-            // Increment level for each ancestor list element
-            if (parent.matches(listSelectors)) {
+            // Increment level for each ANCESTOR list element found
+            if (ancestor.matches(listSelectors)) {
                 level++;
             }
-            parent = parent.parentElement;
+            ancestor = ancestor.parentElement;
         }
-        // The level represents the number of parent lists between the item and the bubble
+        // The level now represents the number of parent lists *containing* this list.
         return level;
    }
 

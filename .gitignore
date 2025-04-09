@@ -132,3 +132,14 @@ dist
 # Packaging results / Build artifacts
 *.zip
 *.crx
+
+# Custom ignored files
+chatgpt*.html
+gemini*.html
+claude*.html
+grok*.html
+
+# Custom ignored folders
+debug/
+builds/
+backups/

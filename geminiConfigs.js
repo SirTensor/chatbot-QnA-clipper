@@ -57,15 +57,35 @@
                 if (node.nodeType === Node.TEXT_NODE) {
                     directContent += node.textContent;
                 } else if (node.nodeType === Node.ELEMENT_NODE) {
-                    // Get element content with proper code formatting
-                    let elementContent = QAClipper.Utils.htmlToMarkdown(node, {
-                        ignoreTags: ['ul', 'ol']
-                    });
+                    const originalTagName = node.tagName.toLowerCase(); // Store original tag name
 
-                    // Enhanced HTML tag handling: wrap HTML tags in backticks
-                    elementContent = elementContent.replace(/<(\/?[a-zA-Z][a-zA-Z0-9]*(?:\s[^>]*)?)>/g, '`<$1>`');
+                    // Explicitly handle <strong> for bold markdown
+                    if (originalTagName === 'strong') {
+                        const boldContent = node.textContent.trim();
+                        if (boldContent) {
+                             directContent += `**${boldContent}**`;
+                        }
+                    }
+                    // Explicitly handle <code> for backtick markdown
+                    else if (originalTagName === 'code') {
+                        const codeContent = node.textContent.trim();
+                         if (codeContent) {
+                             directContent += `\`${codeContent}\``;
+                         }
+                    }
+                    // Generic handling for other elements
+                    else {
+                        // Get element content using htmlToMarkdown, ignoring nested lists and the current tag type to avoid duplication
+                        let elementContent = QAClipper.Utils.htmlToMarkdown(node, {
+                            ignoreTags: ['ul', 'ol', originalTagName], // Ignore self and lists
+                            skipElementCheck: (el) => el.nodeType === Node.ELEMENT_NODE && (el.tagName.toLowerCase() === 'ul' || el.tagName.toLowerCase() === 'ol' || el === node)
+                        });
 
-                    directContent += elementContent;
+                        // Enhanced HTML tag handling: wrap remaining HTML tags in backticks (optional, based on desired output)
+                        // elementContent = elementContent.replace(/<(\\/?[a-zA-Z][a-zA-Z0-9]*(?:\\s[^>]*)?)>/g, '`<$1>`');
+
+                        directContent += elementContent;
+                    }
                 }
             }
 
