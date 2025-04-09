@@ -13,7 +13,7 @@ A Chrome extension that extracts and formats Q&A conversations from AI chatbot p
 
 - **One-Click Extraction**: Extract entire conversations with a single click or keyboard shortcut
 - **Customizable Formatting**: Configure header levels, label styles, and number formats
-- **Image Support**: Captures and properly formats images shared in conversations
+- **Image Support**: Captures and properly formats image URLs shared in conversations
 - **Code Block Handling**: Preserves code syntax highlighting and formatting
 - **Clipboard Integration**: Automatically copies formatted content to your clipboard
 - **Keyboard Shortcut**: Quick access via customizable keyboard shortcut (default: Alt+3)
@@ -21,7 +21,8 @@ A Chrome extension that extracts and formats Q&A conversations from AI chatbot p
 ## Installation
 
 ### From Chrome Web Store
-*Coming soon*
+
+You can install the extension directly from the [Chrome Web Store](https://chromewebstore.google.com/detail/pblpjemjhgflddhdajfkieakdmmellmh).
 
 ### Manual Installation
 1. Download or clone this repository.
@@ -95,7 +96,7 @@ The extension scans the current webpage's DOM to identify conversation elements 
 - No data is sent to remote servers
 - All processing happens locally in your browser
 - No tracking or analytics are included
-- For more detailed information, please see the full [Privacy Policy](privacy-policy.md).
+- For more detailed information, please see the full [Privacy Policy](PRIVACY-POLICY.md).
 
 ## Important Notes & Limitations
 
