@@ -55,8 +55,16 @@
                 // Add indentation based on nesting level
                 const indent = '  '.repeat(level);
                 
-                // Add main list item text
-                lines.push(`${indent}${marker} ${itemText.replace(/\n+/g, ' ')}`);
+                // Add main list item text with proper line breaks
+                const itemLines = itemText.split('\n').filter(line => line.trim());
+                const formattedText = itemLines.map((line, idx) => {
+                    if (idx === 0) {
+                        return `${indent}${marker} ${line}`;
+                    } else {
+                        return `${indent}    ${line}`; // Maintain line breaks within list items with additional indentation
+                    }
+                }).join('\n');
+                lines.push(formattedText);
                 
                 // Process any nested lists within this list item
                 const nestedLists = li.querySelectorAll(':scope > ul, :scope > ol');
@@ -225,7 +233,8 @@
           div.markdown.prose > h6,
           div.markdown.prose > hr,
           div.markdown.prose > table,
-          div.markdown.prose > div.overflow-x-auto > table, /* Handle tables inside overflow container */
+          div.markdown.prose > div.overflow-x-auto > table,
+          div.markdown.prose div.tableContainer > table,
           :scope > pre /* Pre directly under assistant container (less common) */
         `,
         assistantTextContainer: 'div[data-message-author-role="assistant"] .markdown.prose',
@@ -311,7 +320,13 @@
              if (processedElements.has(element)) return;
 
              const tagNameLower = element.tagName.toLowerCase();
-             const isTableContainer = tagNameLower === 'table' || (tagNameLower === 'div' && element.classList.contains('overflow-x-auto') && element.querySelector(':scope > table'));
+             const isTableContainer = 
+               tagNameLower === 'table' || 
+               (tagNameLower === 'div' && 
+                 (element.classList.contains('overflow-x-auto') || 
+                  element.classList.contains('tableContainer')) && 
+                 element.querySelector(':scope > table')) ||
+               element.querySelector('.tableContainer > table');
              const tableElement = isTableContainer ? (tagNameLower === 'table' ? element : element.querySelector(':scope > table')) : null;
 
              const isStandardMdBlock = ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'hr'].includes(tagNameLower);
