@@ -25,17 +25,14 @@
     const selectors = window.grokConfig?.selectors;
     if (!selectors) return false; // Config not loaded yet
 
-    // Skip image grids (handled by processAssistantImageGrid or main loop)
-    // Skip anything inside a user attachment chip
-    // Skip the *inner* container of code blocks so processNode doesn't process its content directly
-    // Skip lists elements as they are handled by processList/processNode's list handling
-    // Skip table elements as they are handled by processTable
-    return element.matches(selectors.assistantImageGrid) ||
-           element.closest(selectors.userAttachmentChip) ||
-           element.matches(selectors.assistantCodeBlockInnerContainer) ||
-           element.tagName.toLowerCase() === 'ul' || // Handled by processNode/processList
-           element.tagName.toLowerCase() === 'ol' || // Handled by processNode/processList
-           element.tagName.toLowerCase() === 'table'; // Handled by processTable
+    // Keep skips for things genuinely handled by specific processors or needing exclusion
+    return element.matches(selectors.assistantImageGrid) || // Handled by processAssistantImageGrid
+           element.closest(selectors.userAttachmentChip) || // Skip content inside user attachment chips
+           element.matches(selectors.assistantCodeBlockInnerContainer); // Skip inner code div (handled by processCodeBlock)
+           // REMOVED: Lists (ul/ol) and tables are now processed by processNode/processList/processTableToMarkdown
+           // element.tagName.toLowerCase() === 'ul' ||
+           // element.tagName.toLowerCase() === 'ol' ||
+           // element.tagName.toLowerCase() === 'table';
   }
 
   /**
@@ -46,7 +43,7 @@
    * @returns {object|null} - A text content item { type: 'text', content: '...' } or null.
    */
   function processList(el, listType) {
-    let lines = [];
+    let processedItems = []; // Store fully processed list item strings
     let startNum = 1;
     if (listType === 'ol') {
       startNum = parseInt(el.getAttribute('start') || '1', 10);
@@ -55,19 +52,49 @@
     let itemIndex = 0;
 
     el.querySelectorAll(':scope > li').forEach(li => {
-      // Use processChildNodes which now correctly handles nested blocks via processNode
-      const itemMarkdown = processChildNodes(li).trim();
-      if (itemMarkdown) {
+      // 1. Get raw content of the list item
+      const itemMarkdown = processChildNodes(li); // Keep internal structure/newlines
+      const trimmedItemMarkdown = itemMarkdown.trim(); // Use trimmed version for existence check
+
+      if (trimmedItemMarkdown) {
+        // 2. Calculate base indentation for this <li> level
+        const baseNestingLevel = getNestingLevel(li, 'ul, ol');
+        const baseIndentString = '  '.repeat(baseNestingLevel); // e.g., "  " or "    "
+
+        // 3. Determine the marker
         const marker = listType === 'ul' ? '-' : `${startNum + itemIndex}.`;
-        // Calculate indentation based on the nesting level relative to the message bubble
-        const indentation = '  '.repeat(getNestingLevel(li, 'ul, ol'));
-        // Add the item, preserving newlines from nested code blocks handled by processNode
-        lines.push(`${indentation}${marker} ${itemMarkdown}`);
+        const markerString = `${marker} `; // e.g., "- " or "1. "
+
+        // 4. Calculate indentation for subsequent lines within this <li>
+        //    This should align with the text *after* the marker.
+        const subsequentIndentString = baseIndentString + ' '.repeat(markerString.length); // e.g., "   " or "    "
+
+        // 5. Split the item content into lines
+        const itemLines = itemMarkdown.split('\n');
+
+        // 6. Process each line
+        const formattedLines = itemLines.map((line, lineIndex) => {
+            const trimmedLine = line.trim(); // Trim individual lines for clean processing
+            if (lineIndex === 0) {
+                // First line gets base indent + marker + content
+                return `${baseIndentString}${markerString}${trimmedLine}`;
+            } else {
+                 // Subsequent lines get the calculated subsequent indent + content
+                 // Only add indent if the line actually has content after trimming
+                return trimmedLine ? `${subsequentIndentString}${trimmedLine}` : '';
+            }
+        }).filter(line => line); // Remove empty lines potentially created by trimming
+
+        // 7. Add the fully formatted lines for this item to our results
+        processedItems.push(...formattedLines); // Add each processed line individually
+
         if (listType === 'ol') itemIndex++;
       }
     });
-    // Join list items with a single newline for the final text block content
-    return lines.length > 0 ? { type: 'text', content: lines.join('\n') } : null;
+
+    // 8. Join all processed lines from all items with a single newline
+    //    processNode calling this will handle spacing around the entire list block
+    return processedItems.length > 0 ? { type: 'text', content: processedItems.join('\n') } : null;
   }
 
    /**
@@ -266,57 +293,59 @@
     // Handle element nodes
     if (node.nodeType === Node.ELEMENT_NODE) {
 
-        // *** Handle block elements encountered during recursion ***
         const tagName = node.tagName.toLowerCase();
 
-        // Handle Code Blocks first
+        // *** Handle SPECIAL block elements first (they add their own newlines) ***
         if (node.matches(selectors.assistantCodeBlockOuterContainer)) {
-            // console.log("  [processNode v7] Handling nested Code Block (div.not-prose)");
             const innerCodeContainer = node.querySelector(selectors.assistantCodeBlockInnerContainer);
             if (innerCodeContainer) {
-                const codeItem = processCodeBlock(innerCodeContainer); // Get structured data
+                const codeItem = processCodeBlock(innerCodeContainer);
                 if (codeItem) {
-                    // Format it directly into Markdown here
                     const lang = codeItem.language || '';
-                    const codeContent = (codeItem.content || '').trimEnd(); // Preserve internal whitespace/newlines
+                    const codeContent = (codeItem.content || '').trimEnd();
                     // Return standard markdown block format; add surrounding newlines for separation
                     return `\n\`\`\`${lang}\n${codeContent}\n\`\`\`\n`;
                 }
             }
             return ''; // Skip if inner container not found or no code
         }
-        // Handle nested Image Grids
         if (node.matches(selectors.assistantImageGrid)) {
-            // console.log("  [processNode v7] Handling nested Image Grid");
             const imageItems = processAssistantImageGrid(node);
-            // Format images simply here. Add newlines for separation.
+            // Add newlines for separation.
             return '\n' + imageItems.map(img => `[${img.alt}]: ${img.src}`).join('\n') + '\n';
         }
-        // *** Handle nested lists ***
         if (tagName === 'ul' || tagName === 'ol') {
-            // console.log("  [processNode v7] Handling nested List <" + tagName + ">");
-            // Use processList to get the formatted list object { type: 'text', content: '...' }
             const listData = processList(node, tagName);
-            // Return the formatted list content string. Add surrounding newlines for block separation.
-            return listData ? '\n' + listData.content + '\n' : '';
+            // Return ONLY the list content; spacing handled by processChildNodes
+            return listData ? listData.content : '';
         }
-        // *** NEW IN v7: Handle tables ***
         if (tagName === 'table' || (tagName === 'div' && node.classList.contains('overflow-x-auto'))) {
-            // console.log("  [processNode v7] Handling nested Table");
-            // Generate Markdown for the table
             const tableMarkdown = processTableToMarkdown(node);
-            // Return the markdown with surrounding newlines for block separation
-            return tableMarkdown ? '\n' + tableMarkdown + '\n' : '';
+            // Return ONLY the table content; spacing handled by processChildNodes
+            return tableMarkdown || '';
         }
 
-        // Skip elements that should be handled by higher-level loops or are irrelevant
+        // Skip elements meant to be handled differently or ignored
         if (shouldSkipElement(node)) {
             return '';
         }
 
-        // --- Handle Inline Elements ---
-        // Recursively process children *before* applying formatting for inline tags
-        let content = processChildNodes(node);
+        // *** Handle HEADINGS (Add Markdown prefix) ***
+        if (tagName.startsWith('h') && tagName.length === 2) {
+            const level = parseInt(tagName.substring(1), 10);
+            const prefix = '#'.repeat(level) + ' ';
+            // Process children WITHOUT trim - let parent processChildNodes handle spacing/trimming
+            return prefix + processChildNodes(node);
+        }
+
+        // *** Handle PARAGRAPHS and DIVS (Treat as simple block containers) ***
+        if (tagName === 'p' || tagName === 'div') {
+             // Process children WITHOUT trim - let parent processChildNodes handle spacing/trimming
+            return processChildNodes(node);
+        }
+
+        // --- Handle INLINE Elements --- (if not a block handled above)
+        let content = processChildNodes(node); // Process children first for inlines
 
         if (tagName === 'strong' || tagName === 'b') { return `**${content}**`; }
         if (tagName === 'em' || tagName === 'i') { return `*${content}*`; }
@@ -324,7 +353,7 @@
         if (tagName === 'br') { return '\n'; } // Handle line breaks
         if (node.matches(selectors.inlineCodeSpan)) { return `\`${node.textContent?.trim()}\``; } // Handle inline code spans
 
-        // For other elements (like spans, divs not handled above), just return their processed children's content
+        // For unhandled inline elements (like spans), just return their children's content
         return content;
     }
 
@@ -333,20 +362,99 @@
   }
 
   /**
-   * Iterates over the child nodes of an element and concatenates their
-   * Markdown representations obtained from `processNode`.
+   * Iterates over the child nodes of an element, processes them using processNode,
+   * concatenates the results, and handles spacing and trimming appropriately.
    * @param {HTMLElement} element - The parent element.
    * @returns {string} - The combined Markdown string of all child nodes.
    */
   function processChildNodes(element) {
     let markdown = '';
+    let needsLeadingSpace = false; // Track if the next inline content needs a leading space
+
     if (element.childNodes) {
       element.childNodes.forEach(child => {
-        markdown += processNode(child); // Append results directly
+        const processedContent = processNode(child); // Gets raw content (could have leading/trailing spaces)
+        // Skip truly empty results (null, undefined, empty string), but allow results that are just a single space ' '
+        if (!processedContent && processedContent !== ' ') {
+             return;
+        }
+
+        const trimmedContent = processedContent.trim(); // Trim here for logic checks
+
+        // Handle content that was ONLY whitespace (original was ' ', trimmed is '')
+        if (!trimmedContent && processedContent === ' ') {
+            if (markdown && !markdown.endsWith(' ') && !markdown.endsWith('\n')) {
+                 needsLeadingSpace = true; // Mark that next non-space inline needs a space
+            }
+            // Don't append the space itself yet, wait for subsequent non-space content
+            return;
+        }
+
+        // Skip if trimming resulted in empty content (and it wasn't just a space)
+        if (!trimmedContent) {
+            return;
+        }
+
+
+        const currentNodeIsBlock = isBlockElement(child);
+
+        if (currentNodeIsBlock) {
+          // Ensure block elements are separated by a blank line
+           // Check if markdown has content AND doesn't already end with a double newline
+           if (markdown && !markdown.endsWith('\n\n')) {
+              // Add one newline if it ends with one, two otherwise
+              markdown += markdown.endsWith('\n') ? '\n' : '\n\n';
+           }
+          markdown += trimmedContent; // Append the trimmed block content
+          // Ensure block ends with at least one newline, preparing for next element
+           if (!markdown.endsWith('\n')) {
+               markdown += '\n';
+           }
+          needsLeadingSpace = false; // Reset space requirement after a block
+        } else { // Inline or text node
+           if (needsLeadingSpace) {
+               markdown += ' '; // Add the required leading space
+               needsLeadingSpace = false; // Reset tracker
+           } else if (markdown && !markdown.endsWith(' ') && !markdown.endsWith('\n')) {
+               // Add space if needed between previous content and this inline content,
+               // but only if the previous content wasn't already a block ending in newline.
+               markdown += ' ';
+           }
+           markdown += trimmedContent; // Append the trimmed inline content
+
+           // If the original processed content ended with a space, the next inline might need one
+           needsLeadingSpace = processedContent.endsWith(' ');
+
+        }
       });
     }
-    // Trim leading/trailing whitespace from the final combined string for the element's content
+    // Final trim of the entire result
     return markdown.trim();
+  }
+
+  /**
+   * Helper function to check if a node is a block-level element for spacing purposes.
+   * Includes standard blocks and custom blocks handled by processNode.
+   * @param {Node} node - The DOM node to check.
+   * @returns {boolean} - True if the node is considered a block element.
+   */
+  function isBlockElement(node) {
+      if (!node || node.nodeType !== Node.ELEMENT_NODE) return false;
+      const tagName = node.tagName.toLowerCase();
+      const selectors = window.grokConfig?.selectors;
+
+      // Standard HTML block tags
+      const blockTags = ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'table', 'div', 'blockquote', 'hr', 'pre'];
+      if (blockTags.includes(tagName)) {
+          return true;
+      }
+
+      // Custom block-like containers from selectors
+      if (selectors && (node.matches(selectors.assistantCodeBlockOuterContainer) || node.matches(selectors.assistantImageGrid) || node.matches(selectors.assistantTableContainer))) {
+          return true;
+      }
+
+      return false;
   }
 
   /**
@@ -399,8 +507,27 @@
 
     // --- Extraction Functions ---
     getRole: (turnElement) => { /* ... unchanged ... */ if (!turnElement) return null; if (turnElement.matches(grokConfig.selectors.userMessageIndicator)) return 'user'; if (turnElement.matches(grokConfig.selectors.assistantMessageIndicator)) return 'assistant'; console.warn("[Grok Extractor] Could not determine role for turn:", turnElement); return null; },
-    extractUserText: (turnElement) => { /* ... unchanged ... */ const textElement = turnElement.querySelector(grokConfig.selectors.userTextContainer); return textElement ? processChildNodes(textElement).trim() || null : null; },
-    extractUserUploadedImages: (turnElement) => { /* ... unchanged ... */ const images = []; const selectors = grokConfig.selectors; turnElement.querySelectorAll(selectors.userAttachmentChip).forEach(chip => { const imgPreviewDiv = chip.querySelector(selectors.userAttachmentImagePreviewDiv); const filenameElement = chip.querySelector(selectors.userAttachmentFilename); if (imgPreviewDiv && filenameElement) { const filename = filenameElement.textContent?.trim(); const style = imgPreviewDiv.getAttribute('style'); const match = style?.match(/url\("?([^")]+)"?\)/); const previewUrl = match ? match[1] : null; if (filename && previewUrl) { const fullUrl = getFullImageUrlFromPreview(previewUrl); if (fullUrl) { images.push({ type: 'image', sourceUrl: fullUrl, isPreviewOnly: true, extractedContent: filename }); } } } }); return images; },
+    /**
+     * Extracts text content from a user's message bubble.
+     * Handles cases where the message is split across multiple paragraph elements.
+     * @param {HTMLElement} turnElement - The user turn container element.
+     * @returns {string|null} - The combined text content or null if none found.
+     */
+    extractUserText: (turnElement) => {
+      const userBubble = turnElement.querySelector(grokConfig.selectors.messageBubble);
+      if (!userBubble) {
+        // console.warn("[Grok Extractor] User message bubble not found in turn:", turnElement);
+        return null;
+      }
+
+      // Process ALL child nodes of the bubble using the existing recursive node processor.
+      // This handles various structures (multiple <p>, <div>, text nodes, etc.) within the user message.
+      const fullText = processChildNodes(userBubble).trim();
+
+      // console.log("[Grok Extractor] Extracted user text (processed bubble):", fullText || "null");
+      return fullText || null; // Return null if the result is an empty string
+    },
+    extractUserUploadedImages: (turnElement) => { /* ... unchanged ... */ const images = []; const selectors = grokConfig.selectors; turnElement.querySelectorAll(selectors.userAttachmentChip).forEach(chip => { const imgPreviewDiv = chip.querySelector(selectors.userAttachmentImagePreviewDiv); const filenameElement = chip.querySelector(selectors.userAttachmentFilename); if (imgPreviewDiv && filenameElement) { const filename = filenameElement.textContent?.trim(); const style = imgPreviewDiv.getAttribute('style'); const match = style?.match(/url\\("?([^")]+)"?\\)/); const previewUrl = match ? match[1] : null; if (filename && previewUrl) { const fullUrl = getFullImageUrlFromPreview(previewUrl); if (fullUrl) { images.push({ type: 'image', sourceUrl: fullUrl, isPreviewOnly: true, extractedContent: filename }); } } } }); return images; },
     extractUserUploadedFiles: (turnElement) => { /* ... unchanged ... */ const files = []; const selectors = grokConfig.selectors; turnElement.querySelectorAll(selectors.userAttachmentChip).forEach(chip => { const fileIcon = chip.querySelector(selectors.userAttachmentFileIcon); const filenameElement = chip.querySelector(selectors.userAttachmentFilename); if (fileIcon && filenameElement && !chip.querySelector(selectors.userAttachmentImagePreviewDiv)) { const fileName = filenameElement.textContent?.trim(); if (fileName) { files.push({ type: 'file', fileName: fileName, fileType: 'File', isPreviewOnly: true, extractedContent: null }); } } }); return files; },
 
     /**
