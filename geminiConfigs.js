@@ -23,13 +23,13 @@
              (selectors.imageContainerAssistant && element.matches(selectors.imageContainerAssistant)) ||
              tagNameLower === 'code-block' ||
              tagNameLower === 'ul' || tagNameLower === 'ol' || tagNameLower === 'pre' ||
+             tagNameLower === 'blockquote' || // Skip blockquotes for dedicated processing
              tagNameLower === 'table'; // Skip table at top level
     }
 
     /**
      * Processes list elements (ul, ol) into markdown text.
-     * v30: Improved nested list support by preserving line breaks in nested elements
-     * and proper code formatting for HTML tags
+     * Updated to handle blockquotes within list items correctly
      * @param {HTMLElement} el - The list element (ul or ol).
      * @param {string} listType - 'ul' or 'ol'.
      * @param {number} nestLevel - The nesting level of the list (0 for top level).
@@ -43,72 +43,437 @@
             if (isNaN(startNum)) startNum = 1;
         }
         let itemIndex = 0;
+        
         el.querySelectorAll(':scope > li').forEach(li => {
-            // First, get the direct text content of this list item (before any nested lists)
-            let directContent = '';
-            for (let node of li.childNodes) {
-                // Skip nested lists
-                if (node.nodeType === Node.ELEMENT_NODE &&
-                    (node.tagName.toLowerCase() === 'ul' || node.tagName.toLowerCase() === 'ol')) {
-                    continue;
+            // Create a working copy to process direct content
+            const liClone = li.cloneNode(true);
+            
+            // Find all nested elements we want to handle separately 
+            const nestedLists = Array.from(li.querySelectorAll(':scope > ul, :scope > ol'));
+            const blockquotes = Array.from(li.querySelectorAll(':scope > blockquote'));
+            
+            // Remove nested elements from clone
+            Array.from(liClone.querySelectorAll('ul, ol, blockquote')).forEach(nestedEl => {
+                if (nestedEl.parentNode) {
+                    nestedEl.parentNode.removeChild(nestedEl);
                 }
-
-                // For text or non-list elements, add to direct content
-                if (node.nodeType === Node.TEXT_NODE) {
-                    directContent += node.textContent;
-                } else if (node.nodeType === Node.ELEMENT_NODE) {
-                    const originalTagName = node.tagName.toLowerCase(); // Store original tag name
-
-                    // Explicitly handle <strong> for bold markdown
-                    if (originalTagName === 'strong') {
-                        const boldContent = node.textContent.trim();
-                        if (boldContent) {
-                             directContent += `**${boldContent}**`;
-                        }
-                    }
-                    // Explicitly handle <code> for backtick markdown
-                    else if (originalTagName === 'code') {
-                        const codeContent = node.textContent.trim();
-                         if (codeContent) {
-                             directContent += `\`${codeContent}\``;
-                         }
-                    }
-                    // Generic handling for other elements
-                    else {
-                        // Get element content using htmlToMarkdown, ignoring nested lists and the current tag type to avoid duplication
-                        let elementContent = QAClipper.Utils.htmlToMarkdown(node, {
-                            ignoreTags: ['ul', 'ol'] // Only ignore lists, process the node itself
-                        });
-
-                        // Enhanced HTML tag handling: wrap remaining HTML tags in backticks (optional, based on desired output)
-                        // elementContent = elementContent.replace(/<(\\\\/?[a-zA-Z][a-zA-Z0-9]*(?:\\\\s[^>]*)?)>/g, '`<$1>`');
-
-                        // Add space for separation, will be trimmed later
-                        directContent += " " + elementContent;
-                    }
-                }
-            }
-
-            // Trim and format the direct content, consolidating whitespace
-            directContent = directContent.replace(/\\s+/g, ' ').trim();
-
+            });
+            
+            // Get direct text content
+            const directContent = QAClipper.Utils.htmlToMarkdown(liClone, {
+                ignoreTags: ['ul', 'ol', 'blockquote']
+            }).trim();
+            
+            // Marker for this list item 
+            const marker = listType === 'ul' ? '-' : `${startNum + itemIndex}.`;
+            const indent = '  '.repeat(nestLevel);
+            const nestedIndent = '  '.repeat(nestLevel + 1);
+            
+            let contentAdded = false;
+            
+            // 1. Process direct content first (if any)
             if (directContent) {
-                const marker = listType === 'ul' ? '-' : `${startNum + itemIndex}.`;
-                const indent = '  '.repeat(nestLevel);
                 lines.push(`${indent}${marker} ${directContent}`);
-                if (listType === 'ol') itemIndex++;
-
-                // Process any nested lists
-                const nestedLists = li.querySelectorAll(':scope > ul, :scope > ol');
-                nestedLists.forEach(nestedList => {
-                    const nestedType = nestedList.tagName.toLowerCase();
-                    const nestedResult = processList(nestedList, nestedType, nestLevel + 1);
-                    if (nestedResult && nestedResult.content) {
-                        lines.push(nestedResult.content);
+                contentAdded = true;
+            }
+            
+            // 2. Process blockquotes - maintain proper indentation and list structure
+            if (blockquotes.length > 0) {
+                blockquotes.forEach(bq => {
+                    // Process each blockquote
+                    const blockquoteContent = processNestedBlockquote(bq);
+                    
+                    if (blockquoteContent) {
+                        const bqLines = blockquoteContent.split('\n');
+                        
+                        // If there was no direct content yet, add the list marker to the first line
+                        if (!contentAdded) {
+                            lines.push(`${indent}${marker} ${bqLines[0]}`);
+                            // Add remaining lines with proper indentation
+                            for (let i = 1; i < bqLines.length; i++) {
+                                lines.push(`${nestedIndent}${bqLines[i]}`);
+                            }
+                            contentAdded = true;
+                        } else {
+                            // Otherwise indent all blockquote lines under the list item
+                            bqLines.forEach(line => {
+                                lines.push(`${nestedIndent}${line}`);
+                            });
+                        }
                     }
                 });
             }
+            
+            // 3. Process nested lists
+            if (nestedLists.length > 0) {
+                nestedLists.forEach(nestedList => {
+                    const nestedType = nestedList.tagName.toLowerCase();
+                    const nestedResult = processList(nestedList, nestedType, nestLevel + 1);
+                    
+                    if (nestedResult && nestedResult.content) {
+                        const nestedLines = nestedResult.content.split('\n');
+                        
+                        // If there was no content yet, add the list marker to the first line
+                        if (!contentAdded) {
+                            // Extract the first line and add our marker
+                            const firstLine = nestedLines[0].replace(/^\s*[-*0-9.]+\s+/, '');
+                            lines.push(`${indent}${marker} ${firstLine}`);
+                            
+                            // Add the remaining lines as is
+                            for (let i = 1; i < nestedLines.length; i++) {
+                                lines.push(nestedLines[i]);
+                            }
+                            contentAdded = true;
+                        } else {
+                            // Just add the nested list content
+                            lines.push(nestedResult.content);
+                        }
+                    }
+                });
+            }
+            
+            // If no content was added for this list item, add an empty item
+            if (!contentAdded) {
+                lines.push(`${indent}${marker} `);
+            }
+            
+            // Always increment index for ordered lists
+            if (listType === 'ol') {
+                itemIndex++;
+            }
         });
+        
+        return lines.length > 0 ? { type: 'text', content: lines.join('\n') } : null;
+    }
+    
+    /**
+     * Process nested blockquotes within list items
+     * @param {HTMLElement} blockquote - The blockquote element 
+     * @returns {string} - The processed blockquote content with proper markers
+     */
+    function processNestedBlockquote(blockquote) {
+        const lines = [];
+        
+        // Process all child nodes
+        Array.from(blockquote.childNodes).forEach(node => {
+            if (node.nodeType === Node.TEXT_NODE) {
+                const text = node.textContent.trim();
+                if (text) {
+                    lines.push(`> ${text}`);
+                }
+            } 
+            else if (node.nodeType === Node.ELEMENT_NODE) {
+                const tagName = node.tagName.toLowerCase();
+                
+                // Handle nested blockquotes recursively
+                if (tagName === 'blockquote') {
+                    const nestedContent = processNestedBlockquote(node);
+                    if (nestedContent) {
+                        // Add an additional '>' to each line for nesting
+                        nestedContent.split('\n').forEach(line => {
+                            lines.push(`>${line}`);
+                        });
+                    }
+                }
+                // Handle paragraphs and other elements
+                else {
+                    const content = QAClipper.Utils.htmlToMarkdown(node, {
+                        ignoreTags: ['blockquote']
+                    }).trim();
+                    
+                    if (content) {
+                        content.split('\n').forEach(line => {
+                            lines.push(`> ${line}`);
+                        });
+                    }
+                }
+            }
+        });
+        
+        return lines.join('\n');
+    }
+
+    /**
+     * Comprehensive blockquote processor that preserves hierarchy and nested content
+     * @param {HTMLElement} element - The blockquote element to process
+     * @param {number} nestLevel - The nesting level of the blockquote (0 for top level)
+     * @returns {string} - Formatted blockquote content with correct '>' prefixes
+     */
+    function processBlockquote(element, nestLevel = 0) {
+        // Create the proper prefix based on nesting level
+        const prefix = '> '.repeat(nestLevel + 1);
+        
+        // Initialize the result array to store all processed content lines
+        const resultLines = [];
+        
+        // Process all child nodes in order to maintain structure
+        const childNodes = Array.from(element.childNodes);
+        
+        // Track if we need to add extra line spacing
+        let previousWasBlock = false;
+        let previousWasNestedBlockquote = false;
+        
+        for (let i = 0; i < childNodes.length; i++) {
+            const node = childNodes[i];
+            
+            // Handle text nodes (including whitespace)
+            if (node.nodeType === Node.TEXT_NODE) {
+                const text = node.textContent.trim();
+                if (text) {
+                    // If the previous element was a nested blockquote, add an empty line with just the blockquote prefix
+                    if (previousWasNestedBlockquote) {
+                        resultLines.push(`${prefix}`);
+                        previousWasNestedBlockquote = false;
+                    }
+                    
+                    // Only add non-empty text nodes
+                    resultLines.push(`${prefix}${text}`);
+                    previousWasBlock = false;
+                }
+                continue;
+            }
+            
+            // Handle element nodes
+            if (node.nodeType === Node.ELEMENT_NODE) {
+                const tagName = node.tagName.toLowerCase();
+                
+                // Handle headings - convert to Markdown style headings
+                if (['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(tagName)) {
+                    // Add a blank line before headings if needed
+                    if (resultLines.length > 0 && !previousWasBlock) {
+                        resultLines.push(`${prefix}`);
+                    }
+                    
+                    // Reset the nested blockquote flag
+                    previousWasNestedBlockquote = false;
+                    
+                    // Extract the heading level number from the tag
+                    const level = parseInt(tagName.substring(1));
+                    const hashes = '#'.repeat(level);
+                    
+                    // Extract content without formatting as markdown
+                    const headingText = node.textContent.trim();
+                    
+                    // Format as Markdown heading
+                    resultLines.push(`${prefix}${hashes} ${headingText}`);
+                    
+                    // Add a blank line after the heading
+                    resultLines.push(`${prefix}`);
+                    previousWasBlock = true;
+                    continue;
+                }
+                
+                // Handle paragraphs
+                if (tagName === 'p') {
+                    // If the previous element was a nested blockquote, add an empty line with just the blockquote prefix
+                    if (previousWasNestedBlockquote) {
+                        resultLines.push(`${prefix}`);
+                        previousWasNestedBlockquote = false;
+                    }
+                    
+                    // Add a blank line before paragraphs if needed
+                    if (resultLines.length > 0 && !previousWasBlock) {
+                        resultLines.push(`${prefix}`);
+                    }
+                    
+                    // Use markdown conversion to handle formatting correctly
+                    const content = QAClipper.Utils.htmlToMarkdown(node, {
+                        skipElementCheck: shouldSkipElement
+                    }).trim();
+                    
+                    if (content) {
+                        content.split('\n').forEach(line => {
+                            resultLines.push(`${prefix}${line}`);
+                        });
+                        
+                        // Add a blank line after paragraphs
+                        resultLines.push(`${prefix}`);
+                        previousWasBlock = true;
+                    }
+                    continue;
+                }
+                
+                // Handle nested blockquotes
+                if (tagName === 'blockquote') {
+                    // Add spacing before nested blockquote if needed
+                    if (resultLines.length > 0 && !previousWasBlock) {
+                        resultLines.push(`${prefix}`);
+                    }
+                    
+                    const nestedContent = processBlockquote(node, nestLevel + 1);
+                    if (nestedContent) {
+                        resultLines.push(nestedContent);
+                        // No extra blank line after a blockquote - it already has its own spacing
+                        previousWasBlock = true;
+                        previousWasNestedBlockquote = true;
+                    }
+                    continue;
+                }
+                
+                // Handle lists
+                if (tagName === 'ul' || tagName === 'ol') {
+                    // If the previous element was a nested blockquote, add an empty line with just the blockquote prefix
+                    if (previousWasNestedBlockquote) {
+                        resultLines.push(`${prefix}`);
+                        previousWasNestedBlockquote = false;
+                    }
+                    
+                    // Add spacing before list if needed
+                    if (resultLines.length > 0 && !previousWasBlock) {
+                        resultLines.push(`${prefix}`);
+                    }
+                    
+                    const listResult = processListInBlockquote(node, tagName, 0, nestLevel);
+                    if (listResult && listResult.content) {
+                        resultLines.push(listResult.content);
+                        // Don't add blank line after a list
+                        previousWasBlock = false;
+                    }
+                    continue;
+                }
+                
+                // Handle other elements (like spans, strong, etc.)
+                if (previousWasNestedBlockquote) {
+                    resultLines.push(`${prefix}`);
+                    previousWasNestedBlockquote = false;
+                }
+                
+                const inlineContent = QAClipper.Utils.htmlToMarkdown(node, {
+                    skipElementCheck: shouldSkipElement
+                }).trim();
+                
+                if (inlineContent) {
+                    inlineContent.split('\n').forEach(line => {
+                        resultLines.push(`${prefix}${line}`);
+                    });
+                    previousWasBlock = false;
+                }
+            }
+        }
+        
+        // Clean up redundant blank lines
+        const cleanedLines = [];
+        for (let i = 0; i < resultLines.length; i++) {
+            const line = resultLines[i];
+            const isBlankLine = line.trim() === prefix.trim();
+            
+            // Skip consecutive blank lines
+            if (isBlankLine && i > 0 && resultLines[i-1].trim() === prefix.trim()) {
+                continue;
+            }
+            
+            cleanedLines.push(line);
+        }
+        
+        // Remove trailing blank line if exists
+        if (cleanedLines.length > 0 && cleanedLines[cleanedLines.length-1].trim() === prefix.trim()) {
+            cleanedLines.pop();
+        }
+        
+        return cleanedLines.join('\n');
+    }
+
+    /**
+     * Process a list element within a blockquote with proper formatting
+     * @param {HTMLElement} el - The list element (ul or ol)
+     * @param {string} listType - 'ul' or 'ol'
+     * @param {number} listLevel - The nesting level of the list (0 for top level)
+     * @param {number} blockquoteLevel - The nesting level of the parent blockquote
+     * @returns {object|null} - A text content item or null
+     */
+    function processListInBlockquote(el, listType, listLevel = 0, blockquoteLevel = 0) {
+        let lines = [];
+        let startNum = 1;
+        if (listType === 'ol') {
+            startNum = parseInt(el.getAttribute('start') || '1', 10);
+            if (isNaN(startNum)) startNum = 1;
+        }
+        
+        let itemIndex = 0;
+        el.querySelectorAll(':scope > li').forEach(li => {
+            // Create the blockquote prefix
+            const bqPrefix = '> '.repeat(blockquoteLevel + 1);
+            
+            // Create the list marker and indentation
+            const marker = listType === 'ul' ? '-' : `${startNum + itemIndex}.`;
+            const indent = '  '.repeat(listLevel);
+            
+            // Create a working copy to process direct content
+            const liClone = li.cloneNode(true);
+            
+            // Track original elements to process separately
+            let originalNestedLists = Array.from(li.querySelectorAll(':scope > ul, :scope > ol'));
+            let originalNestedBq = Array.from(li.querySelectorAll(':scope > blockquote'));
+            
+            // Remove nested lists and blockquotes from clone
+            Array.from(liClone.querySelectorAll('ul, ol, blockquote')).forEach(nestedEl => {
+                if (nestedEl.parentNode) {
+                    nestedEl.parentNode.removeChild(nestedEl);
+                }
+            });
+            
+            // Process direct content first (without nested elements)
+            let directContent = QAClipper.Utils.htmlToMarkdown(liClone, {
+                ignoreTags: ['ul', 'ol', 'blockquote']
+            }).trim();
+            
+            if (directContent) {
+                lines.push(`${bqPrefix}${indent}${marker} ${directContent}`);
+                if (listType === 'ol') itemIndex++;
+            }
+            
+            // Process nested blockquotes within this item
+            originalNestedBq.forEach(bq => {
+                // For nested blockquotes, increase the blockquote level
+                const nestedBqContent = processBlockquote(bq, blockquoteLevel + 1);
+                if (nestedBqContent) {
+                    if (!directContent) {
+                        // If no direct content, add marker to first line
+                        const bqLines = nestedBqContent.split('\n');
+                        if (bqLines.length > 0) {
+                            // Keep blockquote marker but add list marker
+                            bqLines[0] = `${bqPrefix}${indent}${marker} ${bqLines[0].substring(bqPrefix.length)}`;
+                            lines.push(bqLines.join('\n'));
+                            if (listType === 'ol') itemIndex++;
+                            directContent = true;
+                        }
+                    } else {
+                        // Add nested blockquote with proper indentation
+                        const nestedIndent = '  '.repeat(listLevel + 1);
+                        lines.push(nestedBqContent);
+                    }
+                }
+            });
+            
+            // Process any nested lists
+            originalNestedLists.forEach(nestedList => {
+                const nestedType = nestedList.tagName.toLowerCase();
+                const nestedResult = processListInBlockquote(nestedList, nestedType, listLevel + 1, blockquoteLevel);
+                if (nestedResult && nestedResult.content) {
+                    if (!directContent) {
+                        // If no direct content, format first line with list marker
+                        const nestedLines = nestedResult.content.split('\n');
+                        if (nestedLines.length > 0) {
+                            // Format first line with list marker while preserving blockquote prefix
+                            const firstLine = nestedLines[0].substring(bqPrefix.length); // Remove bq prefix
+                            nestedLines[0] = `${bqPrefix}${indent}${marker} ${firstLine.trimStart()}`;
+                            lines.push(nestedLines.join('\n'));
+                            if (listType === 'ol') itemIndex++;
+                            directContent = true;
+                        }
+                    } else {
+                        lines.push(nestedResult.content);
+                    }
+                }
+            });
+            
+            // If no content was added for this list item, add an empty item
+            if (!directContent) {
+                lines.push(`${bqPrefix}${indent}${marker} `);
+                if (listType === 'ol') itemIndex++;
+            }
+        });
+        
         return lines.length > 0 ? { type: 'text', content: lines.join('\n') } : null;
     }
 
@@ -290,7 +655,7 @@
         userFileContainer: '.file-preview-container', userFileItem: '.file-upload-link', userFileName: '.new-file-name', userFileType: '.new-file-type',
         assistantContentArea: 'div.markdown.markdown-main-panel',
         // Added all heading levels (h1-h6) to relevantBlocks
-        relevantBlocks: 'p, h1, h2, h3, h4, h5, h6, ul, ol, code-block, single-image, div.attachment-container.immersive-entry-chip, table',
+        relevantBlocks: 'p, h1, h2, h3, h4, h5, h6, ul, ol, code-block, single-image, div.attachment-container.immersive-entry-chip, table, blockquote',
         listItem: 'li',
         codeBlockContent: 'pre > code', codeBlockLangIndicator: 'div.code-block-decoration > span',
         imageContainerAssistant: 'single-image', imageElementAssistant: 'img.image.loaded', imageCaption: 'div.caption', imageElement: 'img',
@@ -337,14 +702,14 @@
 
       /**
        * Extracts structured content using querySelectorAll.
-       * v31: Added handling for all heading tags (h1-h6).
+       * v31: Added handling for all heading tags (h1-h6) and blockquotes.
        */
       extractAssistantContent: (turnElement) => {
           const contentItems = [];
           const contentArea = turnElement.querySelector(geminiConfig.selectors.assistantContentArea);
           if (!contentArea) { console.warn("[Extractor v31] Gemini markdown content area not found."); return []; }
 
-          // console.log("[Extractor v31] Starting assistant extraction (Added h1-h6 support)");
+          // console.log("[Extractor v31] Starting assistant extraction (Added h1-h6 and blockquote support)");
 
           const relevantElements = contentArea.querySelectorAll(geminiConfig.selectors.relevantBlocks);
           // console.log(`[Extractor v31] Found ${relevantElements.length} relevant block elements.`);
@@ -355,6 +720,7 @@
 
               const tagNameLower = element.tagName.toLowerCase();
               const isHeading = tagNameLower.match(/^h[1-6]$/);
+              const isBlockquote = tagNameLower === 'blockquote';
               const isInteractiveBlock = element.matches(geminiConfig.selectors.interactiveBlockContainer);
               const isImageContainer = element.matches(geminiConfig.selectors.imageContainerAssistant);
               const isCodeBlock = tagNameLower === 'code-block';
@@ -377,6 +743,20 @@
                   }
                   
                   processedElements.add(element);
+              }
+              else if (isBlockquote) {
+                  // console.log("  -> Handling as Blockquote");
+                  
+                  // Process the blockquote using the dedicated function
+                  // Starting at nesting level 0 for top-level blockquotes
+                  const blockquoteMarkdown = processBlockquote(element, 0);
+                  if (blockquoteMarkdown) {
+                      QAClipper.Utils.addTextItem(contentItems, blockquoteMarkdown);
+                  }
+                  
+                  // Mark the blockquote and all its children as processed
+                  processedElements.add(element);
+                  element.querySelectorAll('*').forEach(child => processedElements.add(child));
               }
               else if (isInteractiveBlock) {
                   // console.log("  -> Handling as Interactive Block");
@@ -412,7 +792,7 @@
               }
               else if (tagNameLower === 'ul' || tagNameLower === 'ol') {
                   // console.log(`  -> Handling as ${tagNameLower.toUpperCase()}`);
-                  // v30: Use the updated processList function with proper nesting support
+                  // Use our improved processList function for better handling of nested elements
                   item = processList(element, tagNameLower, 0);
                   if (item) contentItems.push(item);
                   processedElements.add(element);
@@ -455,5 +835,5 @@
     }; // End geminiConfig
 
     window.geminiConfig = geminiConfig;
-    // console.log("geminiConfig initialized (v31 - Added h1-h6 support)");
+    // console.log("geminiConfig initialized (v31 - Added h1-h6 and blockquote support)");
 })(); // End of IIFE
