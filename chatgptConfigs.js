@@ -406,34 +406,39 @@
              
              // 3. Process blockquotes within list items
              if (originalBlockquotes.length > 0) {
-                 // Apply blockquote prefix with correct nesting level
-                 const bqLevel = isWithinBlockquote ? blockquoteLevel : 0;
+                 const marker = listType === 'ul' ? '-' : `${itemIndex + 1}.`;
+                 const indent = '  '.repeat(level);
                  
                  originalBlockquotes.forEach((bqElement) => {
-                     // Process the blockquote with the current nesting level
-                     const bqContent = processBlockquote(bqElement, bqLevel);
+                     const nestedBqContent = processBlockquoteInList(bqElement, level, isWithinBlockquote, blockquoteLevel);
                      
-                     if (bqContent) {
+                     if (nestedBqContent) {
                          // If this is the first content in the list item, add the list marker
                          if (!itemHasContent) {
-                             const marker = listType === 'ul' ? '-' : `${itemIndex + 1}.`;
-                             const indent = '  '.repeat(level);
-                             
-                             // Split the first line to insert the marker
-                             const lines = bqContent.split('\n');
-                             if (lines.length > 0) {
-                                 // Find where to insert the marker (after the prefix)
-                                 const firstLine = lines[0];
-                                 const prefixEnd = firstLine.indexOf('>') + 1;
-                                 
-                                 lines[0] = firstLine.substring(0, prefixEnd) + 
-                                           ` ${indent}${marker} ` + 
-                                           firstLine.substring(prefixEnd + 1);
-                                 
-                                 lines.push(lines.join('\n'));
-                             }
+                             // Split the content by lines and add proper indentation to each
+                             const bqLines = nestedBqContent.split('\n');
+                             const formattedLines = bqLines.map((line, idx) => {
+                                 // First line needs the list marker
+                                 if (idx === 0) {
+                                     // Replace the indentation with list marker
+                                     const listMarkerWithSpace = `${indent}${marker} `;
+                                     if (isWithinBlockquote) {
+                                         const bqPrefix = '> '.repeat(blockquoteLevel + 1);
+                                         return `${bqPrefix}${listMarkerWithSpace}${line.trim().substring(1)}`; // Remove the '>' already in line
+                                     } else {
+                                         // For the first line, replace the indentation with list marker + keep the blockquote marker
+                                         return `${listMarkerWithSpace}${line.trim()}`;
+                                     }
+                                 } 
+                                 else {
+                                     // Other lines keep their formatting
+                                     return line;
+                                 }
+                             });
+                             lines.push(formattedLines.join('\n'));
                          } else {
-                             lines.push(bqContent);
+                             // If there's already content, just add the blockquote with proper indentation
+                             lines.push(nestedBqContent);
                          }
                          
                          itemHasContent = true;
@@ -464,6 +469,88 @@
 
          return lines.length > 0 ? { type: 'text', content: lines.join('\n') } : null;
      }
+
+    /**
+     * New helper function to process blockquotes within list items
+     * @param {HTMLElement} element - The blockquote element to process
+     * @param {number} listLevel - The indentation level of the parent list
+     * @param {boolean} isWithinBlockquote - Whether the list is already within a blockquote
+     * @param {number} parentBlockquoteLevel - The nesting level of the parent blockquote (if any)
+     * @returns {string} - Formatted blockquote content with correct indentation and '>' prefixes
+     */
+    function processBlockquoteInList(element, listLevel, isWithinBlockquote, parentBlockquoteLevel) {
+        // Create proper indentation for list level
+        const listIndent = '  '.repeat(listLevel + 1); // +1 for the additional indentation for blockquotes
+        
+        // Initialize the result array to store all processed content lines
+        const resultLines = [];
+        
+        // Process all child nodes in order to maintain structure
+        const childNodes = Array.from(element.childNodes);
+        
+        for (let i = 0; i < childNodes.length; i++) {
+            const node = childNodes[i];
+            
+            // Handle text nodes (including whitespace)
+            if (node.nodeType === Node.TEXT_NODE) {
+                const text = node.textContent.trim();
+                if (text) {
+                    // Add non-empty text nodes with proper blockquote formatting
+                    if (isWithinBlockquote) {
+                        const bqPrefix = '> '.repeat(parentBlockquoteLevel + 1);
+                        resultLines.push(`${bqPrefix}${listIndent}> ${text}`);
+                    } else {
+                        resultLines.push(`${listIndent}> ${text}`);
+                    }
+                }
+                continue;
+            }
+            
+            // Handle element nodes
+            if (node.nodeType === Node.ELEMENT_NODE) {
+                const tagName = node.tagName.toLowerCase();
+                
+                // Handle paragraphs
+                if (tagName === 'p') {
+                    // Use enhanced markdown conversion
+                    const content = enhancedHtmlToMarkdown(node, {
+                        skipElementCheck: shouldSkipElement
+                    }).trim();
+                    
+                    if (content) {
+                        content.split('\n').forEach(line => {
+                            if (isWithinBlockquote) {
+                                const bqPrefix = '> '.repeat(parentBlockquoteLevel + 1);
+                                resultLines.push(`${bqPrefix}${listIndent}> ${line}`);
+                            } else {
+                                resultLines.push(`${listIndent}> ${line}`);
+                            }
+                        });
+                    }
+                    continue;
+                }
+                
+                // Handle other elements
+                const inlineContent = enhancedHtmlToMarkdown(node, {
+                    skipElementCheck: shouldSkipElement
+                }).trim();
+                
+                if (inlineContent) {
+                    inlineContent.split('\n').forEach(line => {
+                        if (isWithinBlockquote) {
+                            const bqPrefix = '> '.repeat(parentBlockquoteLevel + 1);
+                            resultLines.push(`${bqPrefix}${listIndent}> ${line}`);
+                        } else {
+                            resultLines.push(`${listIndent}> ${line}`);
+                        }
+                    });
+                }
+            }
+        }
+        
+        // Return the processed lines
+        return resultLines.join('\n');
+    }
 
     function processCodeBlock(el) { // Unchanged
         const selectors = window.chatgptConfig.selectors;
