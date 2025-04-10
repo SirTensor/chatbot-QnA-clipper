@@ -58,6 +58,19 @@
             strikeEl.parentNode.replaceChild(replacementText, strikeEl);
         });
         
+        // Process task list items (checkboxes)
+        const checkboxItems = clone.querySelectorAll('li input[type="checkbox"]');
+        checkboxItems.forEach(checkbox => {
+            const isChecked = checkbox.checked;
+            const checkboxMd = isChecked ? '[x] ' : '[ ] ';
+            
+            // Create a text node with the markdown checkbox syntax
+            const replacementText = document.createTextNode(checkboxMd);
+            
+            // Replace the checkbox with our markdown-style checkbox text
+            checkbox.parentNode.replaceChild(replacementText, checkbox);
+        });
+        
         // Call the original markdown converter with our pre-processed clone
         return QAClipper.Utils.htmlToMarkdown(clone, options).trim();
     }
@@ -283,26 +296,41 @@
                      // Map the PRE in the clone back to the original LI's PRE elements based on order
                      try {
                         const allOriginalPres = Array.from(li.querySelectorAll('pre'));
-                        // Find the index of this 'pre' among *all* 'pre' elements within the clone *at this point*
-                        // This relies on querySelectorAll order being stable and consistent between original and clone before removal
-                        const currentIndexInClone = Array.from(liClone.querySelectorAll('pre')).indexOf(nestedEl);
-                        if (currentIndexInClone !== -1 && currentIndexInClone < allOriginalPres.length) {
-                            originalPreElements.push(allOriginalPres[currentIndexInClone]);
-                        } else {
-                            console.warn("[Extractor v18 processList] Could not map cloned PRE back to original. Index:", currentIndexInClone, "Original count:", allOriginalPres.length, nestedEl);
+                        // Improved method to find the index that's more reliable
+                        // First, get all pre elements in both original and clone
+                        const preLiOriginals = Array.from(li.querySelectorAll('pre'));
+                        const preLiClones = Array.from(liClone.querySelectorAll('pre'));
+                        
+                        // Find position of this specific PRE among all PREs in the clone
+                        for (let i = 0; i < preLiClones.length; i++) {
+                            if (preLiClones[i] === nestedEl) {
+                                // If we have a corresponding original at this index, use it
+                                if (i < preLiOriginals.length) {
+                                    originalPreElements.push(preLiOriginals[i]);
+                                } else {
+                                    console.warn("[Extractor v18 processList] Pre element index out of bounds:", i, preLiOriginals.length);
+                                }
+                                break;
+                            }
                         }
                      } catch (e) {
                          console.error("[Extractor v18 processList] Error mapping PRE elements:", e, nestedEl);
                      }
                  } else if (tagNameLower === 'blockquote') {
-                     // Map blockquotes similar to PRE elements
+                     // Map blockquotes similar to PRE elements using improved method
                      try {
-                        const allOriginalBlockquotes = Array.from(li.querySelectorAll('blockquote'));
-                        const currentIndexInClone = Array.from(liClone.querySelectorAll('blockquote')).indexOf(nestedEl);
-                        if (currentIndexInClone !== -1 && currentIndexInClone < allOriginalBlockquotes.length) {
-                            originalBlockquotes.push(allOriginalBlockquotes[currentIndexInClone]);
-                        } else {
-                            console.warn("[Extractor v18 processList] Could not map cloned blockquote back to original. Index:", currentIndexInClone, "Original count:", allOriginalBlockquotes.length, nestedEl);
+                        const bqLiOriginals = Array.from(li.querySelectorAll('blockquote'));
+                        const bqLiClones = Array.from(liClone.querySelectorAll('blockquote'));
+                        
+                        for (let i = 0; i < bqLiClones.length; i++) {
+                            if (bqLiClones[i] === nestedEl) {
+                                if (i < bqLiOriginals.length) {
+                                    originalBlockquotes.push(bqLiOriginals[i]);
+                                } else {
+                                    console.warn("[Extractor v18 processList] Blockquote element index out of bounds:", i, bqLiOriginals.length);
+                                }
+                                break;
+                            }
                         }
                      } catch (e) {
                          console.error("[Extractor v18 processList] Error mapping blockquote elements:", e, nestedEl);
@@ -571,6 +599,21 @@
              if (consecutiveMdBlockElements.length > 0) {
                  const tempDiv = document.createElement('div');
                  consecutiveMdBlockElements.forEach(el => tempDiv.appendChild(el.cloneNode(true)));
+                 
+                 // Pre-process task lists in the tempDiv before converting to markdown
+                 const taskItems = tempDiv.querySelectorAll('li input[type="checkbox"]');
+                 taskItems.forEach(checkbox => {
+                     const isChecked = checkbox.checked;
+                     const checkboxMd = isChecked ? '[x] ' : '[ ] ';
+                     
+                     // Create a text node with the markdown checkbox syntax
+                     const replacementText = document.createTextNode(checkboxMd);
+                     
+                     // Replace the checkbox with our markdown-style checkbox text
+                     checkbox.parentNode.insertBefore(replacementText, checkbox);
+                     checkbox.parentNode.removeChild(checkbox);
+                 });
+                 
                  const combinedMarkdown = enhancedHtmlToMarkdown(tempDiv, { skipElementCheck: shouldSkipElement }).trim();
                  if (combinedMarkdown) {
                      QAClipper.Utils.addTextItem(contentItems, combinedMarkdown);
@@ -608,9 +651,33 @@
              }
              else if (tagNameLower === 'ul' || tagNameLower === 'ol') {
                  flushMdBlock();
-                 // Call the updated processList function which now handles PRE inside LIs
-                 const listItem = processList(element, tagNameLower, 0, false, 0);
-                 if (listItem) contentItems.push(listItem);
+                 
+                 // Special handling for task lists (lists with checkboxes)
+                 const hasCheckboxes = element.querySelector('li input[type="checkbox"]') !== null;
+                 
+                 if (hasCheckboxes) {
+                     // Clone the list to avoid modifying the original
+                     const listClone = element.cloneNode(true);
+                     
+                     // Pre-process all checkboxes in the list
+                     const checkboxes = listClone.querySelectorAll('li > input[type="checkbox"]');
+                     checkboxes.forEach(checkbox => {
+                         const isChecked = checkbox.checked;
+                         const checkboxMd = isChecked ? '[x] ' : '[ ] ';
+                         const textNode = document.createTextNode(checkboxMd);
+                         checkbox.parentNode.insertBefore(textNode, checkbox);
+                         checkbox.parentNode.removeChild(checkbox);
+                     });
+                     
+                     // Now process the list with pre-processed checkboxes
+                     const listItem = processList(listClone, tagNameLower, 0, false, 0);
+                     if (listItem) contentItems.push(listItem);
+                 } else {
+                     // Normal list processing
+                     const listItem = processList(element, tagNameLower, 0, false, 0);
+                     if (listItem) contentItems.push(listItem);
+                 }
+                 
                  processedElements.add(element);
                  element.querySelectorAll('*').forEach(child => processedElements.add(child));
                  handledSeparately = true;
@@ -761,7 +828,7 @@
     const chatgptConfig = {
       platformName: 'ChatGPT',
       version: 18, // v18: Updated version identifier for blockquote fix
-      selectors: { // Unchanged selectors
+      selectors: { // Updated selectors to include task lists
         turnContainer: 'article[data-testid^="conversation-turn-"]',
         userMessageContainer: 'div[data-message-author-role="user"]',
         userText: 'div[data-message-author-role="user"] .whitespace-pre-wrap',
@@ -789,6 +856,7 @@
         `,
         assistantTextContainer: 'div[data-message-author-role="assistant"] .markdown.prose',
         listItem: 'li',
+        checkboxItem: 'li input[type="checkbox"]',
         codeBlockContainer: 'pre',
         codeBlockContent: 'code',
         codeBlockLangIndicatorContainer: ':scope > div.contain-inline-size > div:first-child, :scope > div:first-child[class*="flex items-center"]',
