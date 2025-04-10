@@ -77,20 +77,20 @@
                     else {
                         // Get element content using htmlToMarkdown, ignoring nested lists and the current tag type to avoid duplication
                         let elementContent = QAClipper.Utils.htmlToMarkdown(node, {
-                            ignoreTags: ['ul', 'ol', originalTagName], // Ignore self and lists
-                            skipElementCheck: (el) => el.nodeType === Node.ELEMENT_NODE && (el.tagName.toLowerCase() === 'ul' || el.tagName.toLowerCase() === 'ol' || el === node)
+                            ignoreTags: ['ul', 'ol'] // Only ignore lists, process the node itself
                         });
 
                         // Enhanced HTML tag handling: wrap remaining HTML tags in backticks (optional, based on desired output)
-                        // elementContent = elementContent.replace(/<(\\/?[a-zA-Z][a-zA-Z0-9]*(?:\\s[^>]*)?)>/g, '`<$1>`');
+                        // elementContent = elementContent.replace(/<(\\\\/?[a-zA-Z][a-zA-Z0-9]*(?:\\\\s[^>]*)?)>/g, '`<$1>`');
 
-                        directContent += elementContent;
+                        // Add space for separation, will be trimmed later
+                        directContent += " " + elementContent;
                     }
                 }
             }
 
-            // Trim and format the direct content
-            directContent = directContent.trim();
+            // Trim and format the direct content, consolidating whitespace
+            directContent = directContent.replace(/\\s+/g, ' ').trim();
 
             if (directContent) {
                 const marker = listType === 'ul' ? '-' : `${startNum + itemIndex}.`;
