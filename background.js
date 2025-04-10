@@ -353,6 +353,9 @@ async function ensureContentScriptLoaded(tabId) {
     // Only inject content.js if it's not already loaded
     const coreContentScripts = contentScriptLoaded ? [] : contentScriptDefs[0].js;
     
+    // Add turndown library path
+    const turndownScript = ['lib/turndown.js']; // Path to the turndown library
+    
     // Always inject these scripts to ensure they're available
     const utilityScripts = ['utils.js']; // utils.js must be loaded first as other scripts depend on it
     const extractorScripts = ['extractor.js']; // extractor.js should be loaded before platform configs
@@ -361,9 +364,10 @@ async function ensureContentScriptLoaded(tabId) {
     // Combine scripts in a specific order to respect dependencies
     const allScriptsToInject = [
       ...coreContentScripts,       // content.js if needed
-      ...utilityScripts,           // utils.js first for dependencies
-      ...extractorScripts,         // extractor.js next
-      ...platformScripts           // platform configs last
+      ...turndownScript,          // Inject turndown.js first
+      ...utilityScripts,           // utils.js (may use turndown later)
+      ...extractorScripts,         // extractor.js
+      ...platformScripts           // platform configs (will use turndown)
     ];
 
     // Log injection plan
@@ -395,7 +399,7 @@ async function ensureContentScriptLoaded(tabId) {
         }
         
         // For critical scripts, failing is a fatal error
-        const criticalScripts = ['content.js', 'utils.js', 'extractor.js'];
+        const criticalScripts = ['content.js', 'utils.js', 'extractor.js', 'lib/turndown.js']; 
         if (criticalScripts.includes(script)) {
           throw new Error(`Critical script injection failed (${script}): ${injectionError.message}`);
         } else {

@@ -154,7 +154,20 @@
 
               // 4. Based on role, call specific extraction functions from the config
               if (role === 'user') {
-                turnData.textContent = config.extractUserText(turnElement);
+                // Use the new structured content extraction for user messages first
+                if (config.extractUserContent) {
+                  turnData.contentItems = config.extractUserContent(turnElement);
+                  // For backward compatibility, also set textContent if not too complex
+                  if (turnData.contentItems && turnData.contentItems.length === 1 && turnData.contentItems[0].type === 'text') {
+                    turnData.textContent = turnData.contentItems[0].content;
+                  } else {
+                    turnData.textContent = config.extractUserText(turnElement);
+                  }
+                } else {
+                  // Fall back to legacy extraction if the new function doesn't exist
+                  turnData.textContent = config.extractUserText(turnElement);
+                }
+                
                 // Update to use the new image and file extraction functions
                 const userImages = config.extractUserUploadedImages(turnElement) || [];
                 const userFiles = config.extractUserUploadedFiles(turnElement) || [];

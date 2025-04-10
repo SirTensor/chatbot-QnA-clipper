@@ -47,7 +47,17 @@ const formatter = {
             const qLabel = this.getLabelByStyle(labelStyle, 'question');
             const numStr = this.getNumberFormat(numberFormat, pairIndex);
             formattedText += `${headerPrefix} ${qLabel}${numStr}\n\n`;
-            if (turn.textContent?.trim()) formattedText += `${turn.textContent.trim()}\n\n`;
+            
+            // Use contentItems if available (new format), otherwise fall back to textContent
+            if (turn.contentItems && turn.contentItems.length > 0) {
+                turn.contentItems.forEach((item, itemIdx) => {
+                    const itemTextResult = this.formatContentItem(item, imageFormat, imageLabel);
+                    formattedText += itemTextResult;
+                });
+            } else if (turn.textContent?.trim()) {
+                formattedText += `${turn.textContent.trim()}\n\n`;
+            }
+            
             if (turn.userAttachments?.length > 0) {
                  let attachTxt = '';
                  turn.userAttachments.forEach(a => attachTxt += this.formatUserAttachment(a, imageFormat, imageLabel));
