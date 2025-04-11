@@ -24,12 +24,13 @@
              tagNameLower === 'code-block' ||
              tagNameLower === 'ul' || tagNameLower === 'ol' || tagNameLower === 'pre' ||
              tagNameLower === 'blockquote' || // Skip blockquotes for dedicated processing
+             tagNameLower === 'response-element' || // Skip response-element for dedicated processing
              tagNameLower === 'table'; // Skip table at top level
     }
 
     /**
      * Processes list elements (ul, ol) into markdown text.
-     * Updated to handle blockquotes within list items correctly
+     * Updated to handle code blocks and blockquotes within list items correctly
      * @param {HTMLElement} el - The list element (ul or ol).
      * @param {string} listType - 'ul' or 'ol'.
      * @param {number} nestLevel - The nesting level of the list (0 for top level).
@@ -48,12 +49,28 @@
             // Create a working copy to process direct content
             const liClone = li.cloneNode(true);
             
-            // Find all nested elements we want to handle separately 
+            // Find all nested elements we want to handle separately
+            // Special handling for Gemini's response-element and code-block elements 
             const nestedLists = Array.from(li.querySelectorAll(':scope > ul, :scope > ol'));
             const blockquotes = Array.from(li.querySelectorAll(':scope > blockquote'));
             
+            // For Gemini, code blocks are inside response-element > code-block elements
+            const codeBlocks = [];
+            const responseElements = Array.from(li.querySelectorAll(':scope > response-element'));
+            responseElements.forEach(respEl => {
+                const codeBlockEls = respEl.querySelectorAll('code-block');
+                codeBlockEls.forEach(codeBlock => {
+                    codeBlocks.push(codeBlock);
+                });
+            });
+            
+            // Also check for direct code-block and pre elements
+            Array.from(li.querySelectorAll(':scope > code-block, :scope > pre')).forEach(codeEl => {
+                codeBlocks.push(codeEl);
+            });
+            
             // Remove nested elements from clone
-            Array.from(liClone.querySelectorAll('ul, ol, blockquote')).forEach(nestedEl => {
+            Array.from(liClone.querySelectorAll('ul, ol, blockquote, code-block, pre, response-element')).forEach(nestedEl => {
                 if (nestedEl.parentNode) {
                     nestedEl.parentNode.removeChild(nestedEl);
                 }
@@ -61,13 +78,14 @@
             
             // Get direct text content
             const directContent = QAClipper.Utils.htmlToMarkdown(liClone, {
-                ignoreTags: ['ul', 'ol', 'blockquote']
+                ignoreTags: ['ul', 'ol', 'blockquote', 'code-block', 'pre', 'response-element']
             }).trim();
             
             // Marker for this list item 
             const marker = listType === 'ul' ? '-' : `${startNum + itemIndex}.`;
             const indent = '  '.repeat(nestLevel);
             const nestedIndent = '  '.repeat(nestLevel + 1);
+            const codeBlockIndent = '  '.repeat(nestLevel + 2); // Extra indentation for code blocks
             
             let contentAdded = false;
             
@@ -77,7 +95,62 @@
                 contentAdded = true;
             }
             
-            // 2. Process blockquotes - maintain proper indentation and list structure
+            // 2. Process code blocks within this list item
+            if (codeBlocks.length > 0) {
+                codeBlocks.forEach((codeEl, idx) => {
+                    let codeItem = null;
+                    
+                    // Check if it's a Gemini code-block element or a regular pre element
+                    if (codeEl.tagName.toLowerCase() === 'code-block') {
+                        // Process Gemini-specific code block
+                        // Find language indicator and code content
+                        const langElement = codeEl.querySelector('.code-block-decoration > span');
+                        const language = langElement ? langElement.textContent?.trim() : null;
+                        
+                        const codeElement = codeEl.querySelector('code[data-test-id="code-content"]');
+                        const codeContent = codeElement ? codeElement.textContent?.trim() : '';
+                        
+                        if (codeContent) {
+                            codeItem = { 
+                                type: 'code_block', 
+                                language: language, 
+                                content: codeContent
+                            };
+                        }
+                    } else {
+                        // Use regular process for pre elements
+                        codeItem = processCodeBlock(codeEl);
+                    }
+                    
+                    if (codeItem) {
+                        // Format code block with proper indentation
+                        let codeContentLines = [];
+                        const lang = codeItem.language || '';
+                        codeContentLines.push(`\`\`\`${lang}`);
+                        codeContentLines = codeContentLines.concat(codeItem.content.split('\n'));
+                        codeContentLines.push('```');
+                        
+                        // Add list marker to first line if no content added yet
+                        if (!contentAdded) {
+                            const firstLine = codeContentLines[0];
+                            lines.push(`${indent}${marker} ${firstLine}`);
+                            
+                            // Add remaining lines with proper indentation
+                            for (let i = 1; i < codeContentLines.length; i++) {
+                                lines.push(`${codeBlockIndent}${codeContentLines[i]}`);
+                            }
+                            contentAdded = true;
+                        } else {
+                            // Just add the code block with proper indentation for all lines
+                            codeContentLines.forEach(line => {
+                                lines.push(`${codeBlockIndent}${line}`);
+                            });
+                        }
+                    }
+                });
+            }
+            
+            // 3. Process blockquotes - maintain proper indentation and list structure
             if (blockquotes.length > 0) {
                 blockquotes.forEach(bq => {
                     // Process each blockquote
@@ -104,7 +177,7 @@
                 });
             }
             
-            // 3. Process nested lists
+            // 4. Process nested lists
             if (nestedLists.length > 0) {
                 nestedLists.forEach(nestedList => {
                     const nestedType = nestedList.tagName.toLowerCase();
@@ -159,6 +232,7 @@
             if (node.nodeType === Node.TEXT_NODE) {
                 const text = node.textContent.trim();
                 if (text) {
+                    // Ensure space after '>' marker
                     lines.push(`> ${text}`);
                 }
             } 
@@ -170,10 +244,42 @@
                     const nestedContent = processNestedBlockquote(node);
                     if (nestedContent) {
                         // Add an additional '>' to each line for nesting
+                        // Make sure there's a space after each additional '>'
                         nestedContent.split('\n').forEach(line => {
-                            lines.push(`>${line}`);
+                            // Ensure there's a space after all '>' characters
+                            const spacedLine = line.replace(/^(>+)(\S)/g, '$1 $2');
+                            lines.push(`>${spacedLine}`);
                         });
                     }
+                }
+                // Handle lists specially to ensure proper formatting
+                else if (tagName === 'ul' || tagName === 'ol') {
+                    // Process the list specially to maintain proper markers and indentation
+                    const listItems = node.querySelectorAll('li');
+                    const isOrdered = tagName === 'ol';
+                    let startIndex = 1;
+                    
+                    if (isOrdered) {
+                        const startAttr = node.getAttribute('start');
+                        if (startAttr) {
+                            const parsedStart = parseInt(startAttr, 10);
+                            if (!isNaN(parsedStart)) {
+                                startIndex = parsedStart;
+                            }
+                        }
+                    }
+                    
+                    listItems.forEach((li, idx) => {
+                        const marker = isOrdered ? `${startIndex + idx}.` : '-';
+                        const listItemContent = QAClipper.Utils.htmlToMarkdown(li, {
+                            ignoreTags: ['ul', 'ol', 'blockquote']
+                        }).trim();
+                        
+                        if (listItemContent) {
+                            // Ensure space after '>' marker and proper list marker
+                            lines.push(`> ${marker} ${listItemContent}`);
+                        }
+                    });
                 }
                 // Handle paragraphs and other elements
                 else {
@@ -183,6 +289,7 @@
                     
                     if (content) {
                         content.split('\n').forEach(line => {
+                            // Ensure space after '>' marker
                             lines.push(`> ${line}`);
                         });
                     }
@@ -310,7 +417,7 @@
                     continue;
                 }
                 
-                // Handle lists
+                // Handle lists - ensure proper spacing and markers are preserved
                 if (tagName === 'ul' || tagName === 'ol') {
                     // If the previous element was a nested blockquote, add an empty line with just the blockquote prefix
                     if (previousWasNestedBlockquote) {
@@ -323,9 +430,13 @@
                         resultLines.push(`${prefix}`);
                     }
                     
+                    // Use dedicated function to process the list inside blockquote
+                    // Make sure we always include a space after the blockquote marker
                     const listResult = processListInBlockquote(node, tagName, 0, nestLevel);
                     if (listResult && listResult.content) {
-                        resultLines.push(listResult.content);
+                        // Ensure each line has proper spacing after the blockquote marker
+                        const formattedContent = listResult.content.replace(/^(>+)(\S)/gm, '$1 $2');
+                        resultLines.push(formattedContent);
                         // Don't add blank line after a list
                         previousWasBlock = false;
                     }
@@ -391,12 +502,13 @@
         
         let itemIndex = 0;
         el.querySelectorAll(':scope > li').forEach(li => {
-            // Create the blockquote prefix
+            // Create the blockquote prefix - ensure there's a space after '>'
             const bqPrefix = '> '.repeat(blockquoteLevel + 1);
             
             // Create the list marker and indentation
             const marker = listType === 'ul' ? '-' : `${startNum + itemIndex}.`;
             const indent = '  '.repeat(listLevel);
+            const codeBlockIndent = '  '.repeat(listLevel + 2);
             
             // Create a working copy to process direct content
             const liClone = li.cloneNode(true);
@@ -405,8 +517,23 @@
             let originalNestedLists = Array.from(li.querySelectorAll(':scope > ul, :scope > ol'));
             let originalNestedBq = Array.from(li.querySelectorAll(':scope > blockquote'));
             
-            // Remove nested lists and blockquotes from clone
-            Array.from(liClone.querySelectorAll('ul, ol, blockquote')).forEach(nestedEl => {
+            // For Gemini, code blocks are inside response-element > code-block elements
+            let originalCodeBlocks = [];
+            const responseElements = Array.from(li.querySelectorAll(':scope > response-element'));
+            responseElements.forEach(respEl => {
+                const codeBlockEls = respEl.querySelectorAll('code-block');
+                codeBlockEls.forEach(codeBlock => {
+                    originalCodeBlocks.push(codeBlock);
+                });
+            });
+            
+            // Also check for direct code-block and pre elements
+            Array.from(li.querySelectorAll(':scope > code-block, :scope > pre')).forEach(codeEl => {
+                originalCodeBlocks.push(codeEl);
+            });
+            
+            // Remove nested lists, blockquotes, and code blocks from clone
+            Array.from(liClone.querySelectorAll('ul, ol, blockquote, code-block, pre, response-element')).forEach(nestedEl => {
                 if (nestedEl.parentNode) {
                     nestedEl.parentNode.removeChild(nestedEl);
                 }
@@ -414,12 +541,70 @@
             
             // Process direct content first (without nested elements)
             let directContent = QAClipper.Utils.htmlToMarkdown(liClone, {
-                ignoreTags: ['ul', 'ol', 'blockquote']
+                ignoreTags: ['ul', 'ol', 'blockquote', 'code-block', 'pre', 'response-element']
             }).trim();
             
             if (directContent) {
+                // Ensure space after the blockquote marker
                 lines.push(`${bqPrefix}${indent}${marker} ${directContent}`);
                 if (listType === 'ol') itemIndex++;
+            }
+            
+            // Process code blocks within this item
+            if (originalCodeBlocks.length > 0) {
+                originalCodeBlocks.forEach(codeEl => {
+                    let codeItem = null;
+                    
+                    // Check if it's a Gemini code-block element or a regular pre element
+                    if (codeEl.tagName.toLowerCase() === 'code-block') {
+                        // Process Gemini-specific code block
+                        // Find language indicator and code content
+                        const langElement = codeEl.querySelector('.code-block-decoration > span');
+                        const language = langElement ? langElement.textContent?.trim() : null;
+                        
+                        const codeElement = codeEl.querySelector('code[data-test-id="code-content"]');
+                        const codeContent = codeElement ? codeElement.textContent?.trim() : '';
+                        
+                        if (codeContent) {
+                            codeItem = { 
+                                type: 'code_block', 
+                                language: language, 
+                                content: codeContent
+                            };
+                        }
+                    } else {
+                        // Use regular process for pre elements
+                        codeItem = processCodeBlock(codeEl);
+                    }
+                    
+                    if (codeItem) {
+                        // Format code block with proper indentation
+                        let codeContentLines = [];
+                        const lang = codeItem.language || '';
+                        codeContentLines.push(`\`\`\`${lang}`);
+                        codeContentLines = codeContentLines.concat(codeItem.content.split('\n'));
+                        codeContentLines.push('```');
+                        
+                        // Add list marker to first line if no direct content yet
+                        if (!directContent) {
+                            const firstLine = codeContentLines[0];
+                            // Ensure space after the blockquote marker
+                            lines.push(`${bqPrefix}${indent}${marker} ${firstLine}`);
+                            
+                            // Add remaining lines with proper indentation and prefix
+                            for (let i = 1; i < codeContentLines.length; i++) {
+                                lines.push(`${bqPrefix}${codeBlockIndent}${codeContentLines[i]}`);
+                            }
+                            directContent = true;
+                            if (listType === 'ol') itemIndex++;
+                        } else {
+                            // Just add the code block with proper indentation for all lines
+                            codeContentLines.forEach(line => {
+                                lines.push(`${bqPrefix}${codeBlockIndent}${line}`);
+                            });
+                        }
+                    }
+                });
             }
             
             // Process nested blockquotes within this item
@@ -432,7 +617,9 @@
                         const bqLines = nestedBqContent.split('\n');
                         if (bqLines.length > 0) {
                             // Keep blockquote marker but add list marker
-                            bqLines[0] = `${bqPrefix}${indent}${marker} ${bqLines[0].substring(bqPrefix.length)}`;
+                            // Ensure proper spacing after the '>' marker
+                            const firstLine = bqLines[0].substring(bqPrefix.length).trimStart();
+                            bqLines[0] = `${bqPrefix}${indent}${marker} ${firstLine}`;
                             lines.push(bqLines.join('\n'));
                             if (listType === 'ol') itemIndex++;
                             directContent = true;
@@ -455,8 +642,8 @@
                         const nestedLines = nestedResult.content.split('\n');
                         if (nestedLines.length > 0) {
                             // Format first line with list marker while preserving blockquote prefix
-                            const firstLine = nestedLines[0].substring(bqPrefix.length); // Remove bq prefix
-                            nestedLines[0] = `${bqPrefix}${indent}${marker} ${firstLine.trimStart()}`;
+                            const firstLine = nestedLines[0].substring(bqPrefix.length).trimStart(); // Remove bq prefix and ensure trimmed
+                            nestedLines[0] = `${bqPrefix}${indent}${marker} ${firstLine}`;
                             lines.push(nestedLines.join('\n'));
                             if (listType === 'ol') itemIndex++;
                             directContent = true;
@@ -469,6 +656,7 @@
             
             // If no content was added for this list item, add an empty item
             if (!directContent) {
+                // Ensure space after blockquote marker
                 lines.push(`${bqPrefix}${indent}${marker} `);
                 if (listType === 'ol') itemIndex++;
             }
@@ -654,8 +842,8 @@
         userImageContainer: 'user-query-file-preview', userImageLink: 'a[href^="https://lens.google.com/uploadbyurl?url="]',
         userFileContainer: '.file-preview-container', userFileItem: '.file-upload-link', userFileName: '.new-file-name', userFileType: '.new-file-type',
         assistantContentArea: 'div.markdown.markdown-main-panel',
-        // Added all heading levels (h1-h6) to relevantBlocks
-        relevantBlocks: 'p, h1, h2, h3, h4, h5, h6, ul, ol, code-block, single-image, div.attachment-container.immersive-entry-chip, table, blockquote',
+        // Added all heading levels (h1-h6) to relevantBlocks and response-element for nested code blocks
+        relevantBlocks: 'p, h1, h2, h3, h4, h5, h6, ul, ol, code-block, single-image, div.attachment-container.immersive-entry-chip, table, blockquote, response-element',
         listItem: 'li',
         codeBlockContent: 'pre > code', codeBlockLangIndicator: 'div.code-block-decoration > span',
         imageContainerAssistant: 'single-image', imageElementAssistant: 'img.image.loaded', imageCaption: 'div.caption', imageElement: 'img',
@@ -703,37 +891,65 @@
       /**
        * Extracts structured content using querySelectorAll.
        * v31: Added handling for all heading tags (h1-h6) and blockquotes.
+       * Updated to handle Gemini's response-element and code-block structure.
        */
       extractAssistantContent: (turnElement) => {
           const contentItems = [];
           const contentArea = turnElement.querySelector(geminiConfig.selectors.assistantContentArea);
           if (!contentArea) { console.warn("[Extractor v31] Gemini markdown content area not found."); return []; }
 
-          // console.log("[Extractor v31] Starting assistant extraction (Added h1-h6 and blockquote support)");
-
-          const relevantElements = contentArea.querySelectorAll(geminiConfig.selectors.relevantBlocks);
-          // console.log(`[Extractor v31] Found ${relevantElements.length} relevant block elements.`);
+          // To preserve ordering, we need to process all children in document order
+          const allContentNodes = Array.from(contentArea.childNodes);
           const processedElements = new Set();
 
-          relevantElements.forEach((element, index) => {
-              if (processedElements.has(element)) return;
-
+          // Process nodes in document order to maintain proper sequence
+          allContentNodes.forEach((node) => {
+              if (processedElements.has(node) || node.nodeType !== Node.ELEMENT_NODE) return;
+              
+              const element = node;
               const tagNameLower = element.tagName.toLowerCase();
               const isHeading = tagNameLower.match(/^h[1-6]$/);
               const isBlockquote = tagNameLower === 'blockquote';
-              const isInteractiveBlock = element.matches(geminiConfig.selectors.interactiveBlockContainer);
-              const isImageContainer = element.matches(geminiConfig.selectors.imageContainerAssistant);
+              const isInteractiveBlock = element.matches(geminiConfig.selectors.interactiveBlockContainer || '');
+              const isImageContainer = element.matches(geminiConfig.selectors.imageContainerAssistant || '');
               const isCodeBlock = tagNameLower === 'code-block';
+              const isResponseElement = tagNameLower === 'response-element';
               const isTable = tagNameLower === 'table';
-
-              // console.log(`[Extractor v31] Processing Element #${index}: <${tagNameLower}>`);
+              const isList = tagNameLower === 'ul' || tagNameLower === 'ol';
+              const isParagraph = tagNameLower === 'p';
+              
               let item = null;
-
-              // --- Process based on type ---
-              if (isHeading) {
-                  // console.log(`  -> Handling as Heading (${tagNameLower})`);
-                  
-                  // Simple heading processing without separate function
+              
+              // Process based on element type to maintain proper ordering
+              if (isResponseElement) {
+                  // Process response-element container
+                  const codeBlocks = element.querySelectorAll('code-block');
+                  if (codeBlocks.length > 0) {
+                      codeBlocks.forEach(codeBlock => {
+                          if (processedElements.has(codeBlock)) return;
+                          
+                          // Process the code block
+                          const langElement = codeBlock.querySelector('.code-block-decoration > span');
+                          const language = langElement ? langElement.textContent?.trim() : null;
+                          
+                          const codeElement = codeBlock.querySelector('code[data-test-id="code-content"]');
+                          const codeContent = codeElement ? codeElement.textContent?.trim() : '';
+                          
+                          if (codeContent) {
+                              contentItems.push({ 
+                                  type: 'code_block', 
+                                  language: language, 
+                                  content: codeContent
+                              });
+                          }
+                          
+                          // Mark as processed
+                          processedElements.add(codeBlock);
+                      });
+                  }
+                  processedElements.add(element);
+              }
+              else if (isHeading) {
                   const level = parseInt(tagNameLower.charAt(1));
                   const headingMarkup = '#'.repeat(level);
                   const headingText = element.textContent.trim();
@@ -745,21 +961,15 @@
                   processedElements.add(element);
               }
               else if (isBlockquote) {
-                  // console.log("  -> Handling as Blockquote");
-                  
-                  // Process the blockquote using the dedicated function
-                  // Starting at nesting level 0 for top-level blockquotes
                   const blockquoteMarkdown = processBlockquote(element, 0);
                   if (blockquoteMarkdown) {
                       QAClipper.Utils.addTextItem(contentItems, blockquoteMarkdown);
                   }
                   
-                  // Mark the blockquote and all its children as processed
                   processedElements.add(element);
                   element.querySelectorAll('*').forEach(child => processedElements.add(child));
               }
               else if (isInteractiveBlock) {
-                  // console.log("  -> Handling as Interactive Block");
                   const titleElement = element.querySelector(geminiConfig.selectors.interactiveBlockTitle);
                   const title = titleElement ? titleElement.textContent?.trim() : '[Interactive Block]';
                   contentItems.push({ type: 'interactive_block', title: title, code: null, language: null });
@@ -767,68 +977,83 @@
                   element.querySelectorAll('*').forEach(child => processedElements.add(child));
               }
               else if (isCodeBlock) {
-                  // console.log("  -> Handling as Code Block");
-                  item = processCodeBlock(element);
+                  // Check if it's a direct code-block element
+                  const langElement = element.querySelector('.code-block-decoration > span');
+                  const language = langElement ? langElement.textContent?.trim() : null;
+                  
+                  const codeElement = element.querySelector('code[data-test-id="code-content"]');
+                  const codeContent = codeElement ? codeElement.textContent?.trim() : '';
+                  
+                  if (codeContent) {
+                      item = { 
+                          type: 'code_block', 
+                          language: language, 
+                          content: codeContent
+                      };
+                  } else {
+                      // Fallback to the standard processCodeBlock function
+                      item = processCodeBlock(element);
+                  }
+                  
                   if (item) contentItems.push(item);
                   processedElements.add(element);
                   element.querySelectorAll('*').forEach(child => processedElements.add(child));
               }
-              else if (isTable) { // Use the updated table processor
-                   // console.log("  -> Handling as Table");
-                   const tableMarkdown = processTableToMarkdown(element);
-                   if (tableMarkdown) {
-                       QAClipper.Utils.addTextItem(contentItems, tableMarkdown);
-                   } else {
-                       console.warn("  -> Table processing failed, attempting fallback text extraction.");
-                       const fallbackText = QAClipper.Utils.htmlToMarkdown(element, {
-                           skipElementCheck: (el) => el.tagName.toLowerCase() === 'table'
-                       }).trim();
-                       if (fallbackText) {
-                          QAClipper.Utils.addTextItem(contentItems, `[Fallback Table Content]\n${fallbackText}`);
-                       }
-                   }
-                   processedElements.add(element);
-                   element.querySelectorAll('*').forEach(child => processedElements.add(child));
+              else if (isTable) {
+                  const tableMarkdown = processTableToMarkdown(element);
+                  if (tableMarkdown) {
+                      QAClipper.Utils.addTextItem(contentItems, tableMarkdown);
+                  } else {
+                      const fallbackText = QAClipper.Utils.htmlToMarkdown(element, {
+                          skipElementCheck: (el) => el.tagName.toLowerCase() === 'table'
+                      }).trim();
+                      if (fallbackText) {
+                         QAClipper.Utils.addTextItem(contentItems, `[Fallback Table Content]\n${fallbackText}`);
+                      }
+                  }
+                  processedElements.add(element);
+                  element.querySelectorAll('*').forEach(child => processedElements.add(child));
               }
-              else if (tagNameLower === 'ul' || tagNameLower === 'ol') {
-                  // console.log(`  -> Handling as ${tagNameLower.toUpperCase()}`);
-                  // Use our improved processList function for better handling of nested elements
+              else if (isList) {
                   item = processList(element, tagNameLower, 0);
                   if (item) contentItems.push(item);
                   processedElements.add(element);
                   element.querySelectorAll('*').forEach(child => processedElements.add(child));
               }
-               else if (isImageContainer) {
-                   // console.log("  -> Handling as Direct Image Container");
-                   item = processImage(element);
-                   if (item) contentItems.push(item);
-                   processedElements.add(element);
-                   element.querySelectorAll('*').forEach(child => processedElements.add(child));
-               }
-              else if (tagNameLower === 'p') {
-                   // console.log("  -> Handling as P tag");
-                   const blockMarkdown = QAClipper.Utils.htmlToMarkdown(element, {
-                     skipElementCheck: shouldSkipElement
-                   }).trim();
-                   if (blockMarkdown) {
-                       QAClipper.Utils.addTextItem(contentItems, blockMarkdown);
-                   }
-                   processedElements.add(element);
+              else if (isImageContainer) {
+                  item = processImage(element);
+                  if (item) contentItems.push(item);
+                  processedElements.add(element);
+                  element.querySelectorAll('*').forEach(child => processedElements.add(child));
               }
-              else { // Fallback
-                   console.warn(`  -> Unhandled relevant block type: <${tagNameLower}>. Attempting text extraction.`, element);
-                   const fallbackText = QAClipper.Utils.htmlToMarkdown(element, {
-                     skipElementCheck: shouldSkipElement
-                   }).trim();
-                   if (fallbackText) {
-                      QAClipper.Utils.addTextItem(contentItems, fallbackText);
-                   }
-                   processedElements.add(element);
-                   element.querySelectorAll('*').forEach(child => processedElements.add(child));
+              else if (isParagraph) {
+                  const blockMarkdown = QAClipper.Utils.htmlToMarkdown(element, {
+                    skipElementCheck: shouldSkipElement
+                  }).trim();
+                  if (blockMarkdown) {
+                      QAClipper.Utils.addTextItem(contentItems, blockMarkdown);
+                  }
+                  processedElements.add(element);
               }
-          }); // End loop
+              else if (element.nodeType === Node.TEXT_NODE) {
+                  // Handle text nodes
+                  const text = element.textContent.trim();
+                  if (text) {
+                      QAClipper.Utils.addTextItem(contentItems, text);
+                  }
+              }
+              else { // Fallback for other elements
+                  const fallbackText = QAClipper.Utils.htmlToMarkdown(element, {
+                    skipElementCheck: shouldSkipElement
+                  }).trim();
+                  if (fallbackText) {
+                     QAClipper.Utils.addTextItem(contentItems, fallbackText);
+                  }
+                  processedElements.add(element);
+                  element.querySelectorAll('*').forEach(child => processedElements.add(child));
+              }
+          });
 
-          // console.log("[Extractor v31] Final contentItems generated:", JSON.stringify(contentItems, null, 2));
           return contentItems;
       }, // End extractAssistantContent
 
