@@ -22,7 +22,7 @@ A Chrome extension that extracts and formats Q&A conversations from AI chatbot p
 
 ### From Chrome Web Store
 
-You can install the extension directly from the [Chrome Web Store](https://chromewebstore.google.com/detail/pblpjemjhgflddhdajfkieakdmmellmh).
+*Coming Soon*
 
 ### Manual Installation
 1. Download or clone this repository.
