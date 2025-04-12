@@ -36,8 +36,6 @@
           // 2. Collapse only explicit newlines and tabs to a single space
           text = text.replace(/[\n\t]+/g, ' ');
           // DO NOT collapse multiple spaces here to preserve intentional spacing from &nbsp;
-          // 3. Trim only trailing whitespace, preserve leading/internal spaces
-          text = text.replace(/ +$/, '');
           // Append if text remains (it might be only spaces)
           if (text) markdown += text;
         } else if (node.nodeType === Node.ELEMENT_NODE) {
