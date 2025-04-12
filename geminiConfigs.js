@@ -85,7 +85,6 @@
             const marker = listType === 'ul' ? '-' : `${startNum + itemIndex}.`;
             const indent = '    '.repeat(nestLevel);
             const nestedIndent = '    '.repeat(nestLevel + 1);
-            const codeBlockIndent = '    '.repeat(nestLevel + 2); // Extra indentation for code blocks
             
             let contentAdded = false;
             
@@ -156,23 +155,19 @@
                         codeContentLines.push(`\`\`\`${lang}`);
                         codeContentLines = codeContentLines.concat(codeItem.content.split('\n'));
                         codeContentLines.push('```');
-                        
-                        // Add list marker to first line if no content added yet
+
+                        // Add the list marker line ONLY if no direct content was added before.
+                        // This ensures the marker appears if the code block is the very first item.
                         if (!contentAdded) {
-                            const firstLine = codeContentLines[0];
-                            lines.push(`${indent}${marker} ${firstLine}`);
-                            
-                            // Add remaining lines with proper indentation
-                            for (let i = 1; i < codeContentLines.length; i++) {
-                                lines.push(`${codeBlockIndent}${codeContentLines[i]}`);
-                            }
-                            contentAdded = true;
-                        } else {
-                            // Just add the code block with proper indentation for all lines
-                            codeContentLines.forEach(line => {
-                                lines.push(`${codeBlockIndent}${line}`);
-                            });
+                             lines.push(`${indent}${marker} `); // Add marker on its own line
+                             contentAdded = true; // Mark that *some* content (the marker) exists for the li
                         }
+
+                        // Indent and add all code block lines using nestedIndent (4 spaces relative)
+                        codeContentLines.forEach(line => {
+                            lines.push(`${nestedIndent}${line}`);
+                        });
+                        // No need to set contentAdded = true here, it was handled above or by directContent.
                     }
                 });
             }
