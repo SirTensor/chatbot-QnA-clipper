@@ -220,162 +220,128 @@
     }
     
     /**
-     * Process nested blockquotes within list items
+     * Helper function to process lists recursively within a blockquote.
+     * @param {HTMLElement} listElement - The UL or OL element.
+     * @param {Array<string>} lines - The array to push formatted lines to.
+     * @param {number} level - The nesting level within the blockquote (0 for top-level list inside bq).
+     * @param {Map<HTMLElement, boolean>} processedElements - To avoid infinite loops or reprocessing.
+     */
+    function processListInsideBlockquote(listElement, lines, level, processedElements) {
+        if (processedElements.has(listElement)) return;
+        processedElements.set(listElement, true);
+    
+        const isOrdered = listElement.tagName.toLowerCase() === 'ol';
+        let startIdx = 1;
+        if (isOrdered) {
+            const startAttr = listElement.getAttribute('start');
+            if (startAttr) {
+                const parsed = parseInt(startAttr, 10);
+                if (!isNaN(parsed)) startIdx = parsed;
+            }
+        }
+    
+        const indent = '    '.repeat(level);
+        const listItems = listElement.querySelectorAll(':scope > li');
+    
+        listItems.forEach((item, idx) => {
+            const marker = isOrdered ? `${startIdx + idx}.` : '-';
+    
+            // Process direct content of the list item
+            const itemClone = item.cloneNode(true);
+            // Remove only nested lists for direct content extraction
+            Array.from(itemClone.querySelectorAll('ul, ol')).forEach(el => { 
+                 if (el.parentNode) el.parentNode.removeChild(el);
+            });
+            const directContent = QAClipper.Utils.htmlToMarkdown(itemClone, { ignoreTags: ['ul', 'ol'] }).trim();
+    
+            // Add the line with blockquote prefix and indentation
+            const linePrefix = `> ${indent}${marker} `;
+            if (directContent) {
+                const contentLines = directContent.split('\n');
+                // Add the first line with the marker
+                lines.push(linePrefix + contentLines[0]); 
+                
+                // Calculate continuation indent based on marker length
+                const continuationIndent = ' '.repeat(marker.length + 1);
+                
+                // Add subsequent lines with proper continuation indentation
+                for (let i = 1; i < contentLines.length; i++) {
+                    // Use blockquote prefix, list level indent, and continuation indent
+                    // Trim the line content itself to avoid leading spaces interfering
+                    lines.push(`> ${indent}${continuationIndent}${contentLines[i].trim()}`);
+                }
+            } else {
+                // Add '> - ' or '> 1. ' even if item is empty
+                lines.push(linePrefix.trimEnd()); 
+            }
+    
+            // Recursively process nested lists within this item
+            const nestedLists = item.querySelectorAll(':scope > ul, :scope > ol');
+            nestedLists.forEach(nestedList => {
+                processListInsideBlockquote(nestedList, lines, level + 1, processedElements);
+            });
+        });
+    }
+    
+    /**
+     * Process nested blockquotes within list items or other blockquotes.
+     * Handles nested lists recursively using processListInsideBlockquote.
      * @param {HTMLElement} blockquote - The blockquote element 
-     * @returns {string} - The processed blockquote content with proper markers
+     * @returns {string} - The processed blockquote content with proper markers and nesting.
      */
     function processNestedBlockquote(blockquote) {
         const lines = [];
-        
-        // Process all child nodes
+        // Use a Map within this scope to track processed lists for the helper
+        const processedElements = new Map(); 
+    
         Array.from(blockquote.childNodes).forEach(node => {
             if (node.nodeType === Node.TEXT_NODE) {
                 const text = node.textContent.trim();
-                if (text) {
-                    // Ensure space after '>' marker
-                    lines.push(`> ${text}`);
-                }
-            } 
-            else if (node.nodeType === Node.ELEMENT_NODE) {
+                // Add blockquote marker only if text exists
+                if (text) lines.push(`> ${text}`); 
+            } else if (node.nodeType === Node.ELEMENT_NODE) {
                 const tagName = node.tagName.toLowerCase();
-                
-                // Handle nested blockquotes recursively
+    
                 if (tagName === 'blockquote') {
-                    const nestedContent = processNestedBlockquote(node);
+                    // Handle nested blockquotes recursively
+                    const nestedContent = processNestedBlockquote(node); // Recursive call
                     if (nestedContent) {
-                        // Add an additional '>' to each line for nesting
-                        // Make sure there's a space after each additional '>'
-                        nestedContent.split('\n').forEach(line => {
-                            // Ensure there's a space after all '>' characters
-                            const spacedLine = line.replace(/^(>+)(\S)/g, '$1 $2');
-                            lines.push(`>${spacedLine}`);
-                        });
+                        // Prepend '>' to each line of the nested blockquote content
+                        nestedContent.split('\n').forEach(line => lines.push(`>${line}`)); 
                     }
-                }
-                // Handle lists specially to ensure proper formatting
-                else if (tagName === 'ul' || tagName === 'ol') {
-                    const isOrdered = tagName === 'ol';
-                    let startIdx = 1;
-                    
-                    if (isOrdered) {
-                        const startAttr = node.getAttribute('start');
-                        if (startAttr) {
-                            const parsed = parseInt(startAttr, 10);
-                            if (!isNaN(parsed)) {
-                                startIdx = parsed;
-                            }
-                        }
-                    }
-                    
-                    // Process each list item at the top level
-                    // Using a Map to keep track of processed nested lists to avoid duplication
-                    const processedNestedLists = new Map();
-                    
-                    const listItems = node.querySelectorAll(':scope > li');
-                    listItems.forEach((item, idx) => {
-                        const marker = isOrdered ? `${startIdx + idx}.` : '-';
-                        
-                        // Process direct content (excluding nested lists)
-                        const itemClone = item.cloneNode(true);
-                        
-                        // Find and remove all nested elements from the clone
-                        const nestedElements = itemClone.querySelectorAll('ul, ol');
-                        nestedElements.forEach(el => {
-                            if (el.parentNode) {
-                                el.parentNode.removeChild(el);
-                            }
-                        });
-                        
-                        // Get the direct content of the list item
-                        const directContent = QAClipper.Utils.htmlToMarkdown(itemClone, {
-                            ignoreTags: ['ul', 'ol']
-                        }).trim();
-                        
-                        // Add the direct content with proper marker
-                        if (directContent) {
-                            lines.push(`> ${marker} ${directContent}`);
-                        } else {
-                            lines.push(`> ${marker} `);
-                        }
-                        
-                        // Process nested lists with scope limiter to get only direct children
-                        const nestedLists = item.querySelectorAll(':scope > ul, :scope > ol');
-                        
-                        if (nestedLists.length > 0) {
-                            nestedLists.forEach(nestedList => {
-                                // Skip if already processed
-                                if (processedNestedLists.has(nestedList)) return;
-                                
-                                const nestedIsOrdered = nestedList.tagName.toLowerCase() === 'ol';
-                                let nestedStartIdx = 1;
-                                
-                                if (nestedIsOrdered) {
-                                    const nestedStartAttr = nestedList.getAttribute('start');
-                                    if (nestedStartAttr) {
-                                        const parsedNestedStart = parseInt(nestedStartAttr, 10);
-                                        if (!isNaN(parsedNestedStart)) {
-                                            nestedStartIdx = parsedNestedStart;
-                                        }
-                                    }
-                                }
-                                
-                                // Process nested list items
-                                const nestedItems = nestedList.querySelectorAll(':scope > li');
-                                
-                                nestedItems.forEach((nestedItem, nestedIdx) => {
-                                    const nestedMarker = nestedIsOrdered ? `${nestedStartIdx + nestedIdx}.` : '-';
-                                    
-                                    // Process nested item direct content
-                                    const nestedItemClone = nestedItem.cloneNode(true);
-                                    
-                                    // Remove even deeper nested lists
-                                    const deeperNestedLists = nestedItemClone.querySelectorAll('ul, ol');
-                                    deeperNestedLists.forEach(el => {
-                                        if (el.parentNode) {
-                                            el.parentNode.removeChild(el);
-                                        }
-                                    });
-                                    
-                                    // Get direct content
-                                    const nestedDirectContent = QAClipper.Utils.htmlToMarkdown(nestedItemClone, {
-                                        ignoreTags: ['ul', 'ol']
-                                    }).trim();
-                                    
-                                    // Add properly indented nested item
-                                    if (nestedDirectContent) {
-                                        lines.push(`>     ${nestedMarker} ${nestedDirectContent}`);
-                                    } else {
-                                        lines.push(`>     ${nestedMarker} `);
-                                    }
-                                    
-                                    // Handle deeper nesting if needed
-                                    // This logic would get much more complex for deeper nesting
-                                    // Using the current depth level of indentation (level 2)
-                                });
-                                
-                                // Mark this nested list as processed
-                                processedNestedLists.set(nestedList, true);
-                            });
-                        }
-                    });
-                }
-                // Handle paragraphs and other elements
-                else {
-                    const content = QAClipper.Utils.htmlToMarkdown(node, {
-                        ignoreTags: ['blockquote']
-                    }).trim();
-                    
+                } else if (tagName === 'ul' || tagName === 'ol') {
+                    // Use the new helper function for lists, starting at level 0
+                    processListInsideBlockquote(node, lines, 0, processedElements); 
+                } else {
+                    // Handle paragraphs and other elements within the blockquote
+                    const content = QAClipper.Utils.htmlToMarkdown(node, { 
+                        // Ignore tags handled separately to avoid duplication
+                        ignoreTags: ['blockquote', 'ul', 'ol'] 
+                    }).trim(); 
                     if (content) {
-                        content.split('\n').forEach(line => {
-                            // Ensure space after '>' marker
-                            lines.push(`> ${line}`);
-                        });
+                        // Add blockquote marker to each line of the content
+                        content.split('\n').forEach(line => lines.push(`> ${line}`));
                     }
                 }
             }
         });
-        
-        return lines.join('\n');
+    
+        // Basic cleanup: Remove potential duplicate empty '> ' lines if they occur consecutively
+        const cleanedLines = [];
+        let lastLineWasEmptyMarker = false;
+        for (const line of lines) {
+            // Check if the line contains only '>' and potentially whitespace
+            const isEmptyMarker = line.trim() === '>'; 
+            if (!(isEmptyMarker && lastLineWasEmptyMarker)) {
+                cleanedLines.push(line);
+            }
+            lastLineWasEmptyMarker = isEmptyMarker;
+        }
+       // Remove leading/trailing empty markers more robustly
+       while (cleanedLines.length > 0 && cleanedLines[0].trim() === '>') cleanedLines.shift();
+       while (cleanedLines.length > 0 && cleanedLines[cleanedLines.length - 1].trim() === '>') cleanedLines.pop();
+    
+        return cleanedLines.join('\n');
     }
 
     /**

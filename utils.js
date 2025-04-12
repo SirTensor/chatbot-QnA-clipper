@@ -30,7 +30,15 @@
 
       element.childNodes.forEach(node => {
         if (node.nodeType === Node.TEXT_NODE) {
-          const text = node.textContent;
+          let text = node.textContent;
+          // 1. Convert non-breaking spaces (U+00A0) to regular spaces
+          text = text.replace(/\u00A0/g, ' ');
+          // 2. Collapse only explicit newlines and tabs to a single space
+          text = text.replace(/[\n\t]+/g, ' ');
+          // DO NOT collapse multiple spaces here to preserve intentional spacing from &nbsp;
+          // 3. Trim only trailing whitespace, preserve leading/internal spaces
+          text = text.replace(/ +$/, '');
+          // Append if text remains (it might be only spaces)
           if (text) markdown += text;
         } else if (node.nodeType === Node.ELEMENT_NODE) {
           const tag = node.tagName.toLowerCase();
