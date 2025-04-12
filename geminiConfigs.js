@@ -683,8 +683,30 @@
       // --- Extraction Functions ---
       getRole: (turnElement) => {if(!turnElement||typeof turnElement.tagName!=='string')return null;const t=turnElement.tagName.toLowerCase();if(t==='user-query')return 'user';if(t==='model-response')return 'assistant';return null; },
       extractUserText: (turnElement) => {
-          const e = turnElement.querySelector(':scope .query-text');
-          return e ? QAClipper.Utils.htmlToMarkdown(e, { skipElementCheck: shouldSkipElement }).trim() || null : null;
+          const textElement = turnElement.querySelector(':scope .query-text');
+          if (!textElement) return null;
+
+          // v33: Get innerHTML to handle <br> and potential <p> tags manually for user text
+          let html = textElement.innerHTML;
+
+          // Replace <br> and </p> (potentially used for lines) with single newlines
+          html = html.replace(/<br\s*\/?>/gi, '\n');
+          html = html.replace(/<\/p>/gi, '\n');
+
+          // Remove all other HTML tags
+          html = html.replace(/<[^>]*>/g, '');
+
+          // Decode HTML entities (like &nbsp;, &amp;, &lt;, &gt;)
+          // Create a temporary element to leverage the browser's decoding
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = html;
+          let decodedText = tempDiv.textContent || tempDiv.innerText || '';
+
+          // Collapse multiple consecutive newlines into one
+          decodedText = decodedText.replace(/\n\s*\n/g, '\n');
+
+          // Trim final result
+          return decodedText.trim() || null;
       },
       extractUserUploadedImages: (turnElement) => {
           const images = [];
@@ -719,123 +741,44 @@
        * Extracts structured content using querySelectorAll.
        * v31: Added handling for all heading tags (h1-h6) and blockquotes.
        * Updated to handle Gemini's response-element and code-block structure.
+       * v32: Refactored to use querySelectorAll(relevantBlocks) and processed set for nesting.
        */
       extractAssistantContent: (turnElement) => {
           const contentItems = [];
           const contentArea = turnElement.querySelector(geminiConfig.selectors.assistantContentArea);
-          if (!contentArea) { console.warn("[Extractor v31] Gemini markdown content area not found."); return []; }
+          if (!contentArea) { console.warn("[Extractor v32] Gemini markdown content area not found."); return []; }
 
-          // To preserve ordering, we need to process all children in document order
-          const allContentNodes = Array.from(contentArea.childNodes);
-          const processedElements = new Set();
+          // v32: Use querySelectorAll to find all potentially relevant elements, regardless of nesting
+          const relevantElements = Array.from(contentArea.querySelectorAll(geminiConfig.selectors.relevantBlocks));
+          const processedElements = new Set(); // To avoid processing elements multiple times
 
-          // Process nodes in document order to maintain proper sequence
-          allContentNodes.forEach((node) => {
-              if (processedElements.has(node) || node.nodeType !== Node.ELEMENT_NODE) return;
-              
-              const element = node;
+          relevantElements.forEach((element) => {
+              // Skip if already processed as part of a larger element (e.g., list item handled by processList)
+              if (processedElements.has(element)) return;
+
               const tagNameLower = element.tagName.toLowerCase();
               const isHeading = tagNameLower.match(/^h[1-6]$/);
               const isBlockquote = tagNameLower === 'blockquote';
-              const isInteractiveBlock = element.matches(geminiConfig.selectors.interactiveBlockContainer || '');
-              const isImageContainer = element.matches(geminiConfig.selectors.imageContainerAssistant || '');
+              // v32: Check specific selector for interactive block, not just parent
+              const isInteractiveBlock = geminiConfig.selectors.interactiveBlockContainer && element.matches(geminiConfig.selectors.interactiveBlockContainer);
+              const isImageContainer = geminiConfig.selectors.imageContainerAssistant && element.matches(geminiConfig.selectors.imageContainerAssistant);
               const isCodeBlock = tagNameLower === 'code-block';
-              const isResponseElement = tagNameLower === 'response-element';
+              const isResponseElement = tagNameLower === 'response-element'; // May contain code blocks
               const isTable = tagNameLower === 'table';
               const isList = tagNameLower === 'ul' || tagNameLower === 'ol';
-              const isParagraph = tagNameLower === 'p';
-              
+              const isParagraph = tagNameLower === 'p'; // Paragraphs might contain other things now
+
               let item = null;
-              
-              // Process based on element type to maintain proper ordering
-              if (isResponseElement) {
-                  // Process response-element container
-                  const codeBlocks = element.querySelectorAll('code-block');
-                  if (codeBlocks.length > 0) {
-                      codeBlocks.forEach(codeBlock => {
-                          if (processedElements.has(codeBlock)) return;
-                          
-                          // Process the code block
-                          const langElement = codeBlock.querySelector('.code-block-decoration > span');
-                          const language = langElement ? langElement.textContent?.trim() : null;
-                          
-                          const codeElement = codeBlock.querySelector('code[data-test-id="code-content"]');
-                          const codeContent = codeElement ? codeElement.textContent?.trim() : '';
-                          
-                          if (codeContent) {
-                              contentItems.push({ 
-                                  type: 'code_block', 
-                                  language: language, 
-                                  content: codeContent
-                              });
-                          }
-                          
-                          // Mark as processed
-                          processedElements.add(codeBlock);
-                      });
-                  }
-                  processedElements.add(element);
-              }
-              else if (isHeading) {
-                  const level = parseInt(tagNameLower.charAt(1));
-                  const headingMarkup = '#'.repeat(level);
-                  const headingText = element.textContent.trim();
-                  
-                  if (headingText) {
-                      QAClipper.Utils.addTextItem(contentItems, `${headingMarkup} ${headingText}`);
-                  }
-                  
-                  processedElements.add(element);
-              }
-              else if (isBlockquote) {
-                  // Fix for the specific issue: Check if this blockquote contains the problematic structure
-                  const hasNestedListsInBlockquote = element.querySelector('ul > li > ol > li');
-                  
-                  if (hasNestedListsInBlockquote) {
-                      // Use special handling for blockquotes with nested lists (the problematic case)
-                      const fixedBlockquoteContent = processFixedBlockquote(element);
-                      if (fixedBlockquoteContent) {
-                          QAClipper.Utils.addTextItem(contentItems, fixedBlockquoteContent);
-                      }
-                  } else {
-                      // Use the standard blockquote processing for simple cases
-                      const blockquoteMarkdown = processNestedBlockquote(element);
-                      if (blockquoteMarkdown) {
-                          QAClipper.Utils.addTextItem(contentItems, blockquoteMarkdown);
-                      }
-                  }
-                  
-                  processedElements.add(element);
-                  element.querySelectorAll('*').forEach(child => processedElements.add(child));
-              }
-              else if (isInteractiveBlock) {
-                  const titleElement = element.querySelector(geminiConfig.selectors.interactiveBlockTitle);
-                  const title = titleElement ? titleElement.textContent?.trim() : '[Interactive Block]';
-                  contentItems.push({ type: 'interactive_block', title: title, code: null, language: null });
-                  processedElements.add(element);
-                  element.querySelectorAll('*').forEach(child => processedElements.add(child));
-              }
-              else if (isCodeBlock) {
-                  // Check if it's a direct code-block element
-                  const langElement = element.querySelector('.code-block-decoration > span');
-                  const language = langElement ? langElement.textContent?.trim() : null;
-                  
-                  const codeElement = element.querySelector('code[data-test-id="code-content"]');
-                  const codeContent = codeElement ? codeElement.textContent?.trim() : '';
-                  
-                  if (codeContent) {
-                      item = { 
-                          type: 'code_block', 
-                          language: language, 
-                          content: codeContent
-                      };
-                  } else {
-                      // Fallback to the standard processCodeBlock function
-                      item = processCodeBlock(element);
-                  }
-                  
+
+              // Process based on element type, ensuring not already processed
+              // Order prioritizes container types (lists, tables, etc.) that might contain others
+
+              if (isList) {
+                  // processList handles its own children
+                  item = processList(element, tagNameLower, 0);
                   if (item) contentItems.push(item);
                   processedElements.add(element);
+                  // Mark all descendants as processed because processList handles them
                   element.querySelectorAll('*').forEach(child => processedElements.add(child));
               }
               else if (isTable) {
@@ -843,21 +786,53 @@
                   if (tableMarkdown) {
                       QAClipper.Utils.addTextItem(contentItems, tableMarkdown);
                   } else {
+                      // Fallback for tables that couldn't be parsed
                       const fallbackText = QAClipper.Utils.htmlToMarkdown(element, {
                           skipElementCheck: (el) => el.tagName.toLowerCase() === 'table'
                       }).trim();
                       if (fallbackText) {
-                         QAClipper.Utils.addTextItem(contentItems, `[Fallback Table Content]\n${fallbackText}`);
+                         QAClipper.Utils.addTextItem(contentItems, `[Fallback Table Content]\\n${fallbackText}`);
                       }
                   }
                   processedElements.add(element);
                   element.querySelectorAll('*').forEach(child => processedElements.add(child));
               }
-              else if (isList) {
-                  item = processList(element, tagNameLower, 0);
+              else if (isBlockquote) {
+                  // processNestedBlockquote handles its own children
+                  const blockquoteMarkdown = processNestedBlockquote(element);
+                  if (blockquoteMarkdown) {
+                      QAClipper.Utils.addTextItem(contentItems, blockquoteMarkdown);
+                  }
+                  processedElements.add(element);
+                  element.querySelectorAll('*').forEach(child => processedElements.add(child));
+              }
+              else if (isCodeBlock) { // Direct code-block element
+                  item = processCodeBlock(element);
                   if (item) contentItems.push(item);
                   processedElements.add(element);
                   element.querySelectorAll('*').forEach(child => processedElements.add(child));
+              }
+              else if (isResponseElement) { // response-element might contain code blocks
+                  // Handle code blocks specifically within response-element
+                  const codeBlocks = element.querySelectorAll('code-block');
+                  codeBlocks.forEach(codeBlock => {
+                      if (processedElements.has(codeBlock)) return; // Skip if already processed
+                      const codeItem = processCodeBlock(codeBlock);
+                      if (codeItem) contentItems.push(codeItem);
+                      processedElements.add(codeBlock);
+                      codeBlock.querySelectorAll('*').forEach(child => processedElements.add(child));
+                  });
+                  // Add other content from response-element if needed (optional)
+                  // For now, primarily focused on the code-block within it.
+                  processedElements.add(element); // Mark the response-element itself as processed
+              }
+              else if (isInteractiveBlock) { // v32: Explicit check using the selector
+                  const titleElement = element.querySelector(geminiConfig.selectors.interactiveBlockTitle);
+                  const title = titleElement ? titleElement.textContent?.trim() : '[Interactive Block]';
+                  // v32: Push as interactive block type
+                  contentItems.push({ type: 'interactive_block', title: title, code: null, language: null });
+                  processedElements.add(element);
+                  element.querySelectorAll('*').forEach(child => processedElements.add(child)); // Mark children processed
               }
               else if (isImageContainer) {
                   item = processImage(element);
@@ -865,33 +840,34 @@
                   processedElements.add(element);
                   element.querySelectorAll('*').forEach(child => processedElements.add(child));
               }
+              else if (isHeading) {
+                  const level = parseInt(tagNameLower.charAt(1));
+                  const headingMarkup = '#'.repeat(level);
+                  const headingText = QAClipper.Utils.htmlToMarkdown(element, { skipElementCheck: shouldSkipElement }).trim(); // Process content
+                  if (headingText) {
+                      QAClipper.Utils.addTextItem(contentItems, `${headingMarkup} ${headingText}`);
+                  }
+                  processedElements.add(element);
+                  // Mark children as processed since we took the whole heading content
+                  element.querySelectorAll('*').forEach(child => processedElements.add(child));
+              }
               else if (isParagraph) {
+                  // Paragraphs are processed last; only add their *direct* text content
+                  // if they weren't part of a larger structure already processed.
+                  // Use htmlToMarkdown but *only* if no block elements were inside it.
                   const blockMarkdown = QAClipper.Utils.htmlToMarkdown(element, {
-                    skipElementCheck: shouldSkipElement
+                     // v32: Crucially, skipElementCheck prevents double-processing of elements handled above
+                     skipElementCheck: (el) => processedElements.has(el) || shouldSkipElement(el)
                   }).trim();
                   if (blockMarkdown) {
                       QAClipper.Utils.addTextItem(contentItems, blockMarkdown);
                   }
                   processedElements.add(element);
+                  // Don't mark all children processed here, as htmlToMarkdown respects skipElementCheck
               }
-              else if (element.nodeType === Node.TEXT_NODE) {
-                  // Handle text nodes
-                  const text = element.textContent.trim();
-                  if (text) {
-                      QAClipper.Utils.addTextItem(contentItems, text);
-                  }
-              }
-              else { // Fallback for other elements
-                  const fallbackText = QAClipper.Utils.htmlToMarkdown(element, {
-                    skipElementCheck: shouldSkipElement
-                  }).trim();
-                  if (fallbackText) {
-                     QAClipper.Utils.addTextItem(contentItems, fallbackText);
-                  }
-                  processedElements.add(element);
-                  element.querySelectorAll('*').forEach(child => processedElements.add(child));
-              }
-          });
+              // Add any other specific element handling here if needed
+
+          }); // End forEach relevantElements
 
           return contentItems;
       }, // End extractAssistantContent
