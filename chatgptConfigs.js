@@ -29,6 +29,16 @@
         // Clone the element to avoid modifying the original
         const clone = element.cloneNode(true);
         
+        // Fix BR tags to prevent unwanted spaces after line breaks
+        const brTags = clone.querySelectorAll('br');
+        brTags.forEach(br => {
+            // Check if there's a text node immediately after the <br>
+            if (br.nextSibling && br.nextSibling.nodeType === Node.TEXT_NODE) {
+                // Trim the leading space from the text node after <br>
+                br.nextSibling.textContent = br.nextSibling.textContent.replace(/^\s+/, '');
+            }
+        });
+        
         // Process headings to ensure they use markdown syntax
         const headings = clone.querySelectorAll('h1, h2, h3, h4, h5, h6');
         headings.forEach(heading => {
