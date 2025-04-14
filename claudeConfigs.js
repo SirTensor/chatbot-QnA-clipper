@@ -21,10 +21,14 @@
     if (!selectors) return false; // Config not loaded yet
     const tagNameLower = element.tagName.toLowerCase();
 
-    // Skip elements handled by dedicated functions
+    // Skip top-level elements handled by dedicated functions
+    // Note: We don't skip pre elements in list items, only standalone pre elements
+    const isInListItem = element.closest('li') !== null;
+    const isStandalonePre = tagNameLower === 'pre' && !isInListItem;
+    
     return tagNameLower === 'ul' ||
            tagNameLower === 'ol' ||
-           tagNameLower === 'pre' || // Handled by processCodeBlock
+           isStandalonePre || // Only skip standalone pre elements
            tagNameLower === 'table' || // Skip tables (handled separately)
            tagNameLower === 'blockquote' || // Skip blockquotes (handled separately)
            element.closest(selectors.artifactButton); // Check if element is INSIDE an artifact button/cell
@@ -56,6 +60,39 @@
     el.querySelectorAll(':scope > li').forEach(li => {
       // Clone the li to manipulate it without affecting the original DOM
       const liClone = li.cloneNode(true);
+
+      // Find and process pre elements (code blocks) within the li before removing them
+      const codeBlocksInLi = Array.from(li.querySelectorAll(':scope > pre'));
+      let codeBlocksContent = '';
+      
+      if (codeBlocksInLi.length > 0) {
+        // Process each code block and collect their content
+        codeBlocksInLi.forEach(preElement => {
+          const codeItem = processCodeBlock(preElement);
+          if (codeItem && codeItem.type === 'code_block') {
+            const languageSpec = codeItem.language ? `${codeItem.language}` : '';
+            codeBlocksContent += `\`\`\`${languageSpec}\n${codeItem.content}\n\`\`\``;
+          } else if (codeItem && codeItem.type === 'text') {
+            // This handles table markdown output
+            codeBlocksContent += `${codeItem.content}`;
+          }
+          
+          // Also remove the pre element from the clone to prevent duplicate processing
+          const preInClone = liClone.querySelector(`:scope > pre[data-testid="${preElement.getAttribute('data-testid')}"]`);
+          if (preInClone) {
+            liClone.removeChild(preInClone);
+          } else {
+            // If we can't find by data-testid, find the corresponding position
+            const preElements = liClone.querySelectorAll(':scope > pre');
+            if (preElements.length > 0) {
+              const index = Array.from(li.querySelectorAll(':scope > pre')).indexOf(preElement);
+              if (index >= 0 && index < preElements.length) {
+                liClone.removeChild(preElements[index]);
+              }
+            }
+          }
+        });
+      }
 
       // Find and remove direct child ul/ol elements from the clone
       const nestedListsInClone = Array.from(liClone.children).filter(child =>
@@ -103,6 +140,20 @@
           nestedContent += '\n' + indentedBqContent;
         }
       });
+
+      // Append the code blocks content to the nested content
+      if (codeBlocksContent) {
+        // Calculate the indentation for nested code blocks within this list item
+        const nestedElementIndent = '    '.repeat(level + 1);
+        
+        // Indent each line of the code block content
+        const indentedCodeBlockContent = codeBlocksContent.split('\n').map(line => {
+          // Removed special handling for blank lines as \n\n was the likely cause
+          return `${nestedElementIndent}${line}`;
+        }).join('\n');
+        
+        nestedContent += '\n' + indentedCodeBlockContent;
+      }
 
       // Combine the item markdown and nested content
       if (itemMarkdown || nestedContent.trim()) {
@@ -180,6 +231,19 @@
         }
     }
     
+    // Method 4: Try to infer language from div.text-text-500.text-xs with language name
+    // This is especially useful for code blocks in list items
+    if (!language) {
+        const langDivs = el.querySelectorAll('div.text-text-500.text-xs');
+        for (const div of langDivs) {
+            const langText = div.textContent?.trim().toLowerCase();
+            if (langText && langText !== '') {
+                language = langText;
+                break;
+            }
+        }
+    }
+
     // Final fallback - if we have code content but no language was detected
     if (!language && code.trim()) {
         language = "text";  // Default to "text" for unlabeled code blocks
@@ -548,6 +612,8 @@
 
       // --- Content Block Selectors (within assistant turn) ---
       listItem: 'li',
+      // Selector for pre elements nested inside list items
+      nestedCodeBlockInListItem: 'li > pre',
       codeBlockContainer: 'pre', // Still needed for processCodeBlock if found
       codeBlockContent: 'code[class*="language-"]',
       codeBlockLangIndicator: 'div.text-text-300.absolute',
@@ -698,46 +764,34 @@
               // Find the grid inside this div
               const gridInside = child.querySelector(selectors.assistantContentGridInTabindex);
               if (gridInside) {
-                  // Find table containers first (Added in v5)
-                  const tableContainers = gridInside.querySelectorAll(selectors.tableContainer);
-                  if (tableContainers.length > 0) {
-                      // console.log(`  -> Found ${tableContainers.length} table containers`);
-                      tableContainers.forEach(tableContainer => {
-                          const tableElement = tableContainer.querySelector(selectors.tableElement);
-                          if (tableElement) {
-                              // console.log("  -> Processing table element");
-                              const tableItem = processTableToMarkdown(tableElement);
-                              if (tableItem) contentItems.push(tableItem);
-                          }
-                      });
-                  }
-                  
-                  //  Process existing content elements
+                  // Process existing content elements within the grid
                   const contentElements = gridInside.querySelectorAll(selectors.assistantContentElementsInGrid);
                   contentElements.forEach(contentElement => {
                       const contentTagName = contentElement.tagName.toLowerCase();
                       // console.log(`    -> Processing Grid Element: <${contentTagName}>`);
-                      
+
                       if (contentTagName === 'p') {
                           const markdownText = QAClipper.Utils.htmlToMarkdown(contentElement, { skipElementCheck: shouldSkipElement }).trim();
                           if (markdownText) QAClipper.Utils.addTextItem(contentItems, markdownText);
                       } else if (contentTagName === 'ul') {
-                          const listMarkdown = processList(contentElement, 'ul', 0); // Pass level 0 for top-level lists
-                          if (listMarkdown) contentItems.push({ type: 'text', content: listMarkdown }); // Push result directly
+                          const listMarkdown = processList(contentElement, 'ul', 0);
+                          if (listMarkdown) contentItems.push({ type: 'text', content: listMarkdown });
                       } else if (contentTagName === 'ol') {
-                          const listMarkdown = processList(contentElement, 'ol', 0); // Pass level 0 for top-level lists
-                          if (listMarkdown) contentItems.push({ type: 'text', content: listMarkdown }); // Push result directly
+                          const listMarkdown = processList(contentElement, 'ol', 0);
+                          if (listMarkdown) contentItems.push({ type: 'text', content: listMarkdown });
                       } else if (contentTagName === 'pre') {
-                          const hasTable = contentElement.querySelector(selectors.tableElement);
-                          if (hasTable) {
-                              item = processTableToMarkdown(hasTable);
+                          // Check if the pre element contains a table first
+                          const tableElement = contentElement.querySelector(selectors.tableElement);
+                          if (tableElement) {
+                              // Process as a table if found
+                              item = processTableToMarkdown(tableElement);
                           } else {
+                              // Process as a code block if no table is found
                               item = processCodeBlock(contentElement);
                           }
                           if (item) contentItems.push(item);
                       } else if (contentTagName === 'blockquote') {
-                          // Process blockquote with new function
-                          const blockquoteContent = processBlockquote(contentElement, 0); // 0 for top level
+                          const blockquoteContent = processBlockquote(contentElement, 0);
                           if (blockquoteContent) {
                               QAClipper.Utils.addTextItem(contentItems, blockquoteContent);
                           }
@@ -759,7 +813,6 @@
               } else {
                    console.warn("  -> Grid not found inside tabindex div. Trying to process direct content.");
                    // Fallback: If grid is not found, find content elements directly within the tabindex div
-                   // Include headings h1-h6 in fallback as well
                    const directContent = child.querySelectorAll(':scope > :is(p, ol, ul, pre, h1, h2, h3, h4, h5, h6, blockquote)');
                    directContent.forEach(contentElement => {
                         const contentTagName = contentElement.tagName.toLowerCase();
@@ -767,26 +820,28 @@
                             const markdownText = QAClipper.Utils.htmlToMarkdown(contentElement, { skipElementCheck: shouldSkipElement }).trim();
                             if (markdownText) QAClipper.Utils.addTextItem(contentItems, markdownText);
                         }
-                        else if (contentTagName === 'ul') { 
-                            const listMarkdown = processList(contentElement, 'ul', 0); // Pass level 0 for top-level lists
-                            if (listMarkdown) contentItems.push({ type: 'text', content: listMarkdown }); // Push result directly
+                        else if (contentTagName === 'ul') {
+                            const listMarkdown = processList(contentElement, 'ul', 0);
+                            if (listMarkdown) contentItems.push({ type: 'text', content: listMarkdown });
                         }
                         else if (contentTagName === 'ol') {
-                            const listMarkdown = processList(contentElement, 'ol', 0); // Pass level 0 for top-level lists
-                            if (listMarkdown) contentItems.push({ type: 'text', content: listMarkdown }); // Push result directly
+                            const listMarkdown = processList(contentElement, 'ol', 0);
+                            if (listMarkdown) contentItems.push({ type: 'text', content: listMarkdown });
                         }
                         else if (contentTagName === 'pre') {
-                            const hasTable = contentElement.querySelector(selectors.tableElement);
-                            if (hasTable) {
-                                item = processTableToMarkdown(hasTable);
+                            // Check if the pre element contains a table first in fallback path
+                            const tableElement = contentElement.querySelector(selectors.tableElement);
+                            if (tableElement) {
+                                // Process as a table if found
+                                item = processTableToMarkdown(tableElement);
                             } else {
+                                // Process as a code block if no table is found
                                 item = processCodeBlock(contentElement);
                             }
                             if (item) contentItems.push(item);
                         }
                         else if (contentTagName === 'blockquote') {
-                            // Process blockquote with new function in fallback path
-                            const blockquoteContent = processBlockquote(contentElement, 0); // 0 for top level
+                            const blockquoteContent = processBlockquote(contentElement, 0);
                             if (blockquoteContent) {
                                 QAClipper.Utils.addTextItem(contentItems, blockquoteContent);
                             }
