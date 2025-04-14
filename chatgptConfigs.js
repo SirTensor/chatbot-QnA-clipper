@@ -787,6 +787,6 @@
 
     // Assign the config object to the window
     window.chatgptConfig = chatgptConfig;
-    console.log("chatgptConfig initialized (v24 - Refactored List/Blockquote Nesting)");
+    // console.log("chatgptConfig initialized (v24 - Refactored List/Blockquote Nesting)");
 
 })();
