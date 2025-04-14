@@ -1,9 +1,9 @@
-// chatgptConfigs.js (v23 - Fixed Indentation in Lists and Blockquotes)
+// chatgptConfigs.js (v24 - Refactored List/Blockquote Nesting)
 
 (function() {
     // Initialization check
-    // v23: Adjusted indentation in lists and blockquotes
-    if (window.chatgptConfig && window.chatgptConfig.version === 23) { return; }
+    // v24: Refactored List/Blockquote Nesting
+    if (window.chatgptConfig && window.chatgptConfig.version === 24) { return; }
 
     // --- Helper Functions ---
 
@@ -77,626 +77,316 @@
 
     /**
      * Comprehensive blockquote processor that preserves hierarchy and nested content
-     * with improved code block handling
+     * Handles lists and nested blockquotes correctly.
      * @param {HTMLElement} element - The blockquote element to process
      * @param {number} nestLevel - The nesting level of the blockquote (0 for top level)
      * @returns {string} - Formatted blockquote content with correct '>' prefixes
      */
     function processBlockquote(element, nestLevel = 0) {
-        // Create the proper prefix based on nesting level
         const prefix = '> '.repeat(nestLevel + 1);
-        
-        // Initialize the result array to store all processed content lines
         const resultLines = [];
-        
-        // Process all child nodes in order to maintain structure
+        let previousNodeRequiresSpace = false; // Track if space needed before next element
+
         const childNodes = Array.from(element.childNodes);
-        
-        // Track if we need to add extra line spacing
-        let previousWasBlock = false;
-        let previousWasNestedBlockquote = false;
-        
+
         for (let i = 0; i < childNodes.length; i++) {
             const node = childNodes[i];
-            
-            // Handle text nodes (including whitespace)
+
             if (node.nodeType === Node.TEXT_NODE) {
                 const text = node.textContent.trim();
                 if (text) {
-                    // If the previous element was a nested blockquote, add an empty line with just the blockquote prefix
-                    if (previousWasNestedBlockquote) {
-                        resultLines.push(`${prefix}`);
-                        previousWasNestedBlockquote = false;
-                    }
-                    
-                    // Only add non-empty text nodes
                     resultLines.push(`${prefix}${text}`);
-                    previousWasBlock = false;
+                    previousNodeRequiresSpace = true; // Text usually means space before next block
                 }
-                continue;
-            }
-            
-            // Handle element nodes
-            if (node.nodeType === Node.ELEMENT_NODE) {
+            } else if (node.nodeType === Node.ELEMENT_NODE) {
                 const tagName = node.tagName.toLowerCase();
-                
-                // Handle headings - convert to Markdown style headings
-                if (['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(tagName)) {
-                    // Add a blank line before headings if needed
-                    if (resultLines.length > 0 && !previousWasBlock) {
-                        resultLines.push(`${prefix}`);
+
+                // Add spacing before block elements if needed
+                if (previousNodeRequiresSpace && ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre', 'ul', 'ol', 'blockquote'].includes(tagName)) {
+                    if (resultLines.length > 0 && resultLines[resultLines.length - 1].trim() !== prefix.trim()) {
+                         resultLines.push(prefix.trim()); // Add empty blockquote line for spacing
                     }
-                    
-                    // Reset the nested blockquote flag
-                    previousWasNestedBlockquote = false;
-                    
-                    // Extract the heading level number from the tag
+                }
+
+                if (['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(tagName)) {
                     const level = parseInt(tagName.substring(1));
                     const hashes = '#'.repeat(level);
-                    
-                    // Extract content without formatting as markdown
                     const headingText = node.textContent.trim();
-                    
-                    // Format as Markdown heading
                     resultLines.push(`${prefix}${hashes} ${headingText}`);
-                    
-                    // Add a blank line after the heading
-                    resultLines.push(`${prefix}`);
-                    previousWasBlock = true;
-                    continue;
-                }
-                
-                // Handle paragraphs
-                if (tagName === 'p') {
-                    // If the previous element was a nested blockquote, add an empty line with just the blockquote prefix
-                    if (previousWasNestedBlockquote) {
-                        resultLines.push(`${prefix}`);
-                        previousWasNestedBlockquote = false;
-                    }
-                    
-                    // Add a blank line before paragraphs if needed
-                    if (resultLines.length > 0 && !previousWasBlock) {
-                        resultLines.push(`${prefix}`);
-                    }
-                    
-                    // Use enhanced markdown conversion to handle strikethrough correctly
-                    const content = enhancedHtmlToMarkdown(node, {
-                        skipElementCheck: shouldSkipElement
-                    }).trim();
-                    
+                    previousNodeRequiresSpace = true;
+                } else if (tagName === 'p') {
+                    const content = enhancedHtmlToMarkdown(node, { skipElementCheck: shouldSkipElement }).trim();
                     if (content) {
                         content.split('\n').forEach(line => {
                             resultLines.push(`${prefix}${line}`);
                         });
-                        
-                        // Add a blank line after paragraphs
-                        resultLines.push(`${prefix}`);
-                        previousWasBlock = true;
+                        previousNodeRequiresSpace = true;
+                    } else {
+                        // Handle empty paragraphs potentially used for spacing
+                        previousNodeRequiresSpace = false; // Don't add extra space after empty <p>
                     }
-                    continue;
-                }
-                
-                // Handle code blocks (pre elements)
-                if (tagName === 'pre') {
-                    // Add spacing before code block if needed
-                    if (resultLines.length > 0 && !previousWasBlock) {
-                        resultLines.push(`${prefix}`);
-                    }
-                    
-                    // Process the code block
+                } else if (tagName === 'pre') {
                     const codeItem = processCodeBlock(node);
                     if (codeItem) {
                         const lang = codeItem.language || '';
-                        
-                        // Add proper blockquote formatting to each line of the code block
                         resultLines.push(`${prefix}\`\`\`${lang}`);
-                        
-                        const codeLines = codeItem.content.split('\n');
-                        codeLines.forEach(line => {
+                        codeItem.content.split('\n').forEach(line => {
                             resultLines.push(`${prefix}${line}`);
                         });
-                        
                         resultLines.push(`${prefix}\`\`\``);
-                        
-                        // Add a blank line after the code block
-                        resultLines.push(`${prefix}`);
-                        previousWasBlock = true;
+                        previousNodeRequiresSpace = true;
+                    } else {
+                        previousNodeRequiresSpace = false;
                     }
-                    continue;
-                }
-                
-                // Handle nested blockquotes
-                if (tagName === 'blockquote') {
-                    // Add spacing before nested blockquote if needed
-                    if (resultLines.length > 0 && !previousWasBlock) {
-                        resultLines.push(`${prefix}`);
-                    }
-                    
+                } else if (tagName === 'blockquote') {
+                    // Process nested blockquote recursively
                     const nestedContent = processBlockquote(node, nestLevel + 1);
                     if (nestedContent) {
-                        resultLines.push(nestedContent);
-                        // No extra blank line after a blockquote - it already has its own spacing
-                        previousWasBlock = true;
-                        previousWasNestedBlockquote = true;
+                        resultLines.push(nestedContent); // nestedContent already has correct prefixes
+                        previousNodeRequiresSpace = true;
+                    } else {
+                        previousNodeRequiresSpace = false;
                     }
-                    continue;
-                }
-                
-                // Handle lists
-                if (tagName === 'ul' || tagName === 'ol') {
-                    // If the previous element was a nested blockquote, add an empty line with just the blockquote prefix
-                    if (previousWasNestedBlockquote) {
-                        resultLines.push(`${prefix}`);
-                        previousWasNestedBlockquote = false;
-                    }
-                    
-                    // Add spacing before list if needed
-                    if (resultLines.length > 0 && !previousWasBlock) {
-                        resultLines.push(`${prefix}`);
-                    }
-                    
-                    const listResult = processList(node, tagName, 0, true, nestLevel);
+                } else if (tagName === 'ul' || tagName === 'ol') {
+                    // Process list inside blockquote
+                    // Pass `true` for isWithinBlockquote and the *next* blockquote level
+                    const listResult = processList(node, tagName, 0, true, nestLevel + 1);
                     if (listResult && listResult.content) {
+                        // processList now adds the blockquote prefix, so just add the content
                         resultLines.push(listResult.content);
-                        // Don't add blank line after a list
-                        previousWasBlock = false;
+                        // Lists often handle their own spacing, check last line of listResult
+                        const listLines = listResult.content.split('\n');
+                        if (listLines.length > 0 && listLines[listLines.length-1].trim() === ('> '.repeat(nestLevel + 1)).trim()) {
+                             previousNodeRequiresSpace = false; // List ended with empty bq line
+                        } else {
+                             previousNodeRequiresSpace = true;
+                        }
+                    } else {
+                         previousNodeRequiresSpace = false;
                     }
-                    continue;
-                }
-                
-                // Handle other elements (like spans, strong, etc.)
-                if (previousWasNestedBlockquote) {
-                    resultLines.push(`${prefix}`);
-                    previousWasNestedBlockquote = false;
-                }
-                
-                const inlineContent = enhancedHtmlToMarkdown(node, {
-                    skipElementCheck: shouldSkipElement
-                }).trim();
-                
-                if (inlineContent) {
-                    inlineContent.split('\n').forEach(line => {
-                        resultLines.push(`${prefix}${line}`);
-                    });
-                    previousWasBlock = false;
+                } else {
+                    // Handle other inline elements wrapped in the blockquote
+                     const inlineContent = enhancedHtmlToMarkdown(node, { skipElementCheck: shouldSkipElement }).trim();
+                     if (inlineContent) {
+                          // Attempt to merge with the last line if it was also inline content
+                          if (resultLines.length > 0 && !previousNodeRequiresSpace) {
+                               resultLines[resultLines.length - 1] += ` ${inlineContent}`;
+                          } else {
+                               resultLines.push(`${prefix}${inlineContent}`);
+                          }
+                          previousNodeRequiresSpace = false; // Inline content doesn't force block spacing
+                     }
                 }
             }
         }
-        
-        // Clean up redundant blank lines
-        const cleanedLines = [];
-        for (let i = 0; i < resultLines.length; i++) {
-            const line = resultLines[i];
-            const isBlankLine = line.trim() === prefix.trim();
-            
-            // Skip consecutive blank lines
-            if (isBlankLine && i > 0 && resultLines[i-1].trim() === prefix.trim()) {
-                continue;
-            }
-            
-            cleanedLines.push(line);
+
+        // Clean up redundant blank lines at the end
+        while (resultLines.length > 0 && resultLines[resultLines.length - 1].trim() === prefix.trim()) {
+            resultLines.pop();
         }
-        
-        // Remove trailing blank line if exists
-        if (cleanedLines.length > 0 && cleanedLines[cleanedLines.length-1].trim() === prefix.trim()) {
-            cleanedLines.pop();
-        }
-        
-        return cleanedLines.join('\n');
+        // Ensure at least one line if the blockquote wasn't empty, even if it's just the prefix
+        // if (childNodes.length > 0 && resultLines.length === 0) {
+        //     return prefix.trim();
+        // }
+
+        return resultLines.join('\n');
     }
 
-    /**
-     * Process a list element (ul/ol) and its children, including nested lists, code blocks, and blockquotes within items
-     * with improved indentation for blockquotes
-     */
-     function processList(el, listType, level = 0, isWithinBlockquote = false, blockquoteLevel = 0) {
+     /**
+      * Process a list element (ul/ol) and its children.
+      * Handles nested lists, code blocks, and blockquotes within items.
+      * Correctly applies blockquote prefixes if the list is inside a blockquote.
+      * @param {HTMLElement} el - The list element (UL or OL).
+      * @param {string} listType - 'ul' or 'ol'.
+      * @param {number} level - The nesting level of the list (0 for top level).
+      * @param {boolean} isWithinBlockquote - True if this list is inside a blockquote.
+      * @param {number} blockquoteLevel - The nesting level of the parent blockquote (0 if not nested).
+      * @returns {object|null} - A text content item { type: 'text', content: '...' } or null.
+      */
+      function processList(el, listType, level = 0, isWithinBlockquote = false, blockquoteLevel = 0) {
          let lines = [];
-         let itemIndex = 0;
+         let itemIndex = 0; // For ordered lists
+
+         // Determine starting number for ordered lists
          if (listType === 'ol') {
-            const startAttribute = el.getAttribute('start');
-            if (startAttribute) {
-                const startIndex = parseInt(startAttribute, 10);
-                if (!isNaN(startIndex) && startIndex > 0) {
-                    itemIndex = startIndex - 1;
-                } else {
-                     console.warn(`[Extractor v20 processList] Invalid 'start' attribute found: ${startAttribute}`, el);
-                }
-            }
-         }
-         
-         // Track the top-level blockquotes that are direct children of list items
-         let listItemsToProcess = Array.from(el.querySelectorAll(':scope > li'));
-         
-         listItemsToProcess.forEach(li => {
-             const liClone = li.cloneNode(true);
-             let originalPreElements = [];
-             let originalBlockquotes = [];
-             let originalNestedLists = [];
-             
-             // Track all nested elements by type for proper ordering
-             const nestedElements = [];
-             
-             // First, identify all nested elements to preserve their order
-             let childNodes = Array.from(li.childNodes);
-             for (let i = 0; i < childNodes.length; i++) {
-                 const node = childNodes[i];
-                 if (node.nodeType === Node.ELEMENT_NODE) {
-                     const tagName = node.tagName.toLowerCase();
-                     if (tagName === 'ul' || tagName === 'ol') {
-                         originalNestedLists.push({
-                             element: node,
-                             index: i,
-                             type: tagName
-                         });
-                         nestedElements.push({
-                             type: 'list',
-                             element: node,
-                             index: i
-                         });
-                     } else if (tagName === 'pre') {
-                         originalPreElements.push({
-                             element: node,
-                             index: i
-                         });
-                         nestedElements.push({
-                             type: 'pre',
-                             element: node,
-                             index: i
-                         });
-                     } else if (tagName === 'blockquote') {
-                         originalBlockquotes.push({
-                             element: node,
-                             index: i
-                         });
-                         nestedElements.push({
-                             type: 'blockquote',
-                             element: node,
-                             index: i
-                         });
-                     }
+             const startAttribute = el.getAttribute('start');
+             if (startAttribute) {
+                 const startIndex = parseInt(startAttribute, 10);
+                 // Use startIndex - 1 because itemIndex is 0-based initially
+                 if (!isNaN(startIndex) && startIndex > 0) {
+                     itemIndex = startIndex - 1;
                  }
              }
-             
-             // Sort nested elements by their position in the original DOM
+         }
+
+         // Calculate prefixes based on context
+         const bqPrefix = isWithinBlockquote ? '> '.repeat(blockquoteLevel) : '';
+         const indent = '    '.repeat(level); // 4 spaces for indentation
+         const textIndent = '    '.repeat(level + 1); // Indentation for content following the marker line
+
+         // Process each direct child list item
+         const listItemsToProcess = Array.from(el.querySelectorAll(':scope > li'));
+
+         listItemsToProcess.forEach(li => {
+             // Clone to safely extract direct text content
+             const liClone = li.cloneNode(true);
+
+             // Identify all major nested elements within the list item
+             const nestedElements = [];
+             Array.from(li.childNodes).forEach((node, index) => {
+                 if (node.nodeType === Node.ELEMENT_NODE) {
+                     const tagName = node.tagName.toLowerCase();
+                     let shouldRemove = false;
+                     if (tagName === 'ul' || tagName === 'ol') {
+                         nestedElements.push({ type: 'list', element: node, index });
+                         shouldRemove = true;
+                     } else if (tagName === 'pre') {
+                         nestedElements.push({ type: 'pre', element: node, index });
+                         shouldRemove = true;
+                     } else if (tagName === 'blockquote') {
+                         nestedElements.push({ type: 'blockquote', element: node, index });
+                         shouldRemove = true;
+                     }
+                     // Remove the identified nested element from the clone *carefully*
+                     if (shouldRemove) {
+                         const cloneChild = Array.from(liClone.childNodes).find(cn => cn === node); // Find corresponding node in clone
+                         if (cloneChild && cloneChild.parentNode === liClone) {
+                              liClone.removeChild(cloneChild);
+                         }
+                     }
+                 }
+             });
+
+
+             // Sort nested elements by their original position
              nestedElements.sort((a, b) => a.index - b.index);
-             
-             // Process the basic text content first (excluding nested elements)
-             const textContent = extractListItemTextContent(liClone);
-             
-             // Determine the list item marker
+
+             // --- Process the list item content ---
+
+             let currentContentLines = []; // Store lines for the current list item
+             let hasAddedContent = false; // Track if anything was added for this li
+
+             // 1. Process the direct text content of the list item
+             const directTextContent = extractListItemTextContent(liClone); // Use the helper
              const marker = listType === 'ul' ? '-' : `${itemIndex + 1}.`;
-             const indent = '    '.repeat(level);
-             const textIndent = '    '.repeat(level + 1);
-             
-             // Apply blockquote prefix if needed
-             const bqPrefix = isWithinBlockquote ? '> '.repeat(blockquoteLevel) : '';
-             
-             let hasAddedContent = false;
-             
-             // Add the list item text if it exists
-             if (textContent && textContent.trim()) {
-                 const itemTextLines = textContent.trim().split('\n').filter(line => line.trim());
-                 const formattedText = itemTextLines.map((line, idx) => {
-                     return idx === 0 ? `${bqPrefix}${indent}${marker} ${line}` : `${bqPrefix}${textIndent}${line}`;
-                 }).join('\n');
-                 lines.push(formattedText);
+
+             if (directTextContent) {
+                 const itemTextLines = directTextContent.split('\n');
+                 itemTextLines.forEach((line, idx) => {
+                     if (idx === 0) {
+                         currentContentLines.push(`${bqPrefix}${indent}${marker} ${line}`);
+                     } else {
+                         // Subsequent lines need more indentation
+                         currentContentLines.push(`${bqPrefix}${textIndent}${line}`);
+                     }
+                 });
                  hasAddedContent = true;
              }
-             
-             // Process nested elements in their original order
-             for (const nestedEl of nestedElements) {
+
+             // 2. Process nested elements in their original order
+             nestedElements.forEach(nestedEl => {
                  if (nestedEl.type === 'pre') {
                      const codeItem = processCodeBlock(nestedEl.element);
                      if (codeItem) {
-                         let codeContentLines = [];
+                         if (!hasAddedContent) {
+                             // If this is the first element, add the marker line first
+                             currentContentLines.push(`${bqPrefix}${indent}${marker} `);
+                             hasAddedContent = true; // Marker line counts as content
+                         }
+                         const codeBlockIndent = textIndent; // Code always indented one level deeper
                          const lang = codeItem.language || '';
-                         codeContentLines.push(`\`\`\`${lang}`);
-                         codeContentLines = codeContentLines.concat(codeItem.content.split('\n'));
-                         codeContentLines.push('```');
-                         
-                         const codeBlockIndent = '    '.repeat(level + 1);
-                         const firstCodePrefix = hasAddedContent ? '' : `${marker} `;
-                         const firstCodeIndent = hasAddedContent ? codeBlockIndent : indent;
-                         
-                         const formattedCodeLines = codeContentLines.map((line, idx) => {
-                             if (!hasAddedContent && idx === 0) {
-                                 return `${bqPrefix}${firstCodeIndent}${firstCodePrefix}${line}`;
-                             } else {
-                                 return `${bqPrefix}${codeBlockIndent}${line}`;
-                             }
-                         }).join('\n');
-                         
-                         lines.push(formattedCodeLines);
-                         hasAddedContent = true;
+                         currentContentLines.push(`${bqPrefix}${codeBlockIndent}\`\`\`${lang}`);
+                         codeItem.content.split('\n').forEach(line => {
+                             currentContentLines.push(`${bqPrefix}${codeBlockIndent}${line}`);
+                         });
+                         currentContentLines.push(`${bqPrefix}${codeBlockIndent}\`\`\``);
+                         // hasAddedContent is already true
                      }
                  } else if (nestedEl.type === 'list') {
                      const nestedList = nestedEl.element;
                      const nestedType = nestedList.tagName.toLowerCase();
+                     // Recursive call, passing blockquote context
                      const nestedResult = processList(nestedList, nestedType, level + 1, isWithinBlockquote, blockquoteLevel);
-                     
                      if (nestedResult && nestedResult.content) {
-                         // If this is the first content in the list item, add the list marker
-                         if (!hasAddedContent) {
-                             const firstLine = nestedResult.content.split('\n')[0];
-                             const restLines = nestedResult.content.split('\n').slice(1);
-                             
-                             // Replace indentation with list marker for the first line
-                             const newFirstLine = `${bqPrefix}${indent}${marker} ${firstLine.trim().substring(bqPrefix.length + (level+1)*2)}`;
-                             lines.push(newFirstLine);
-                             
-                             if (restLines.length > 0) {
-                                 lines.push(restLines.join('\n'));
-                             }
-                         } else {
-                             lines.push(nestedResult.content);
-                         }
-                         
-                         hasAddedContent = true;
+                          if (!hasAddedContent) {
+                               // If first element, need to merge marker with first line of nested list
+                               const nestedLines = nestedResult.content.split('\n');
+                               const firstNestedLine = nestedLines[0] || '';
+                               // Extract content after blockquote prefix and list marker/indent
+                               const firstLineContent = firstNestedLine.substring(bqPrefix.length).trim().replace(/^[-*0-9.]+\s+/, '');
+                               currentContentLines.push(`${bqPrefix}${indent}${marker} ${firstLineContent}`);
+                               // Add rest of the lines
+                               currentContentLines.push(...nestedLines.slice(1));
+                               hasAddedContent = true;
+                          } else {
+                              // Append nested list content directly
+                              currentContentLines.push(nestedResult.content);
+                          }
                      }
                  } else if (nestedEl.type === 'blockquote') {
                      const blockquote = nestedEl.element;
-                     
-                     // Skip if already processed
-                     if (blockquote.hasAttribute('data-processed')) {
-                         continue;
-                     }
-                     
-                     // Mark as processed to avoid duplication
-                     blockquote.setAttribute('data-processed', 'true');
-                     
-                     // Process blockquote with special handling for nested list context
-                     // Pass correct indentation level for the list item
-                     const bqContent = processBlockquoteInListV2(blockquote, level, textIndent);
-                     
+                     // Call the main processBlockquote, passing the *current* blockquote level
+                     const bqContent = processBlockquote(blockquote, blockquoteLevel);
                      if (bqContent) {
-                         // If this is the first content, we need to add the list marker
                          if (!hasAddedContent) {
-                             const bqLines = bqContent.split('\n');
-                             const firstLine = bqLines[0];
-                             const restLines = bqLines.slice(1);
-                             
-                             // Add list marker to the first line
-                             // Use proper indentation level for the blockquote marker
-                             const newFirstLine = `${bqPrefix}${indent}${marker} ${firstLine}`;
-                             lines.push(newFirstLine);
-                             
-                             if (restLines.length > 0) {
-                                 lines.push(restLines.join('\n'));
-                             }
-                         } else {
-                             // Add proper indentation to each blockquote line
-                             const bqLines = bqContent.split('\n');
-                             const formattedBqLines = bqLines.map(line => {
-                                 return `${bqPrefix}${textIndent}${line}`;
-                             });
-                             lines.push(formattedBqLines.join('\n'));
+                             // If first element, add marker line first
+                              currentContentLines.push(`${bqPrefix}${indent}${marker} `);
+                              hasAddedContent = true;
                          }
-                         
-                         hasAddedContent = true;
+                         const bqLines = bqContent.split('\n');
+                         // Indent each line of the blockquote content under the list item
+                         bqLines.forEach(line => {
+                             // line already has its '>' prefixes from processBlockquote
+                             // Indent based on list level, preserving existing '>' prefixes
+                             const effectiveLine = line.startsWith(bqPrefix) ? line.substring(bqPrefix.length) : line; // Remove outer bq prefix if present
+                             currentContentLines.push(`${bqPrefix}${textIndent}${effectiveLine}`);
+                         });
+                         // Ensure content is marked as added
+                         if (bqLines.length > 0) hasAddedContent = true;
                      }
                  }
+             });
+
+             // If absolutely nothing was added (e.g., empty <li>), add the marker line
+             if (!hasAddedContent) {
+                  currentContentLines.push(`${bqPrefix}${indent}${marker} `);
+                  hasAddedContent = true; // Mark as added even if just marker
              }
-             
-             // Only increment ordered list index if content was added
+
+             // Add the processed lines for this item to the main lines array
+             lines.push(...currentContentLines);
+
+             // Increment ordered list counter only if content was added
              if (hasAddedContent && listType === 'ol') {
                  itemIndex++;
              }
-             
-             // Clean up temporary attributes
-             originalBlockquotes.forEach(({ element }) => {
-                 element.removeAttribute('data-processed');
-             });
          });
-         
+
+         // Return null if no lines were generated, otherwise return the content item
          return lines.length > 0 ? { type: 'text', content: lines.join('\n') } : null;
      }
 
-    /**
-     * Extract text content from a list item while excluding nested elements
-     */
-    function extractListItemTextContent(liElement) {
-        // Create a clone to avoid modifying the original
-        const clone = liElement.cloneNode(true);
-        
-        // Remove all nested lists, blockquotes, and pre elements
-        const nestedElements = clone.querySelectorAll('ul, ol, blockquote, pre');
-        nestedElements.forEach(el => {
-            if (el.parentNode) {
-                el.parentNode.removeChild(el);
-            }
-        });
-        
-        // Now get the markdown from the cleaned clone
-        return enhancedHtmlToMarkdown(clone, {
-            skipElementCheck: shouldSkipElement
-        }).trim();
-    }
+     /**
+      * Extract text content from a list item while excluding nested elements
+      * that will be processed separately (ul, ol, blockquote, pre).
+      */
+     function extractListItemTextContent(liElement) {
+         // Create a clone to avoid modifying the original
+         const clone = liElement.cloneNode(true);
 
-    /**
-     * Simplified blockquote processing for list items that properly handles indentation
-     * @param {HTMLElement} blockquote - The blockquote element to process
-     * @param {number} listLevel - The indentation level of the parent list
-     * @param {string} indentation - The indentation string to apply to each line
-     * @returns {string} - Formatted blockquote content
-     */
-    function processBlockquoteInListV2(blockquote, listLevel, indentation) {
-        // Process the blockquote content
-        const resultLines = [];
-        
-        // Process child elements in order
-        processBlockquoteChildrenForList(blockquote, resultLines);
-        
-        return resultLines.join('\n');
-    }
-    
-    /**
-     * Helper to process blockquote children for list context
-     * @param {HTMLElement} element - The element to process
-     * @param {Array} resultLines - Array to collect result lines
-     */
-    function processBlockquoteChildrenForList(element, resultLines) {
-        // Process all child nodes to extract content with structure
-        for (const child of element.childNodes) {
-            if (child.nodeType === Node.TEXT_NODE) {
-                const text = child.textContent.trim();
-                if (text) {
-                    resultLines.push(`> ${text}`);
-                }
-            } else if (child.nodeType === Node.ELEMENT_NODE) {
-                const tagName = child.tagName.toLowerCase();
-                
-                if (tagName === 'p') {
-                    // Process paragraphs
-                    const content = enhancedHtmlToMarkdown(child, {
-                        skipElementCheck: shouldSkipElement
-                    }).trim();
-                    
-                    if (content) {
-                        content.split('\n').forEach(line => {
-                            resultLines.push(`> ${line}`);
-                        });
-                    }
-                } else if (tagName === 'pre') {
-                    // Process code blocks inside blockquotes
-                    const codeItem = processCodeBlock(child);
-                    if (codeItem) {
-                        // Add an empty blockquote line before the code block
-                        resultLines.push(`>`);
-                        
-                        // Format code with blockquote prefixes
-                        const lang = codeItem.language || '';
-                        resultLines.push(`> \`\`\`${lang}`);
-                        
-                        const codeLines = codeItem.content.split('\n');
-                        codeLines.forEach(line => {
-                            resultLines.push(`> ${line}`);
-                        });
-                        
-                        resultLines.push(`> \`\`\``);
-                    }
-                } else if (tagName === 'ul' || tagName === 'ol') {
-                    // Process lists inside blockquotes
-                    const isOrderedList = tagName === 'ol';
-                    const listItems = child.querySelectorAll(':scope > li');
-                    let index = 1;
-                    
-                    // Get the 'start' attribute for ordered lists
-                    if (isOrderedList) {
-                        const startAttr = child.getAttribute('start');
-                        if (startAttr) {
-                            const startNum = parseInt(startAttr);
-                            if (!isNaN(startNum) && startNum > 0) {
-                                index = startNum;
-                            }
-                        }
-                    }
-                    
-                    // Process each list item
-                    listItems.forEach(li => {
-                        // Check if the list item contains nested lists
-                        const nestedLists = li.querySelectorAll(':scope > ul, :scope > ol');
-                        
-                        // Get the text content of the list item without nested lists
-                        const liClone = li.cloneNode(true);
-                        nestedLists.forEach(nestedList => {
-                            const correspondingNestedList = liClone.querySelector(`${nestedList.tagName.toLowerCase()}[data-id="${nestedList.getAttribute('data-id')}"]`) || 
-                                                          Array.from(liClone.querySelectorAll(nestedList.tagName.toLowerCase()))
-                                                               .find(el => el.innerHTML === nestedList.innerHTML);
-                            if (correspondingNestedList && correspondingNestedList.parentNode) {
-                                correspondingNestedList.parentNode.removeChild(correspondingNestedList);
-                            }
-                        });
-                        
-                        const itemContent = enhancedHtmlToMarkdown(liClone, {
-                            skipElementCheck: shouldSkipElement
-                        }).trim();
-                        
-                        if (itemContent) {
-                            const marker = isOrderedList ? `${index}.` : '-';
-                            const lines = itemContent.split('\n');
-                            
-                            // First line gets the list marker
-                            resultLines.push(`> ${marker} ${lines[0]}`);
-                            
-                            // Any additional lines get proper indentation
-                            for (let i = 1; i < lines.length; i++) {
-                                resultLines.push(`>     ${lines[i]}`);
-                            }
-                            
-                            // Process nested lists
-                            if (nestedLists.length > 0) {
-                                nestedLists.forEach(nestedList => {
-                                    const nestedTagName = nestedList.tagName.toLowerCase();
-                                    const isNestedOrdered = nestedTagName === 'ol';
-                                    const nestedItems = nestedList.querySelectorAll(':scope > li');
-                                    let nestedIndex = 1;
-                                    
-                                    // Get start attribute for nested ordered lists
-                                    if (isNestedOrdered) {
-                                        const nestedStartAttr = nestedList.getAttribute('start');
-                                        if (nestedStartAttr) {
-                                            const nestedStartNum = parseInt(nestedStartAttr);
-                                            if (!isNaN(nestedStartNum) && nestedStartNum > 0) {
-                                                nestedIndex = nestedStartNum;
-                                            }
-                                        }
-                                    }
-                                    
-                                    // Process each nested list item with proper indentation (increased to 4 spaces)
-                                    nestedItems.forEach(nestedLi => {
-                                        const nestedContent = enhancedHtmlToMarkdown(nestedLi, {
-                                            skipElementCheck: shouldSkipElement
-                                        }).trim();
-                                        
-                                        if (nestedContent) {
-                                            const nestedMarker = isNestedOrdered ? `${nestedIndex}.` : '-';
-                                            const nestedLines = nestedContent.split('\n');
-                                            
-                                            // Add the nested list item with proper indentation (increased to 4 spaces)
-                                            resultLines.push(`>     ${nestedMarker} ${nestedLines[0]}`);
-                                            
-                                            // Add additional lines with even more indentation
-                                            for (let i = 1; i < nestedLines.length; i++) {
-                                                resultLines.push(`>         ${nestedLines[i]}`);
-                                            }
-                                            
-                                            if (isNestedOrdered) {
-                                                nestedIndex++;
-                                            }
-                                        }
-                                    });
-                                });
-                            }
-                            
-                            // Increment counter for ordered lists
-                            if (isOrderedList) {
-                                index++;
-                            }
-                        }
-                    });
-                } else if (tagName === 'blockquote') {
-                    // Handle nested blockquotes - add an extra '>' prefix
-                    const nestedLines = [];
-                    processBlockquoteChildrenForList(child, nestedLines);
-                    
-                    nestedLines.forEach(line => {
-                        resultLines.push(`>${line}`);
-                    });
-                } else {
-                    // Handle other elements
-                    const content = enhancedHtmlToMarkdown(child, {
-                        skipElementCheck: shouldSkipElement
-                    }).trim();
-                    
-                    if (content) {
-                        content.split('\n').forEach(line => {
-                            resultLines.push(`> ${line}`);
-                        });
-                    }
-                }
-            }
-        }
-    }
+         // Remove elements that processList handles separately to avoid duplication
+         const nestedElements = clone.querySelectorAll('ul, ol, blockquote, pre');
+         nestedElements.forEach(el => {
+             if (el.parentNode) {
+                 el.parentNode.removeChild(el);
+             }
+         });
+
+         // Convert the remaining HTML (primarily text and inline formatting) to Markdown
+         return enhancedHtmlToMarkdown(clone, {
+             skipElementCheck: shouldSkipElement // Respect skips for things like images if needed
+         }).trim();
+     }
 
     function processCodeBlock(el) { // Unchanged
         const selectors = window.chatgptConfig.selectors;
@@ -821,7 +511,9 @@
     }
 
     /**
-     * v20: Improved blockquote processing in lists
+     * Processes relevant elements within the assistant's response container.
+     * Groups consecutive standard markdown elements and processes special blocks individually.
+     * v24: Uses updated processBlockquote and processList functions.
      */
      function processRelevantElements(elements, contentItems) {
          const processedElements = new Set();
@@ -831,21 +523,17 @@
              if (consecutiveMdBlockElements.length > 0) {
                  const tempDiv = document.createElement('div');
                  consecutiveMdBlockElements.forEach(el => tempDiv.appendChild(el.cloneNode(true)));
-                 
-                 // Pre-process task lists in the tempDiv before converting to markdown
+
+                 // Pre-process task lists before converting to markdown
                  const taskItems = tempDiv.querySelectorAll('li input[type="checkbox"]');
                  taskItems.forEach(checkbox => {
                      const isChecked = checkbox.checked;
                      const checkboxMd = isChecked ? '[x] ' : '[ ] ';
-                     
-                     // Create a text node with the markdown checkbox syntax
                      const replacementText = document.createTextNode(checkboxMd);
-                     
-                     // Replace the checkbox with our markdown-style checkbox text
                      checkbox.parentNode.insertBefore(replacementText, checkbox);
                      checkbox.parentNode.removeChild(checkbox);
                  });
-                 
+
                  const combinedMarkdown = enhancedHtmlToMarkdown(tempDiv, { skipElementCheck: shouldSkipElement }).trim();
                  if (combinedMarkdown) {
                      QAClipper.Utils.addTextItem(contentItems, combinedMarkdown);
@@ -858,19 +546,15 @@
              if (processedElements.has(element)) return;
 
              const tagNameLower = element.tagName.toLowerCase();
-             const isTableContainer = 
-               tagNameLower === 'table' || 
-               (tagNameLower === 'div' && 
-                 (element.classList.contains('overflow-x-auto') || 
-                  element.classList.contains('tableContainer')) && 
-                 element.querySelector(':scope > table')) ||
-               element.querySelector('.tableContainer > table');
+             const isTableContainer = tagNameLower === 'table' ||
+                                    (tagNameLower === 'div' && (element.classList.contains('overflow-x-auto') || element.classList.contains('tableContainer')) && element.querySelector(':scope > table')) ||
+                                    element.querySelector('.tableContainer > table');
              const tableElement = isTableContainer ? (tagNameLower === 'table' ? element : element.querySelector(':scope > table')) : null;
 
              const isStandardMdBlock = ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'hr'].includes(tagNameLower);
              let handledSeparately = false;
 
-             // --- Handle Special Blocks (Code, Lists, Tables, Blockquotes) ---
+             // --- Handle Special Blocks ---
              if (tagNameLower === 'pre') {
                  flushMdBlock();
                  const item = processCodeBlock(element);
@@ -881,64 +565,36 @@
              }
              else if (tagNameLower === 'ul' || tagNameLower === 'ol') {
                  flushMdBlock();
-                 
-                 // Special handling for task lists (lists with checkboxes)
-                 const hasCheckboxes = element.querySelector('li input[type="checkbox"]') !== null;
-                 
-                 if (hasCheckboxes) {
-                     // Clone the list to avoid modifying the original
-                     const listClone = element.cloneNode(true);
-                     
-                     // Pre-process all checkboxes in the list
-                     const checkboxes = listClone.querySelectorAll('li > input[type="checkbox"]');
-                     checkboxes.forEach(checkbox => {
-                         const isChecked = checkbox.checked;
-                         const checkboxMd = isChecked ? '[x] ' : '[ ] ';
-                         const textNode = document.createTextNode(checkboxMd);
-                         checkbox.parentNode.insertBefore(textNode, checkbox);
-                         checkbox.parentNode.removeChild(checkbox);
-                     });
-                     
-                     // Now process the list with pre-processed checkboxes
-                     const listItem = processList(listClone, tagNameLower, 0, false, 0);
-                     if (listItem) contentItems.push(listItem);
-                 } else {
-                     // Normal list processing
-                     const listItem = processList(element, tagNameLower, 0, false, 0);
-                     if (listItem) contentItems.push(listItem);
-                 }
-                 
+                 // Use the updated processList. It handles checkboxes internally if needed.
+                 // Call with default context (level 0, not inside blockquote)
+                 const listItem = processList(element, tagNameLower, 0, false, 0);
+                 if (listItem) contentItems.push(listItem);
                  processedElements.add(element);
-                 element.querySelectorAll('*').forEach(child => processedElements.add(child));
+                 element.querySelectorAll('*').forEach(child => processedElements.add(child)); // processList handles children
                  handledSeparately = true;
              }
              else if (tableElement) {
-                 flushMdBlock();
-                 // Check if table element itself or its container was already processed (e.g., nested)
-                 if (processedElements.has(element) || processedElements.has(tableElement)) return;
-                 const tableMarkdown = processTableToMarkdown(tableElement);
-                 if (tableMarkdown) {
-                     QAClipper.Utils.addTextItem(contentItems, tableMarkdown);
-                 } else {
-                     console.warn("[Extractor v20] Failed to manually process table to Markdown:", tableElement);
-                 }
-                 processedElements.add(element);
-                 processedElements.add(tableElement);
-                 // Add container and table descendants to processed set
-                 element.querySelectorAll('*').forEach(child => processedElements.add(child));
-                 handledSeparately = true;
+                flushMdBlock();
+                if (processedElements.has(element) || processedElements.has(tableElement)) return;
+                const tableMarkdown = processTableToMarkdown(tableElement);
+                if (tableMarkdown) {
+                    QAClipper.Utils.addTextItem(contentItems, tableMarkdown);
+                } else { console.warn("[Extractor v24] Failed to process table:", tableElement); }
+                processedElements.add(element); // Add container
+                processedElements.add(tableElement); // Add table itself
+                element.querySelectorAll('*').forEach(child => processedElements.add(child)); // Mark all descendants
+                handledSeparately = true;
              }
              else if (tagNameLower === 'blockquote') {
                  flushMdBlock();
                  if (processedElements.has(element)) return;
-                 
-                 // Use the improved blockquote processing function with level 0 for top-level
+                 // Use the updated processBlockquote with nestLevel 0 for top-level
                  const blockquoteMarkdown = processBlockquote(element, 0);
                  if (blockquoteMarkdown) {
                      QAClipper.Utils.addTextItem(contentItems, blockquoteMarkdown);
                  }
                  processedElements.add(element);
-                 element.querySelectorAll('*').forEach(child => processedElements.add(child));
+                 element.querySelectorAll('*').forEach(child => processedElements.add(child)); // processBlockquote handles children
                  handledSeparately = true;
              }
 
@@ -946,25 +602,28 @@
              if (!handledSeparately) {
                  if (isStandardMdBlock) {
                      consecutiveMdBlockElements.push(element);
-                     processedElements.add(element);
+                     processedElements.add(element); // Mark element itself as processed
                  } else {
-                     flushMdBlock();
-                     if (!isTableContainer) {
-                        console.warn(`  -> Fallback [Text Container]: Unhandled element: <${tagNameLower}>`, element);
+                     flushMdBlock(); // Flush any pending standard blocks
+                     // Handle unrecognized elements or containers not processed above
+                     if (!isTableContainer) { // Avoid double logging table containers
+                        console.warn(`  -> [Fallback Text]: Unhandled element: <${tagNameLower}>`, element);
                         const fallbackText = enhancedHtmlToMarkdown(element, { skipElementCheck: shouldSkipElement }).trim();
                         if (fallbackText) {
                             QAClipper.Utils.addTextItem(contentItems, fallbackText);
                         }
                         processedElements.add(element);
+                        // Mark children processed only if using fallback for the container
+                        element.querySelectorAll('*').forEach(child => processedElements.add(child));
                      }
                  }
              }
          });
-         flushMdBlock(); // Final flush
+         flushMdBlock(); // Final flush for any remaining standard blocks
      }
 
     /**
-     * v20: Updated extraction function for better structure preservation
+     * v24: Updated extraction function for structure preservation using refactored processors.
      */
     function extractAssistantContent(turnElement) {
         const contentItems = [];
@@ -1057,8 +716,8 @@
     // --- Main Configuration Object ---
     const chatgptConfig = {
       platformName: 'ChatGPT',
-      version: 23, // v23: Adjusted indentation in lists and blockquotes
-      selectors: { // Updated selectors to include task lists
+      version: 24, // v24: Refactored List/Blockquote Nesting
+      selectors: { // Unchanged selectors
         turnContainer: 'article[data-testid^="conversation-turn-"]',
         userMessageContainer: 'div[data-message-author-role="user"]',
         userText: 'div[data-message-author-role="user"] .whitespace-pre-wrap',
@@ -1109,15 +768,15 @@
           const files = []; const fileContainers = turnElement.querySelectorAll(chatgptConfig.selectors.userFileContainer); fileContainers.forEach(container => { const nameElement = container.querySelector(chatgptConfig.selectors.userFileName); const typeElement = container.querySelector(chatgptConfig.selectors.userFileType); const fileName = nameElement ? nameElement.textContent?.trim() : null; let fileType = typeElement ? typeElement.textContent?.trim() : 'File'; if (fileType && fileType.includes(' ') && !['kB', 'MB', 'GB'].some(unit => fileType.endsWith(unit))) { fileType = fileType.split(' ')[0]; } else if (fileType && ['kB', 'MB', 'GB'].some(unit => fileType.endsWith(unit))) { fileType = 'File'; } if (fileName) { const previewContent = null; files.push({ type: 'file', fileName: fileName, fileType: fileType, isPreviewOnly: !previewContent, extractedContent: previewContent }); } }); return files; },
 
       /**
-       * v21: Updated extraction function with improved blockquote and code block handling
+       * v24: Uses the updated extractAssistantContent structure which relies on refactored processors.
        */
-      extractAssistantContent: extractAssistantContent,
+      extractAssistantContent: extractAssistantContent, // Ensure this points to the outer function
 
     }; // End chatgptConfig
 
 
     // Assign the config object to the window
     window.chatgptConfig = chatgptConfig;
-    console.log("chatgptConfig initialized (v23 - Fixed Indentation in Lists and Blockquotes)");
+    console.log("chatgptConfig initialized (v24 - Refactored List/Blockquote Nesting)");
 
 })();
