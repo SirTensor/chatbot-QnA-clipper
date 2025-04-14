@@ -1,8 +1,8 @@
-// claudeConfig.js (v5 - Table Handling)
+// claudeConfig.js (v6 - Blockquote Support)
 
 (function() {
   // Initialization check to prevent re-running the script if already loaded
-  if (window.claudeConfig && window.claudeConfig.version >= 5) {
+  if (window.claudeConfig && window.claudeConfig.version >= 6) {
     // console.log("Claude config already initialized (v" + window.claudeConfig.version + "), skipping.");
     return;
   }
@@ -26,6 +26,7 @@
            tagNameLower === 'ol' ||
            tagNameLower === 'pre' || // Handled by processCodeBlock
            tagNameLower === 'table' || // Skip tables (handled separately)
+           tagNameLower === 'blockquote' || // Skip blockquotes (handled separately)
            element.closest(selectors.artifactButton); // Check if element is INSIDE an artifact button/cell
   }
 
@@ -34,9 +35,11 @@
    * @param {HTMLElement} el - The <ul> or <ol> element.
    * @param {string} listType - 'ul' or 'ol'.
    * @param {number} [level=0] - The nesting level (for indentation).
+   * @param {boolean} [isWithinBlockquote=false] - Whether the list is within a blockquote.
+   * @param {number} [blockquoteLevel=0] - The nesting level of the parent blockquote.
    * @returns {string} - The Markdown representation of the list. Returns an empty string if the list is empty.
    */
-  function processList(el, listType, level = 0) {
+  function processList(el, listType, level = 0, isWithinBlockquote = false, blockquoteLevel = 0) {
     let lines = [];
     let startNum = 1;
     if (listType === 'ol') {
@@ -44,7 +47,10 @@
       if (isNaN(startNum)) startNum = 1;
     }
     let itemIndex = 0;
-    const indent = '  '.repeat(level); // 2 spaces per level
+    
+    // Calculate indent based on level - 4 spaces per level
+    const indent = '    '.repeat(level);
+    const bqPrefix = isWithinBlockquote ? '> '.repeat(blockquoteLevel) : '';
 
     // Process only direct li children
     el.querySelectorAll(':scope > li').forEach(li => {
@@ -57,38 +63,62 @@
       );
       nestedListsInClone.forEach(list => liClone.removeChild(list));
 
-      // Get the markdown for the li content *without* the nested lists
-      // This should preserve inline formatting like <strong>, <code> etc.
+      // Also find and remove blockquotes to handle them separately
+      const blockquotesInClone = Array.from(liClone.children).filter(child => 
+        child.tagName.toLowerCase() === 'blockquote'
+      );
+      blockquotesInClone.forEach(bq => liClone.removeChild(bq));
+
+      // Get the markdown for the li content *without* the nested lists and blockquotes
       let itemMarkdown = QAClipper.Utils.htmlToMarkdown(liClone, {
         skipElementCheck: shouldSkipElement,
-        // No need to ignore ul/ol here as they were removed from the clone
       }).trim();
 
       // Recursively process the *original* nested lists found directly within the li
-      let nestedListContent = '';
+      let nestedContent = '';
       li.querySelectorAll(':scope > ul, :scope > ol').forEach(nestedList => {
          const nestedListType = nestedList.tagName.toLowerCase();
-         const nestedResult = processList(nestedList, nestedListType, level + 1);
+         // Keep consistent indentation across nested lists
+         const nestedResult = processList(nestedList, nestedListType, level + 1, isWithinBlockquote, blockquoteLevel);
          if (nestedResult) {
              // Add a newline before appending nested list content
-             nestedListContent += '\n' + nestedResult;
+             nestedContent += '\n' + nestedResult;
          }
       });
 
-      // Combine the item markdown and nested list content
-      if (itemMarkdown || nestedListContent.trim()) {
+      // Process any blockquotes within the list item
+      li.querySelectorAll(':scope > blockquote').forEach(bq => {
+        // Process the blockquote, treating it as the first level within this list item context.
+        const bqContent = processBlockquote(bq, 0);
+
+        if (bqContent) {
+          // Calculate the indentation for nested elements within this list item (level + 1).
+          const nestedElementIndent = '    '.repeat(level + 1);
+
+          // Prepend the standard nested indentation to each line of the blockquote content.
+          const indentedBqContent = bqContent.split('\n').map(line =>
+            `${nestedElementIndent}${line}`
+          ).join('\n');
+
+          nestedContent += '\n' + indentedBqContent;
+        }
+      });
+
+      // Combine the item markdown and nested content
+      if (itemMarkdown || nestedContent.trim()) {
         const marker = listType === 'ul' ? '-' : `${startNum + itemIndex}.`;
 
-        // Assemble the line: marker, item content, then nested content
-        let line = `${indent}${marker} ${itemMarkdown}`;
+        // Assemble the line: blockquote prefix (if applicable), indentation, marker, item content.
+        let line = `${bqPrefix}${indent}${marker} ${itemMarkdown}`;
 
         // Append nested list content if it exists
-        if (nestedListContent.trim()) {
-            // If itemMarkdown was empty, avoid extra space after marker
+        if (nestedContent.trim()) {
+            // If itemMarkdown was empty, avoid extra space after marker.
+            // Ensure bqPrefix and indent are still applied.
             if (!itemMarkdown) {
-                line = `${indent}${marker}`;
+                line = `${bqPrefix}${indent}${marker}`;
             }
-            line += nestedListContent; // nestedListContent already starts with \n
+            line += nestedContent; // nestedContent already starts with \n and has prefixes/indentation
         }
 
         // Add the processed line to our list
@@ -166,11 +196,11 @@
    */
   function processTableToMarkdown(tableElement) {
     if (!tableElement || tableElement.tagName.toLowerCase() !== 'table') {
-      console.warn("[Claude Extractor v5] Invalid table element:", tableElement);
+      console.warn("[Claude Extractor v6] Invalid table element:", tableElement);
       return null;
     }
 
-    // console.log("[Claude Extractor v5] Processing table to Markdown");
+    // console.log("[Claude Extractor v6] Processing table to Markdown");
     const markdownRows = [];
     let columnCount = 0;
 
@@ -197,7 +227,7 @@
     }
 
     if (columnCount === 0) {
-      console.warn("[Claude Extractor v5] Table has no header (thead > tr > th). Trying fallback to first row.");
+      console.warn("[Claude Extractor v6] Table has no header (thead > tr > th). Trying fallback to first row.");
       // If there is no header, attempt to use the first row as the header
       const firstRow = tableElement.querySelector(':scope > tbody > tr:first-child');
       if (firstRow) {
@@ -217,7 +247,7 @@
     }
 
     if (columnCount === 0) {
-      console.warn("[Claude Extractor v5] Cannot determine table structure. Skipping.");
+      console.warn("[Claude Extractor v6] Cannot determine table structure. Skipping.");
       return null;
     }
 
@@ -242,14 +272,14 @@
           });
           markdownRows.push(`| ${cellContent.join(' | ')} |`);
         } else {
-          console.warn("[Claude Extractor v5] Table row skipped due to column count mismatch:", cells.length, "vs", columnCount);
+          console.warn("[Claude Extractor v6] Table row skipped due to column count mismatch:", cells.length, "vs", columnCount);
         }
       }
     }
 
     // Check if there is at least a header + separator + data row
     const markdownTable = markdownRows.length > 2 ? markdownRows.join('\n') : null;
-    // console.log("[Claude Extractor v5] Generated Markdown table:", markdownTable);
+    // console.log("[Claude Extractor v6] Generated Markdown table:", markdownTable);
     
     return markdownTable ? { type: 'text', content: markdownTable } : null;
   }
@@ -265,7 +295,7 @@
     const titleElement = artifactCellEl.querySelector(selectors.artifactTitle);
     const title = titleElement ? titleElement.textContent?.trim() : '[Artifact]'; // Default title
 
-    // console.log(`[Claude Extractor v5] Found artifact cell with title: "${title}". Code extraction skipped.`);
+    // console.log(`[Claude Extractor v6] Found artifact cell with title: "${title}". Code extraction skipped.`);
 
     // Return an interactive_block item with only the title
     return {
@@ -276,10 +306,225 @@
     };
   }
 
+  /**
+   * Processes blockquote elements and their child elements
+   * @param {HTMLElement} element - The blockquote element
+   * @param {number} nestLevel - The nesting level of the blockquote (0 for top level)
+   * @returns {string} - Formatted blockquote content with correct '>' prefixes
+   */
+  function processBlockquote(element, nestLevel = 0) {
+    // Create the proper prefix based on nesting level
+    const prefix = '> '.repeat(nestLevel + 1);
+    
+    // Initialize the result array to store all processed content lines
+    const resultLines = [];
+    
+    // Process all child nodes in order to maintain structure
+    const childNodes = Array.from(element.childNodes);
+    
+    // Track if we need to add extra line spacing
+    let previousWasBlock = false;
+    let previousWasNestedBlockquote = false;
+    
+    childNodes.forEach(node => {
+      // Handle text nodes (including whitespace)
+      if (node.nodeType === Node.TEXT_NODE) {
+        const text = node.textContent.trim();
+        if (text) {
+          // If the previous element was a nested blockquote, add an empty line with just the blockquote prefix
+          if (previousWasNestedBlockquote) {
+            resultLines.push(`${prefix}`);
+            previousWasNestedBlockquote = false;
+          }
+          
+          // Only add non-empty text nodes
+          resultLines.push(`${prefix}${text}`);
+          previousWasBlock = false;
+        }
+      }
+      
+      // Handle element nodes
+      else if (node.nodeType === Node.ELEMENT_NODE) {
+        const tagName = node.tagName.toLowerCase();
+        
+        // Handle headings - convert to Markdown style headings
+        if (['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(tagName)) {
+          // Add a blank line before headings if needed
+          if (resultLines.length > 0 && !previousWasBlock) {
+            resultLines.push(`${prefix}`);
+          }
+          
+          // Reset the nested blockquote flag
+          previousWasNestedBlockquote = false;
+          
+          // Extract the heading level number from the tag
+          const level = parseInt(tagName.substring(1));
+          const hashes = '#'.repeat(level);
+          
+          // Extract content without formatting as markdown
+          const headingText = node.textContent.trim();
+          
+          // Format as Markdown heading
+          resultLines.push(`${prefix}${hashes} ${headingText}`);
+          
+          // Add a blank line after the heading
+          resultLines.push(`${prefix}`);
+          previousWasBlock = true;
+        }
+        
+        // Handle paragraphs
+        else if (tagName === 'p') {
+          // If the previous element was a nested blockquote, add an empty line with just the blockquote prefix
+          if (previousWasNestedBlockquote) {
+            resultLines.push(`${prefix}`);
+            previousWasNestedBlockquote = false;
+          }
+          
+          // Add a blank line before paragraphs if needed
+          if (resultLines.length > 0 && !previousWasBlock) {
+            resultLines.push(`${prefix}`);
+          }
+          
+          // Convert paragraph content to markdown
+          const content = QAClipper.Utils.htmlToMarkdown(node, {
+            skipElementCheck: shouldSkipElement
+          }).trim();
+          
+          if (content) {
+            content.split('\n').forEach(line => {
+              resultLines.push(`${prefix}${line}`);
+            });
+            
+            // Add a blank line after paragraphs
+            resultLines.push(`${prefix}`);
+            previousWasBlock = true;
+          }
+        }
+        
+        // Handle code blocks (pre elements)
+        else if (tagName === 'pre') {
+          // Add spacing before code block if needed
+          if (resultLines.length > 0 && !previousWasBlock) {
+            resultLines.push(`${prefix}`);
+          }
+          
+          // Process the code block
+          const codeItem = processCodeBlock(node);
+          if (codeItem) {
+            const lang = codeItem.language || '';
+            
+            // Add proper blockquote formatting to each line of the code block
+            resultLines.push(`${prefix}\`\`\`${lang}`);
+            
+            const codeLines = codeItem.content.split('\n');
+            codeLines.forEach(line => {
+              resultLines.push(`${prefix}${line}`);
+            });
+            
+            resultLines.push(`${prefix}\`\`\``);
+            
+            // Add a blank line after the code block
+            resultLines.push(`${prefix}`);
+            previousWasBlock = true;
+          }
+        }
+        
+        // Handle nested blockquotes
+        else if (tagName === 'blockquote') {
+          // Add spacing before nested blockquote if needed
+          if (resultLines.length > 0 && !previousWasBlock) {
+            resultLines.push(`${prefix}`);
+          }
+          
+          const nestedContent = processBlockquote(node, nestLevel + 1);
+          if (nestedContent) {
+            resultLines.push(nestedContent);
+            previousWasBlock = true;
+            previousWasNestedBlockquote = true;
+          }
+        }
+        
+        // Handle lists
+        else if (tagName === 'ul' || tagName === 'ol') {
+          // If the previous element was a nested blockquote, add an empty line with just the blockquote prefix
+          if (previousWasNestedBlockquote) {
+            resultLines.push(`${prefix}`);
+            previousWasNestedBlockquote = false;
+          }
+
+          // Add spacing before list if needed
+          if (resultLines.length > 0 && !previousWasBlock) {
+            resultLines.push(`${prefix}`);
+          }
+
+          // Process the list: start at level 0 within the blockquote context,
+          // pass isWithinBlockquote=true, and the correct blockquoteLevel.
+          const listResult = processList(node, tagName, 0, true, nestLevel + 1);
+          if (listResult) {
+            // processList already adds the bqPrefix (>), so just push the content.
+            resultLines.push(listResult);
+            previousWasBlock = false;
+          }
+        }
+        
+        // Handle other elements (like spans, strong, etc.)
+        else if (previousWasNestedBlockquote) {
+          resultLines.push(`${prefix}`);
+          previousWasNestedBlockquote = false;
+          
+          const inlineContent = QAClipper.Utils.htmlToMarkdown(node, {
+            skipElementCheck: shouldSkipElement
+          }).trim();
+          
+          if (inlineContent) {
+            inlineContent.split('\n').forEach(line => {
+              resultLines.push(`${prefix}${line}`);
+            });
+            previousWasBlock = false;
+          }
+        }
+        
+        else {
+          const inlineContent = QAClipper.Utils.htmlToMarkdown(node, {
+            skipElementCheck: shouldSkipElement
+          }).trim();
+          
+          if (inlineContent) {
+            inlineContent.split('\n').forEach(line => {
+              resultLines.push(`${prefix}${line}`);
+            });
+            previousWasBlock = false;
+          }
+        }
+      }
+    });
+    
+    // Clean up redundant blank lines
+    const cleanedLines = [];
+    for (let i = 0; i < resultLines.length; i++) {
+      const line = resultLines[i];
+      const isBlankLine = line.trim() === prefix.trim();
+      
+      // Skip consecutive blank lines
+      if (isBlankLine && i > 0 && resultLines[i-1].trim() === prefix.trim()) {
+        continue;
+      }
+      
+      cleanedLines.push(line);
+    }
+    
+    // Remove trailing blank line if exists
+    if (cleanedLines.length > 0 && cleanedLines[cleanedLines.length-1].trim() === prefix.trim()) {
+      cleanedLines.pop();
+    }
+    
+    return cleanedLines.join('\n');
+  }
+
   // --- Main Configuration Object ---
   const claudeConfig = {
     platformName: 'Claude',
-    version: 5, // Update config version identifier
+    version: 6, // Update config version identifier for blockquote support
     selectors: {
       // Container for a single turn (user or assistant)
       turnContainer: 'div[data-test-render-count]',
@@ -296,16 +541,19 @@
 
       // --- Assistant Turn Selectors ---
       assistantMessageContainer: 'div.font-claude-message',
-      // Selector for the grid *inside* a tabindex div (used in v5 logic)
+      // Selector for the grid *inside* a tabindex div (used in v6 logic)
       assistantContentGridInTabindex: ':scope > div.grid-cols-1',
-      // Selector for content elements *inside* the grid (used in v5 logic)
-      assistantContentElementsInGrid: ':scope > :is(p, ol, ul, pre, h1, h2, h3, h4, h5, h6)',
+      // Selector for content elements *inside* the grid (used in v6 logic)
+      assistantContentElementsInGrid: ':scope > :is(p, ol, ul, pre, h1, h2, h3, h4, h5, h6, blockquote)',
 
       // --- Content Block Selectors (within assistant turn) ---
       listItem: 'li',
       codeBlockContainer: 'pre', // Still needed for processCodeBlock if found
       codeBlockContent: 'code[class*="language-"]',
       codeBlockLangIndicator: 'div.text-text-300.absolute',
+      
+      // --- Blockquote Selector ---
+      blockquoteContainer: 'blockquote',
       
       // --- Table Selectors ---
       tableContainer: 'pre.font-styrene', // The pre element containing the table
@@ -331,14 +579,56 @@
     },
 
     extractUserText: (turnElement) => {
-      const textElements = turnElement.querySelectorAll(claudeConfig.selectors.userText);
-      if (!textElements || textElements.length === 0) return null;
-      
-      const lines = Array.from(textElements).map(el => 
-        QAClipper.Utils.htmlToMarkdown(el, { skipElementCheck: shouldSkipElement }).trim()
-      );
-      const combinedText = lines.join('\n'); // Join with a standard newline character
-      return combinedText || null;
+      const userMessageContainer = turnElement.querySelector(claudeConfig.selectors.userMessageContainer);
+      if (!userMessageContainer) return null;
+
+      // Use a similar approach to extractAssistantContent for user messages
+      const contentItems = [];
+      const selectors = claudeConfig.selectors;
+
+      // Process direct children of the user message container
+      const directChildren = Array.from(userMessageContainer.children);
+
+      directChildren.forEach((child) => {
+        const tagNameLower = child.tagName.toLowerCase();
+        let item = null;
+
+        // Handle common block elements like p, ul, ol, blockquote
+        if (tagNameLower === 'p') {
+          const markdownText = QAClipper.Utils.htmlToMarkdown(child, { skipElementCheck: shouldSkipElement }).trim();
+          if (markdownText) QAClipper.Utils.addTextItem(contentItems, markdownText);
+        } else if (tagNameLower === 'ul') {
+          const listMarkdown = processList(child, 'ul', 0);
+          if (listMarkdown) QAClipper.Utils.addTextItem(contentItems, listMarkdown); // Add text content
+        } else if (tagNameLower === 'ol') {
+          const listMarkdown = processList(child, 'ol', 0);
+          if (listMarkdown) QAClipper.Utils.addTextItem(contentItems, listMarkdown); // Add text content
+        } else if (tagNameLower === 'blockquote') {
+          const blockquoteContent = processBlockquote(child, 0);
+          if (blockquoteContent) {
+            QAClipper.Utils.addTextItem(contentItems, blockquoteContent);
+          }
+        } else if (tagNameLower.match(/^h[1-6]$/)) { // Handle headings h1-h6
+            const level = parseInt(tagNameLower.substring(1), 10);
+            const prefix = '#'.repeat(level);
+            const headingText = QAClipper.Utils.htmlToMarkdown(child, { skipElementCheck: shouldSkipElement }).trim();
+            if (headingText) {
+                QAClipper.Utils.addTextItem(contentItems, `${prefix} ${headingText}`);
+            }
+        } else {
+            // For other elements, try a generic conversion
+             const fallbackText = QAClipper.Utils.htmlToMarkdown(child, { skipElementCheck: shouldSkipElement }).trim();
+             if (fallbackText) {
+                 QAClipper.Utils.addTextItem(contentItems, fallbackText);
+             }
+             // Optionally log unhandled tags: console.warn("Unhandled user message tag:", tagNameLower);
+        }
+      });
+
+      // Combine all processed text items into a single string
+      const combinedText = contentItems.map(item => item.content).join('\n\n'); // Add double newline between blocks
+
+      return combinedText.trim() || null;
     },
 
     extractUserUploadedImages: (turnElement) => {
@@ -352,7 +642,7 @@
           let absoluteSrc = src;
           if (src && !src.startsWith('http') && !src.startsWith('blob:') && !src.startsWith('data:')) {
               try { absoluteSrc = new URL(src, window.location.origin).href; }
-              catch (e) { console.error("[Claude Extractor v5] Error creating absolute URL for image:", e, src); }
+              catch (e) { console.error("[Claude Extractor v6] Error creating absolute URL for image:", e, src); }
           }
           if (absoluteSrc && !absoluteSrc.startsWith('blob:') && !absoluteSrc.startsWith('data:')) {
              images.push({ type: 'image', sourceUrl: absoluteSrc, isPreviewOnly: src !== absoluteSrc, extractedContent: alt });
@@ -390,16 +680,16 @@
       const selectors = claudeConfig.selectors;
       const assistantContainer = turnElement.querySelector(selectors.assistantMessageContainer);
       if (!assistantContainer) {
-          console.warn("[Claude Extractor v5] Assistant message container not found.");
+          console.warn("[Claude Extractor v6] Assistant message container not found.");
           return [];
       }
 
-      // console.log(`[Claude Extractor v5] Processing direct children of assistant container.`);
+      // console.log(`[Claude Extractor v6] Processing direct children of assistant container.`);
       const directChildren = Array.from(assistantContainer.children);
 
       directChildren.forEach((child, index) => {
           const tagNameLower = child.tagName.toLowerCase();
-          // console.log(`[Claude Extractor v5] Processing Child #${index}: <${tagNameLower}>`);
+          // console.log(`[Claude Extractor v6] Processing Child #${index}: <${tagNameLower}>`);
           let item = null; // Define item here
 
           // Case 1: Child is a container for text, lists, or code blocks (div with tabindex)
@@ -427,14 +717,15 @@
                   contentElements.forEach(contentElement => {
                       const contentTagName = contentElement.tagName.toLowerCase();
                       // console.log(`    -> Processing Grid Element: <${contentTagName}>`);
+                      
                       if (contentTagName === 'p') {
                           const markdownText = QAClipper.Utils.htmlToMarkdown(contentElement, { skipElementCheck: shouldSkipElement }).trim();
                           if (markdownText) QAClipper.Utils.addTextItem(contentItems, markdownText);
                       } else if (contentTagName === 'ul') {
-                          const listMarkdown = processList(contentElement, 'ul', 0); // Pass level 0
+                          const listMarkdown = processList(contentElement, 'ul', 0); // Pass level 0 for top-level lists
                           if (listMarkdown) contentItems.push({ type: 'text', content: listMarkdown }); // Push result directly
                       } else if (contentTagName === 'ol') {
-                          const listMarkdown = processList(contentElement, 'ol', 0); // Pass level 0
+                          const listMarkdown = processList(contentElement, 'ol', 0); // Pass level 0 for top-level lists
                           if (listMarkdown) contentItems.push({ type: 'text', content: listMarkdown }); // Push result directly
                       } else if (contentTagName === 'pre') {
                           const hasTable = contentElement.querySelector(selectors.tableElement);
@@ -444,6 +735,12 @@
                               item = processCodeBlock(contentElement);
                           }
                           if (item) contentItems.push(item);
+                      } else if (contentTagName === 'blockquote') {
+                          // Process blockquote with new function
+                          const blockquoteContent = processBlockquote(contentElement, 0); // 0 for top level
+                          if (blockquoteContent) {
+                              QAClipper.Utils.addTextItem(contentItems, blockquoteContent);
+                          }
                       } else if (contentTagName.match(/^h[1-6]$/)) { // Handle headings h1-h6
                           const level = parseInt(contentTagName.substring(1), 10);
                           const prefix = '#'.repeat(level);
@@ -463,7 +760,7 @@
                    console.warn("  -> Grid not found inside tabindex div. Trying to process direct content.");
                    // Fallback: If grid is not found, find content elements directly within the tabindex div
                    // Include headings h1-h6 in fallback as well
-                   const directContent = child.querySelectorAll(':scope > :is(p, ol, ul, pre, h1, h2, h3, h4, h5, h6)');
+                   const directContent = child.querySelectorAll(':scope > :is(p, ol, ul, pre, h1, h2, h3, h4, h5, h6, blockquote)');
                    directContent.forEach(contentElement => {
                         const contentTagName = contentElement.tagName.toLowerCase();
                         if (contentTagName === 'p') {
@@ -471,11 +768,11 @@
                             if (markdownText) QAClipper.Utils.addTextItem(contentItems, markdownText);
                         }
                         else if (contentTagName === 'ul') { 
-                            const listMarkdown = processList(contentElement, 'ul', 0); // Pass level 0
+                            const listMarkdown = processList(contentElement, 'ul', 0); // Pass level 0 for top-level lists
                             if (listMarkdown) contentItems.push({ type: 'text', content: listMarkdown }); // Push result directly
                         }
                         else if (contentTagName === 'ol') {
-                            const listMarkdown = processList(contentElement, 'ol', 0); // Pass level 0
+                            const listMarkdown = processList(contentElement, 'ol', 0); // Pass level 0 for top-level lists
                             if (listMarkdown) contentItems.push({ type: 'text', content: listMarkdown }); // Push result directly
                         }
                         else if (contentTagName === 'pre') {
@@ -486,7 +783,15 @@
                                 item = processCodeBlock(contentElement);
                             }
                             if (item) contentItems.push(item);
-                        } else if (contentTagName.match(/^h[1-6]$/)) { // Handle headings h1-h6 in fallback
+                        }
+                        else if (contentTagName === 'blockquote') {
+                            // Process blockquote with new function in fallback path
+                            const blockquoteContent = processBlockquote(contentElement, 0); // 0 for top level
+                            if (blockquoteContent) {
+                                QAClipper.Utils.addTextItem(contentItems, blockquoteContent);
+                            }
+                        } 
+                        else if (contentTagName.match(/^h[1-6]$/)) { // Handle headings h1-h6 in fallback
                             const level = parseInt(contentTagName.substring(1), 10);
                             const prefix = '#'.repeat(level);
                             const headingText = QAClipper.Utils.htmlToMarkdown(contentElement, { 
@@ -517,7 +822,7 @@
           }
       }); // End forEach loop
 
-      // console.log("[Claude Extractor v5] Final assistant contentItems:", JSON.stringify(contentItems, null, 2));
+      // console.log("[Claude Extractor v6] Final assistant contentItems:", JSON.stringify(contentItems, null, 2));
       return contentItems;
     }, // End extractAssistantContent
 
