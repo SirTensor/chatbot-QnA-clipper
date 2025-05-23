@@ -2,8 +2,8 @@
 
 (function() {
     // Initialization check
-    // v24: Refactored List/Blockquote Nesting
-    if (window.chatgptConfig && window.chatgptConfig.version === 24) { return; }
+    // v25: Fixed table structure detection for new _tableContainer_ classes
+    if (window.chatgptConfig && window.chatgptConfig.version === 25) { return; }
 
     // --- Helper Functions ---
 
@@ -557,9 +557,10 @@
 
              const tagNameLower = element.tagName.toLowerCase();
              const isTableContainer = tagNameLower === 'table' ||
-                                    (tagNameLower === 'div' && (element.classList.contains('overflow-x-auto') || element.classList.contains('tableContainer')) && element.querySelector(':scope > table')) ||
-                                    element.querySelector('.tableContainer > table');
-             const tableElement = isTableContainer ? (tagNameLower === 'table' ? element : element.querySelector(':scope > table')) : null;
+                                    (tagNameLower === 'div' && (element.classList.contains('overflow-x-auto') || element.classList.contains('tableContainer') || 
+                                    Array.from(element.classList).some(cls => cls.startsWith('_tableContainer_'))) && element.querySelector(':scope > table, :scope table')) ||
+                                    element.querySelector('.tableContainer > table, [class*="_tableContainer_"] table');
+             const tableElement = isTableContainer ? (tagNameLower === 'table' ? element : (element.querySelector(':scope > table') || element.querySelector('table'))) : null;
 
              const isStandardMdBlock = ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'hr'].includes(tagNameLower);
              let handledSeparately = false;
@@ -726,8 +727,8 @@
     // --- Main Configuration Object ---
     const chatgptConfig = {
       platformName: 'ChatGPT',
-      version: 24, // v24: Refactored List/Blockquote Nesting
-      selectors: { // Unchanged selectors
+      version: 25, // v25: Fixed table structure detection for new _tableContainer_ classes
+      selectors: { // Updated selectors for new table structure
         turnContainer: 'article[data-testid^="conversation-turn-"]',
         userMessageContainer: 'div[data-message-author-role="user"]',
         userText: 'div[data-message-author-role="user"] .whitespace-pre-wrap',
@@ -751,6 +752,7 @@
           div.markdown.prose > table,
           div.markdown.prose > div.overflow-x-auto > table,
           div.markdown.prose div.tableContainer > table,
+          div.markdown.prose > div[class*="_tableContainer_"],
           :scope > pre /* Pre directly under assistant container (less common) */
         `,
         assistantTextContainer: 'div[data-message-author-role="assistant"] .markdown.prose',
@@ -787,6 +789,6 @@
 
     // Assign the config object to the window
     window.chatgptConfig = chatgptConfig;
-    // console.log("chatgptConfig initialized (v24 - Refactored List/Blockquote Nesting)");
+    // console.log("chatgptConfig initialized (v25 - Fixed table structure detection for new _tableContainer_ classes)");
 
 })();
