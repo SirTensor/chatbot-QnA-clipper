@@ -6,7 +6,7 @@
  */
 
 // Import the formatter
-importScripts('formatter.js');
+importScripts('../shared/formatter.js');
 
 // Track the last shortcut trigger time to prevent duplicates
 let lastTriggerTime = 0;
@@ -45,7 +45,7 @@ async function ensureOffscreenDocumentExists() {
   
   // Create the offscreen document
   await chrome.offscreen.createDocument({
-    url: 'offscreen.html',
+    url: 'src/offscreen/offscreen.html',
     reasons: ['CLIPBOARD'],
     justification: 'Write to the clipboard'
   });
@@ -354,9 +354,9 @@ async function ensureContentScriptLoaded(tabId) {
     const coreContentScripts = contentScriptLoaded ? [] : contentScriptDefs[0].js;
     
     // Always inject these scripts to ensure they're available
-    const utilityScripts = ['utils.js']; // utils.js must be loaded first as other scripts depend on it
-    const extractorScripts = ['extractor.js']; // extractor.js should be loaded before platform configs
-    const platformScripts = ['chatgptConfigs.js', 'geminiConfigs.js', 'claudeConfigs.js', 'grokConfigs.js']; // Platform configs
+    const utilityScripts = ['src/shared/utils.js']; // utils.js must be loaded first as other scripts depend on it
+    const extractorScripts = ['src/content/extractor.js']; // extractor.js should be loaded before platform configs
+    const platformScripts = ['src/content/configs/chatgptConfigs.js', 'src/content/configs/geminiConfigs.js', 'src/content/configs/claudeConfigs.js', 'src/content/configs/grokConfigs.js']; // Platform configs
     
     // Combine scripts in a specific order to respect dependencies
     const allScriptsToInject = [
@@ -395,7 +395,7 @@ async function ensureContentScriptLoaded(tabId) {
         }
         
         // For critical scripts, failing is a fatal error
-        const criticalScripts = ['content.js', 'utils.js', 'extractor.js'];
+        const criticalScripts = ['src/content/content.js', 'src/shared/utils.js', 'src/content/extractor.js'];
         if (criticalScripts.includes(script)) {
           throw new Error(`Critical script injection failed (${script}): ${injectionError.message}`);
         } else {

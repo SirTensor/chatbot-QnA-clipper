@@ -19,18 +19,18 @@
     "https://grok.com/*"
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "src/background/background.js"
   },
   "action": {
-    "default_popup": "popup.html",
-    "default_icon": "images/icon128.png"
+    "default_popup": "src/popup/popup.html",
+    "default_icon": "src/assets/images/icon128.png"
   },
   "icons": {
-    "16": "images/icon16.png",
-    "32": "images/icon32.png",
-    "64": "images/icon64.png",
-    "96": "images/icon96.png",
-    "128": "images/icon128.png"
+    "16": "src/assets/images/icon16.png",
+    "32": "src/assets/images/icon32.png",
+    "64": "src/assets/images/icon64.png",
+    "96": "src/assets/images/icon96.png",
+    "128": "src/assets/images/icon128.png"
   },
   "content_scripts": [
     {
@@ -42,11 +42,11 @@
         "https://grok.com/*"
       ],
       "css": [
-        "toast.css"
+        "src/shared/styles/toast.css"
       ],
       "js": [
-        "utils.js",
-        "content.js"
+        "src/shared/utils.js",
+        "src/content/content.js"
       ]
     }
   ],
