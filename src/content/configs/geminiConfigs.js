@@ -2,8 +2,8 @@
 
 (function() {
     // Initialization check
-    // v40: Added artifactType extraction for interactive blocks in Gemini
-    if (window.geminiConfig && window.geminiConfig.version >= 40) { return; }
+    // v41: Updated to skip thinking process and focus only on actual response content
+    if (window.geminiConfig && window.geminiConfig.version >= 41) { return; }
 
     // --- Helper Functions ---
 
@@ -851,7 +851,7 @@
     // --- Main Configuration Object ---
           const geminiConfig = {
         platformName: 'Gemini',
-        version: 40, // v40: Added artifactType extraction for interactive blocks in Gemini
+        version: 41, // v41: Updated to skip thinking process and focus only on actual response content
       selectors: {
         turnContainer: 'user-query, model-response',
         userMessageContainer: 'user-query', userText: '.query-text',
@@ -931,11 +931,32 @@
        * v31: Added handling for all heading tags (h1-h6) and blockquotes.
        * Updated to handle Gemini's response-element and code-block structure.
        * v32: Refactored to use querySelectorAll(relevantBlocks) and processed set for nesting.
+       * v41: Updated to skip thinking process (model-thoughts) and focus only on actual response content.
        */
       extractAssistantContent: (turnElement) => {
           const contentItems = [];
-          const contentArea = turnElement.querySelector(geminiConfig.selectors.assistantContentArea);
-          if (!contentArea) { console.warn("[Extractor v32] Gemini markdown content area not found."); return []; }
+          
+          // v41: First check if there are thinking elements - if so, look for actual response content
+          const thinkingElements = turnElement.querySelectorAll('model-thoughts');
+          let contentArea = null;
+          
+          if (thinkingElements.length > 0) {
+              // When thinking process is visible, look specifically for the actual response content
+              const responseContent = turnElement.querySelector('message-content.model-response-text');
+              if (responseContent) {
+                  contentArea = responseContent.querySelector('div.markdown.markdown-main-panel');
+              }
+              
+              // Fallback: if the above didn't work, try alternative selectors
+              if (!contentArea) {
+                  contentArea = turnElement.querySelector('message-content[class*="model-response-text"] div.markdown');
+              }
+          } else {
+              // Normal case - no thinking process visible
+              contentArea = turnElement.querySelector(geminiConfig.selectors.assistantContentArea);
+          }
+          
+          if (!contentArea) { console.warn("[Extractor v41] Gemini markdown content area not found."); return []; }
 
           // v32: Use querySelectorAll to find all potentially relevant elements, regardless of nesting
           const relevantElements = Array.from(contentArea.querySelectorAll(geminiConfig.selectors.relevantBlocks));
@@ -1087,7 +1108,7 @@
     }; // End geminiConfig
 
     window.geminiConfig = geminiConfig;
-    // console.log("geminiConfig initialized (v40 - Added artifactType extraction for interactive blocks)");
+    // console.log("geminiConfig initialized (v41 - Updated to skip thinking process and focus only on actual response content)");
 
     /**
      * Special fixed version to handle blockquotes with nested lists
