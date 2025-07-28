@@ -750,19 +750,19 @@
           return [];
       }
 
-      // console.log(`[Claude Extractor v6] Processing direct children of assistant container.`);
+      console.log(`[Claude Extractor v6] Processing direct children of assistant container.`);
       const directChildren = Array.from(assistantContainer.children);
 
       directChildren.forEach((child, index) => {
           const tagNameLower = child.tagName.toLowerCase();
-          // console.log(`[Claude Extractor v6] Processing Child #${index}: <${tagNameLower}>`);
+          console.log(`[Claude Extractor v6] Processing Child #${index}: <${tagNameLower}>`);
           let item = null; // Define item here
 
-          // Case 1: Child is a container for text, lists, or code blocks (div with tabindex)
-          if (tagNameLower === 'div' && child.hasAttribute('tabindex')) {
-              // console.log("  -> Handling as Text/List/Code Container (tabindex div)");
-              // Find the grid inside this div
-              const gridInside = child.querySelector(selectors.assistantContentGridInTabindex);
+          // Case 1: Child is a container for text, lists, or code blocks (any div)
+          if (tagNameLower === 'div') {
+              // console.log("  -> Handling as Text/List/Code Container (div)");
+              // Find the grid inside this div - look for grid-cols-1 grid class
+              const gridInside = child.querySelector('div.grid-cols-1.grid, div.grid.grid-cols-1');
               if (gridInside) {
                   // Process existing content elements within the grid
                   const contentElements = gridInside.querySelectorAll(selectors.assistantContentElementsInGrid);
@@ -811,8 +811,8 @@
                       }
                   });
               } else {
-                   console.warn("  -> Grid not found inside tabindex div. Trying to process direct content.");
-                   // Fallback: If grid is not found, find content elements directly within the tabindex div
+                   // console.warn("  -> Grid not found inside div. Trying to process direct content.");
+                   // Fallback: If grid is not found, find content elements directly within the div
                    const directContent = child.querySelectorAll(':scope > :is(p, ol, ul, pre, h1, h2, h3, h4, h5, h6, blockquote)');
                    directContent.forEach(contentElement => {
                         const contentTagName = contentElement.tagName.toLowerCase();
