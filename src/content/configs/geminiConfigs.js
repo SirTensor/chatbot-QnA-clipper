@@ -1,9 +1,9 @@
-// geminiConfigs.js (v34 - Fixed code block language parsing and complex nested structures)
+// geminiConfigs.js (v35 - Fixed code block whitespace preservation)
 
 (function() {
     // Initialization check
-    // v34: Fixed code block language positioning and complex nested blockquote structures
-    if (window.geminiConfig && window.geminiConfig.version >= 34) { return; }
+    // v35: Fixed code block whitespace preservation - removed trim() to preserve meaningful leading spaces
+    if (window.geminiConfig && window.geminiConfig.version >= 35) { return; }
 
     // --- Helper Functions ---
 
@@ -29,7 +29,7 @@
     }
 
     /**
-     * v34: Enhanced code block processing that handles mixed content
+     * v35: Enhanced code block processing that handles mixed content and preserves whitespace
      * @param {HTMLElement} codeEl - The code-block element
      * @returns {Array} - Array of content items (code blocks and text)
      */
@@ -46,7 +46,10 @@
         // Get code content
         const codeElement = codeEl.querySelector('code[data-test-id="code-content"]');
         if (codeElement) {
-            const rawContent = codeElement.textContent?.trim() || '';
+            // v35 Fix: Don't use trim() as it removes meaningful leading/trailing spaces
+            // Only remove leading/trailing newlines while preserving internal spacing
+            let rawContent = codeElement.textContent || '';
+            rawContent = rawContent.replace(/^\n+/, '').replace(/\n+$/, '');
             
             // v34: Handle mixed content - detect if this contains both code and markdown
             if (rawContent.includes('```') && (rawContent.includes('- ') || rawContent.includes('1.'))) {
@@ -67,7 +70,7 @@
                             results.push({
                                 type: 'code_block',
                                 language: language,
-                                content: currentCodeLines.join('\n').trim()
+                                content: currentCodeLines.join('\n')
                             });
                             currentCodeLines = [];
                         }
@@ -83,7 +86,7 @@
                             results.push({
                                 type: 'code_block',
                                 language: language,
-                                content: currentCodeLines.join('\n').trim()
+                                content: currentCodeLines.join('\n')
                             });
                             currentCodeLines = [];
                         }
@@ -119,7 +122,7 @@
                     results.push({
                         type: 'code_block',
                         language: language,
-                        content: currentCodeLines.join('\n').trim()
+                        content: currentCodeLines.join('\n')
                     });
                 }
                 if (currentMarkdownLines.length > 0) {
@@ -823,7 +826,7 @@
     // --- Main Configuration Object ---
           const geminiConfig = {
         platformName: 'Gemini',
-        version: 34, // v34: Enhanced mixed content processing - handles code+markdown in single blocks
+        version: 35, // v35: Fixed code block whitespace preservation - removed trim() to preserve meaningful leading spaces
       selectors: {
         turnContainer: 'user-query, model-response',
         userMessageContainer: 'user-query', userText: '.query-text',
@@ -1045,7 +1048,7 @@
     }; // End geminiConfig
 
     window.geminiConfig = geminiConfig;
-    // console.log("geminiConfig initialized (v34 - Enhanced mixed content processing and complex nested structures)");
+    // console.log("geminiConfig initialized (v35 - Fixed code block whitespace preservation)");
 
     /**
      * Special fixed version to handle blockquotes with nested lists
