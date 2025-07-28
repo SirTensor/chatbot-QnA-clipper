@@ -608,7 +608,7 @@
       // Selector for the grid *inside* a tabindex div (used in v6 logic)
       assistantContentGridInTabindex: ':scope > div.grid-cols-1',
       // Selector for content elements *inside* the grid (used in v6 logic)
-      assistantContentElementsInGrid: ':scope > :is(p, ol, ul, pre, h1, h2, h3, h4, h5, h6, blockquote)',
+      assistantContentElementsInGrid: ':scope > :is(p, ol, ul, pre, h1, h2, h3, h4, h5, h6, blockquote, div)',
 
       // --- Content Block Selectors (within assistant turn) ---
       listItem: 'li',
@@ -806,6 +806,36 @@
                           if (headingText) {
                               QAClipper.Utils.addTextItem(contentItems, `${prefix} ${headingText}`);
                           }
+                      } else if (contentTagName === 'div') {
+                          // Check if this div is a code block container
+                          // Look for the pattern: div.relative with pre element inside
+                          if (contentElement.classList.contains('relative') || 
+                              contentElement.querySelector('pre.code-block__code') ||
+                              contentElement.querySelector('pre[class*="code-block"]')) {
+                              
+                              // Find the pre element inside this container (may be nested in another div)
+                              const preElement = contentElement.querySelector('pre');
+                              if (preElement) {
+                                  // Check if the pre element contains a table first
+                                  const tableElement = preElement.querySelector(selectors.tableElement);
+                                  if (tableElement) {
+                                      // Process as a table if found
+                                      item = processTableToMarkdown(tableElement);
+                                  } else {
+                                      // Process as a code block if no table is found
+                                      item = processCodeBlock(preElement);
+                                  }
+                                  if (item) contentItems.push(item);
+                              } else {
+                                  // console.log(`    -> Code block container div found but no pre element inside`);
+                              }
+                          } else {
+                              // For other divs, try generic markdown conversion
+                              const divMarkdown = QAClipper.Utils.htmlToMarkdown(contentElement, { skipElementCheck: shouldSkipElement }).trim();
+                              if (divMarkdown) {
+                                  QAClipper.Utils.addTextItem(contentItems, divMarkdown);
+                              }
+                          }
                       } else {
                           // console.log(`    -> Skipping unhandled grid element: <${contentTagName}>`);
                       }
@@ -813,7 +843,7 @@
               } else {
                    // console.warn("  -> Grid not found inside div. Trying to process direct content.");
                    // Fallback: If grid is not found, find content elements directly within the div
-                   const directContent = child.querySelectorAll(':scope > :is(p, ol, ul, pre, h1, h2, h3, h4, h5, h6, blockquote)');
+                   const directContent = child.querySelectorAll(':scope > :is(p, ol, ul, pre, h1, h2, h3, h4, h5, h6, blockquote, div)');
                    directContent.forEach(contentElement => {
                         const contentTagName = contentElement.tagName.toLowerCase();
                         if (contentTagName === 'p') {
@@ -854,6 +884,37 @@
                             }).trim();
                             if (headingText) {
                                 QAClipper.Utils.addTextItem(contentItems, `${prefix} ${headingText}`);
+                            }
+                        }
+                        else if (contentTagName === 'div') {
+                            // Check if this div is a code block container (fallback path)
+                            // Look for the pattern: div.relative with pre element inside
+                            if (contentElement.classList.contains('relative') || 
+                                contentElement.querySelector('pre.code-block__code') ||
+                                contentElement.querySelector('pre[class*="code-block"]')) {
+                                
+                                // Find the pre element inside this container (may be nested in another div)
+                                const preElement = contentElement.querySelector('pre');
+                                if (preElement) {
+                                    // Check if the pre element contains a table first
+                                    const tableElement = preElement.querySelector(selectors.tableElement);
+                                    if (tableElement) {
+                                        // Process as a table if found
+                                        item = processTableToMarkdown(tableElement);
+                                    } else {
+                                        // Process as a code block if no table is found
+                                        item = processCodeBlock(preElement);
+                                    }
+                                    if (item) contentItems.push(item);
+                                } else {
+                                    // console.log(`    -> Code block container div found but no pre element inside (fallback)`);
+                                }
+                            } else {
+                                // For other divs, try generic markdown conversion
+                                const divMarkdown = QAClipper.Utils.htmlToMarkdown(contentElement, { skipElementCheck: shouldSkipElement }).trim();
+                                if (divMarkdown) {
+                                    QAClipper.Utils.addTextItem(contentItems, divMarkdown);
+                                }
                             }
                         }
                    });
