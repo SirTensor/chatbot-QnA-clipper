@@ -1,9 +1,9 @@
-// geminiConfigs.js (v33 - Fixed List Item Multi-paragraph Indentation)
+// geminiConfigs.js (v34 - Fixed code block language parsing and complex nested structures)
 
 (function() {
     // Initialization check
-    // v33: Fixed list item processing to properly indent multiple paragraphs within list items
-    if (window.geminiConfig && window.geminiConfig.version >= 33) { return; }
+    // v34: Fixed code block language positioning and complex nested blockquote structures
+    if (window.geminiConfig && window.geminiConfig.version >= 34) { return; }
 
     // --- Helper Functions ---
 
@@ -26,6 +26,121 @@
              tagNameLower === 'blockquote' || // Skip blockquotes for dedicated processing
              tagNameLower === 'response-element' || // Skip response-element for dedicated processing
              tagNameLower === 'table'; // Skip table at top level
+    }
+
+    /**
+     * v34: Enhanced code block processing that handles mixed content
+     * @param {HTMLElement} codeEl - The code-block element
+     * @returns {Array} - Array of content items (code blocks and text)
+     */
+    function processEnhancedCodeBlock(codeEl) {
+        const results = [];
+        let language = null;
+        
+        // Get language from decoration if available
+        const langElement = codeEl.querySelector('.code-block-decoration > span');
+        if (langElement) {
+            language = langElement.textContent?.trim();
+        }
+        
+        // Get code content
+        const codeElement = codeEl.querySelector('code[data-test-id="code-content"]');
+        if (codeElement) {
+            const rawContent = codeElement.textContent?.trim() || '';
+            
+            // v34: Handle mixed content - detect if this contains both code and markdown
+            if (rawContent.includes('```') && (rawContent.includes('- ') || rawContent.includes('1.'))) {
+                // This is mixed content, need to split it properly
+                const lines = rawContent.split('\n');
+                let currentCodeLines = [];
+                let currentMarkdownLines = [];
+                let inCodeBlock = true; // Start assuming we're in code
+                
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i];
+                    const trimmedLine = line.trim();
+                    
+                    // Check for transitions
+                    if (trimmedLine === '```') {
+                        // End of current code block
+                        if (currentCodeLines.length > 0) {
+                            results.push({
+                                type: 'code_block',
+                                language: language,
+                                content: currentCodeLines.join('\n').trim()
+                            });
+                            currentCodeLines = [];
+                        }
+                        inCodeBlock = false;
+                        continue;
+                    }
+                    
+                    // Check for start of markdown list
+                    if (trimmedLine.match(/^-\s/) || trimmedLine.match(/^\d+\.\s/)) {
+                        // This is markdown content
+                        if (currentCodeLines.length > 0 && inCodeBlock) {
+                            // Save current code block
+                            results.push({
+                                type: 'code_block',
+                                language: language,
+                                content: currentCodeLines.join('\n').trim()
+                            });
+                            currentCodeLines = [];
+                        }
+                        inCodeBlock = false;
+                        currentMarkdownLines.push(line);
+                        continue;
+                    }
+                    
+                    // Check for return to code (```python or similar)
+                    if (trimmedLine.match(/^```\w+$/)) {
+                        // Save accumulated markdown
+                        if (currentMarkdownLines.length > 0) {
+                            results.push({
+                                type: 'text',
+                                content: currentMarkdownLines.join('\n').trim()
+                            });
+                            currentMarkdownLines = [];
+                        }
+                        inCodeBlock = true;
+                        continue;
+                    }
+                    
+                    // Accumulate content based on current mode
+                    if (inCodeBlock) {
+                        currentCodeLines.push(line);
+                    } else {
+                        currentMarkdownLines.push(line);
+                    }
+                }
+                
+                // Handle remaining content
+                if (currentCodeLines.length > 0) {
+                    results.push({
+                        type: 'code_block',
+                        language: language,
+                        content: currentCodeLines.join('\n').trim()
+                    });
+                }
+                if (currentMarkdownLines.length > 0) {
+                    results.push({
+                        type: 'text',
+                        content: currentMarkdownLines.join('\n').trim()
+                    });
+                }
+            } else {
+                // Simple case - just code content
+                if (rawContent) {
+                    results.push({
+                        type: 'code_block',
+                        language: language,
+                        content: rawContent
+                    });
+                }
+            }
+        }
+        
+        return results.length > 0 ? results : [null];
     }
 
     /**
@@ -132,51 +247,47 @@
             // 3. Process code blocks within this list item
             if (codeBlocks.length > 0) {
                 codeBlocks.forEach((codeEl, idx) => {
-                    let codeItem = null;
+                    // v34: Use enhanced code block processing (now returns array)
+                    const codeItems = processEnhancedCodeBlock(codeEl);
                     
-                    // Check if it's a Gemini code-block element or a regular pre element
-                    if (codeEl.tagName.toLowerCase() === 'code-block') {
-                        // Process Gemini-specific code block
-                        // Find language indicator and code content
-                        const langElement = codeEl.querySelector('.code-block-decoration > span');
-                        const language = langElement ? langElement.textContent?.trim() : null;
+                    codeItems.forEach(codeItem => {
+                        if (!codeItem) return;
                         
-                        const codeElement = codeEl.querySelector('code[data-test-id="code-content"]');
-                        const codeContent = codeElement ? codeElement.textContent?.trim() : '';
-                        
-                        if (codeContent) {
-                            codeItem = { 
-                                type: 'code_block', 
-                                language: language, 
-                                content: codeContent
-                            };
-                        }
-                    } else {
-                        // Use regular process for pre elements
-                        codeItem = processCodeBlock(codeEl);
-                    }
-                    
-                    if (codeItem) {
-                        // Format code block with proper indentation
-                        let codeContentLines = [];
-                        const lang = codeItem.language || '';
-                        codeContentLines.push(`\`\`\`${lang}`);
-                        codeContentLines = codeContentLines.concat(codeItem.content.split('\n'));
-                        codeContentLines.push('```');
+                        if (codeItem.type === 'code_block') {
+                            // Format code block with proper indentation
+                            let codeContentLines = [];
+                            const lang = codeItem.language || '';
+                            codeContentLines.push(`\`\`\`${lang}`);
+                            codeContentLines = codeContentLines.concat(codeItem.content.split('\n'));
+                            codeContentLines.push('```');
 
-                        // Add the list marker line ONLY if no direct content was added before.
-                        // This ensures the marker appears if the code block is the very first item.
-                        if (!contentAdded) {
-                             lines.push(`${indent}${marker} `); // Add marker on its own line
-                             contentAdded = true; // Mark that *some* content (the marker) exists for the li
-                        }
+                            // Add the list marker line ONLY if no direct content was added before.
+                            if (!contentAdded) {
+                                 lines.push(`${indent}${marker} `); // Add marker on its own line
+                                 contentAdded = true;
+                            }
 
-                        // Indent and add all code block lines using nestedIndent (4 spaces relative)
-                        codeContentLines.forEach(line => {
-                            lines.push(`${nestedIndent}${line}`);
-                        });
-                        // No need to set contentAdded = true here, it was handled above or by directContent.
-                    }
+                            // Indent and add all code block lines using nestedIndent
+                            codeContentLines.forEach(line => {
+                                lines.push(`${nestedIndent}${line}`);
+                            });
+                        } else if (codeItem.type === 'text') {
+                            // Handle extracted markdown content
+                            const textLines = codeItem.content.split('\n');
+                            
+                            if (!contentAdded) {
+                                lines.push(`${indent}${marker} ${textLines[0]}`);
+                                for (let i = 1; i < textLines.length; i++) {
+                                    lines.push(`${nestedIndent}${textLines[i]}`);
+                                }
+                                contentAdded = true;
+                            } else {
+                                textLines.forEach(line => {
+                                    lines.push(`${nestedIndent}${line}`);
+                                });
+                            }
+                        }
+                    });
                 });
             }
             
@@ -286,80 +397,120 @@
         });
     }
     
-    /**
-     * Process nested blockquotes within list items or other blockquotes.
-     * Handles nested lists recursively using processListInsideBlockquote.
+        /**
+     * v34: Enhanced blockquote processing that handles complex nested structures
+     * Handles nested lists, code blocks, and other blockquotes recursively
      * @param {HTMLElement} blockquote - The blockquote element 
      * @returns {string} - The processed blockquote content with proper markers and nesting.
      */
     function processNestedBlockquote(blockquote) {
         const lines = [];
-        // Use a Map within this scope to track processed lists for the helper
-        const processedElements = new Map(); 
-    
+        const processedElements = new Set(); // Track processed elements to avoid duplication
+
         Array.from(blockquote.childNodes).forEach(node => {
             if (node.nodeType === Node.TEXT_NODE) {
                 const text = node.textContent.trim();
-                // Add blockquote marker only if text exists
                 if (text) lines.push(`> ${text}`); 
             } else if (node.nodeType === Node.ELEMENT_NODE) {
+                if (processedElements.has(node)) return; // Skip if already processed
+                
                 const tagName = node.tagName.toLowerCase();
-    
+
                 if (tagName === 'blockquote') {
                     // Handle nested blockquotes recursively
-                    const nestedContent = processNestedBlockquote(node); // Recursive call
+                    const nestedContent = processNestedBlockquote(node);
                     if (nestedContent) {
-                        // Prepend '>' to each line of the nested blockquote content
                         nestedContent.split('\n').forEach(line => lines.push(`>${line}`)); 
                     }
-                } else if (tagName === 'ul' || tagName === 'ol') {
-                    // Use the new helper function for lists, starting at level 0
-                    processListInsideBlockquote(node, lines, 0, processedElements); 
-                } else {
-                    // Handle paragraphs and other elements within the blockquote
+                    processedElements.add(node);
+                } 
+                else if (tagName === 'ul' || tagName === 'ol') {
+                    // v34: Enhanced list processing within blockquotes
+                    const listResult = processList(node, tagName, 0);
+                    if (listResult && listResult.content) {
+                        // Add blockquote markers to each line of the list
+                        listResult.content.split('\n').forEach(line => {
+                            lines.push(`> ${line}`);
+                        });
+                    }
+                    processedElements.add(node);
+                }
+                else if (tagName === 'response-element') {
+                    // v34: Handle response-element containing code blocks
+                    const codeBlocks = node.querySelectorAll('code-block');
+                    codeBlocks.forEach(codeBlock => {
+                        const codeItems = processEnhancedCodeBlock(codeBlock);
+                        codeItems.forEach(codeItem => {
+                            if (!codeItem) return;
+                            
+                            if (codeItem.type === 'code_block') {
+                                const lang = codeItem.language || '';
+                                lines.push(`> \`\`\`${lang}`);
+                                codeItem.content.split('\n').forEach(codeLine => {
+                                    lines.push(`> ${codeLine}`);
+                                });
+                                lines.push(`> \`\`\``);
+                            } else if (codeItem.type === 'text') {
+                                codeItem.content.split('\n').forEach(textLine => {
+                                    lines.push(`> ${textLine}`);
+                                });
+                            }
+                        });
+                        processedElements.add(codeBlock);
+                    });
+                    processedElements.add(node);
+                }
+                else if (tagName === 'code-block') {
+                    // v34: Direct code block processing
+                    const codeItems = processEnhancedCodeBlock(node);
+                    codeItems.forEach(codeItem => {
+                        if (!codeItem) return;
+                        
+                        if (codeItem.type === 'code_block') {
+                            const lang = codeItem.language || '';
+                            lines.push(`> \`\`\`${lang}`);
+                            codeItem.content.split('\n').forEach(codeLine => {
+                                lines.push(`> ${codeLine}`);
+                            });
+                            lines.push(`> \`\`\``);
+                        } else if (codeItem.type === 'text') {
+                            codeItem.content.split('\n').forEach(textLine => {
+                                lines.push(`> ${textLine}`);
+                            });
+                        }
+                    });
+                    processedElements.add(node);
+                }
+                else {
+                    // Handle paragraphs and other elements
                     const content = QAClipper.Utils.htmlToMarkdown(node, { 
-                        // Ignore tags handled separately to avoid duplication
-                        ignoreTags: ['blockquote', 'ul', 'ol'] 
+                        skipElementCheck: (el) => processedElements.has(el),
+                        ignoreTags: ['blockquote', 'ul', 'ol', 'response-element', 'code-block'] 
                     }).trim(); 
                     if (content) {
-                        // Add blockquote marker to each line of the content
                         content.split('\n').forEach(line => lines.push(`> ${line}`));
                     }
+                    processedElements.add(node);
                 }
             }
         });
-    
-        // Basic cleanup: Remove potential duplicate empty '> ' lines if they occur consecutively
+
+        // Clean up consecutive empty markers
         const cleanedLines = [];
         let lastLineWasEmptyMarker = false;
         for (const line of lines) {
-            // Check if the line contains only '>' and potentially whitespace
             const isEmptyMarker = line.trim() === '>'; 
             if (!(isEmptyMarker && lastLineWasEmptyMarker)) {
                 cleanedLines.push(line);
             }
             lastLineWasEmptyMarker = isEmptyMarker;
         }
-       // Remove leading/trailing empty markers more robustly
-       while (cleanedLines.length > 0 && cleanedLines[0].trim() === '>') cleanedLines.shift();
-       while (cleanedLines.length > 0 && cleanedLines[cleanedLines.length - 1].trim() === '>') cleanedLines.pop();
-    
-        return cleanedLines.join('\n');
-    }
+        
+        // Remove leading/trailing empty markers
+        while (cleanedLines.length > 0 && cleanedLines[0].trim() === '>') cleanedLines.shift();
+        while (cleanedLines.length > 0 && cleanedLines[cleanedLines.length - 1].trim() === '>') cleanedLines.pop();
 
-    /**
-     * Processes code block elements into a structured object.
-     * @param {HTMLElement} el - The code-block element.
-     * @returns {object|null} - A code_block content item or null.
-     */
-    function processCodeBlock(el) {
-        const contentSelector = geminiConfig.selectors.codeBlockContent || 'pre>code';
-        const langSelector = geminiConfig.selectors.codeBlockLangIndicator || 'div.code-block-decoration>span';
-        const codeElement = el.querySelector(contentSelector);
-        const code = codeElement ? (codeElement.innerText || codeElement.textContent || '') : '';
-        const langElement = el.querySelector(langSelector);
-        const language = langElement ? langElement.textContent?.trim() : null;
-        return code.trim() ? { type: 'code_block', language: language, content: code.trim() } : null;
+        return cleanedLines.join('\n');
     }
 
     /**
@@ -670,9 +821,9 @@
     }
 
     // --- Main Configuration Object ---
-    const geminiConfig = {
-      platformName: 'Gemini',
-      version: 33, // v33: Fixed list item multi-paragraph indentation
+          const geminiConfig = {
+        platformName: 'Gemini',
+        version: 34, // v34: Enhanced mixed content processing - handles code+markdown in single blocks
       selectors: {
         turnContainer: 'user-query, model-response',
         userMessageContainer: 'user-query', userText: '.query-text',
@@ -809,17 +960,20 @@
                   element.querySelectorAll('*').forEach(child => processedElements.add(child));
               }
               else if (isBlockquote) {
-                  // processNestedBlockquote handles its own children
+                  // v34: Enhanced blockquote processing with better nested structure handling
                   const blockquoteMarkdown = processNestedBlockquote(element);
                   if (blockquoteMarkdown) {
                       QAClipper.Utils.addTextItem(contentItems, blockquoteMarkdown);
                   }
                   processedElements.add(element);
+                  // Mark all descendants as processed since processNestedBlockquote handles them comprehensively
                   element.querySelectorAll('*').forEach(child => processedElements.add(child));
               }
               else if (isCodeBlock) { // Direct code-block element
-                  item = processCodeBlock(element);
-                  if (item) contentItems.push(item);
+                  const items = processEnhancedCodeBlock(element);
+                  items.forEach(item => {
+                      if (item) contentItems.push(item);
+                  });
                   processedElements.add(element);
                   element.querySelectorAll('*').forEach(child => processedElements.add(child));
               }
@@ -828,13 +982,13 @@
                   const codeBlocks = element.querySelectorAll('code-block');
                   codeBlocks.forEach(codeBlock => {
                       if (processedElements.has(codeBlock)) return; // Skip if already processed
-                      const codeItem = processCodeBlock(codeBlock);
-                      if (codeItem) contentItems.push(codeItem);
+                      const codeItems = processEnhancedCodeBlock(codeBlock);
+                      codeItems.forEach(codeItem => {
+                          if (codeItem) contentItems.push(codeItem);
+                      });
                       processedElements.add(codeBlock);
                       codeBlock.querySelectorAll('*').forEach(child => processedElements.add(child));
                   });
-                  // Add other content from response-element if needed (optional)
-                  // For now, primarily focused on the code-block within it.
                   processedElements.add(element); // Mark the response-element itself as processed
               }
               else if (isInteractiveBlock) { // v32: Explicit check using the selector
@@ -891,7 +1045,7 @@
     }; // End geminiConfig
 
     window.geminiConfig = geminiConfig;
-    // console.log("geminiConfig initialized (v33 - Fixed list item multi-paragraph indentation)");
+    // console.log("geminiConfig initialized (v34 - Enhanced mixed content processing and complex nested structures)");
 
     /**
      * Special fixed version to handle blockquotes with nested lists
