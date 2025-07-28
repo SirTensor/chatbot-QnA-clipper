@@ -2,8 +2,8 @@
 
 (function() {
     // Initialization check
-    // v25: Fixed table structure detection for new _tableContainer_ classes
-    if (window.chatgptConfig && window.chatgptConfig.version === 25) { return; }
+    // v26: Enhanced user text extraction to properly handle code blocks
+    if (window.chatgptConfig && window.chatgptConfig.version === 26) { return; }
 
     // --- Helper Functions ---
 
@@ -727,7 +727,7 @@
     // --- Main Configuration Object ---
     const chatgptConfig = {
       platformName: 'ChatGPT',
-      version: 25, // v25: Fixed table structure detection for new _tableContainer_ classes
+      version: 26, // v26: Enhanced user text extraction to properly handle code blocks
       selectors: { // Updated selectors for new table structure
         turnContainer: 'article[data-testid^="conversation-turn-"]',
         userMessageContainer: 'div[data-message-author-role="user"]',
@@ -772,8 +772,52 @@
       // --- Extraction Functions ---
       getRole: (turnElement) => { /* Unchanged */
           const messageElement = turnElement.querySelector(':scope div[data-message-author-role]'); return messageElement ? messageElement.getAttribute('data-message-author-role') : null; },
-      extractUserText: (turnElement) => { /* Unchanged */
-          const textElement = turnElement.querySelector(chatgptConfig.selectors.userText); return textElement ? QAClipper.Utils.htmlToMarkdown(textElement, { skipElementCheck: shouldSkipElement }).trim() || null : null; },
+      extractUserText: (turnElement) => {
+          const textElement = turnElement.querySelector(chatgptConfig.selectors.userText);
+          if (!textElement) return null;
+
+          // Process user content similar to assistant content to handle code blocks
+          const contentItems = [];
+          
+          // Clone the element to avoid modifying the original
+          const clone = textElement.cloneNode(true);
+          
+          // Process code blocks first
+          const codeBlocks = Array.from(clone.querySelectorAll('pre'));
+          codeBlocks.forEach(preElement => {
+              const codeElement = preElement.querySelector('code');
+              if (codeElement) {
+                  let codeContent = codeElement.textContent.trim();
+                  let language = null;
+                  
+                  // Extract language from the first line if it looks like a language identifier
+                  const lines = codeContent.split('\n');
+                  if (lines.length > 1 && lines[0].trim().match(/^[a-zA-Z]+$/)) {
+                      language = lines[0].trim();
+                      codeContent = lines.slice(1).join('\n').trim();
+                  }
+                  
+                  // Add code block to content items
+                  const codeMarkdown = language ? `\`\`\`${language}\n${codeContent}\n\`\`\`` : `\`\`\`\n${codeContent}\n\`\`\``;
+                  QAClipper.Utils.addTextItem(contentItems, codeMarkdown);
+                  
+                  // Remove the processed pre element from the clone
+                  preElement.remove();
+              }
+          });
+          
+          // Process remaining text content (after removing code blocks)
+          const remainingText = QAClipper.Utils.htmlToMarkdown(clone, { 
+              skipElementCheck: shouldSkipElement 
+          }).trim();
+          
+          if (remainingText) {
+              QAClipper.Utils.addTextItem(contentItems, remainingText);
+          }
+          
+          // Combine all content items into a single text
+          return contentItems.length > 0 ? contentItems.map(item => item.content).join('\n\n') : null;
+      },
       extractUserUploadedImages: (turnElement) => { /* Unchanged */
           const images = []; const imageElements = turnElement.querySelectorAll(chatgptConfig.selectors.userImageContainer); imageElements.forEach(imgElement => { const src = imgElement.getAttribute('src'); if (src && !src.startsWith('data:') && !src.startsWith('blob:')) { let altText = imgElement.getAttribute('alt')?.trim(); const extractedContent = altText && altText !== "업로드한 이미지" ? altText : "User Uploaded Image"; try { const absoluteSrc = new URL(src, window.location.origin).href; images.push({ type: 'image', sourceUrl: absoluteSrc, isPreviewOnly: false, extractedContent: extractedContent }); } catch (e) { console.error("[Extractor v21] Error parsing user image URL:", e, src); } } }); return images; },
       extractUserUploadedFiles: (turnElement) => { /* Unchanged */
@@ -789,6 +833,6 @@
 
     // Assign the config object to the window
     window.chatgptConfig = chatgptConfig;
-    // console.log("chatgptConfig initialized (v25 - Fixed table structure detection for new _tableContainer_ classes)");
+    // console.log("chatgptConfig initialized (v26 - Enhanced user text extraction to properly handle code blocks)");
 
 })();
