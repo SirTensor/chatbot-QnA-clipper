@@ -1,9 +1,9 @@
-// geminiConfigs.js (v31 - All Headings Support Simplified)
+// geminiConfigs.js (v33 - Fixed List Item Multi-paragraph Indentation)
 
 (function() {
     // Initialization check
-    // v31: Increment version number and add h1-h6 support
-    if (window.geminiConfig && window.geminiConfig.version >= 31) { return; }
+    // v33: Fixed list item processing to properly indent multiple paragraphs within list items
+    if (window.geminiConfig && window.geminiConfig.version >= 33) { return; }
 
     // --- Helper Functions ---
 
@@ -90,8 +90,16 @@
             
             // 1. Process direct content first (if any)
             if (directContent) {
-                lines.push(`${indent}${marker} ${directContent}`);
-                contentAdded = true;
+                const contentLines = directContent.split('\n');
+                if (contentLines.length > 0) {
+                    // First line with marker
+                    lines.push(`${indent}${marker} ${contentLines[0]}`);
+                    // Remaining lines with nested indentation
+                    for (let i = 1; i < contentLines.length; i++) {
+                        lines.push(`${nestedIndent}${contentLines[i]}`);
+                    }
+                    contentAdded = true;
+                }
             }
             
             // 2. Process blockquotes - maintain proper indentation and list structure
@@ -389,6 +397,7 @@
     /**
      * v30: Manually processes an HTML table element into a Markdown table string.
      * Added logic to skip tbody header row during data processing.
+     * v32: Fixed to recognize td elements in thead as headers (Gemini uses td instead of th in thead).
      * @param {HTMLTableElement} tableElement - The table element to process.
      * @returns {string|null} - The Markdown table string or null if invalid.
      */
@@ -408,18 +417,19 @@
         if (thead) {
             const headerRow = thead.querySelector('tr');
             if (headerRow) {
-                const headerCells = Array.from(headerRow.querySelectorAll(':scope > th'));
+                // Gemini uses 'td' elements in thead instead of 'th', so check both
+                const headerCells = Array.from(headerRow.querySelectorAll(':scope > th, :scope > td'));
                 columnCount = headerCells.length;
                 if (columnCount > 0) {
-                    const headerContent = headerCells.map(th =>
-                        QAClipper.Utils.htmlToMarkdown(th, { ignoreTags: ['table'] })
+                    const headerContent = headerCells.map(cell =>
+                        QAClipper.Utils.htmlToMarkdown(cell, { ignoreTags: ['table'] })
                         .trim().replace(/\|/g, '\\|').replace(/\n+/g, ' ')
                     );
                     markdownRows.push(`| ${headerContent.join(' | ')} |`);
                     markdownRows.push(`|${'---|'.repeat(columnCount)}`);
                     headerRowCount = 2; // Header + Separator
                     // console.log(`  -> [Table Processor v31] Header found in thead with ${columnCount} columns.`);
-                } else { } // console.log("  -> [Table Processor v31] thead row found but no 'th' cells.");
+                } else { } // console.log("  -> [Table Processor v31] thead row found but no 'th' or 'td' cells.");
             } else { } // console.log("  -> [Table Processor v31] 'thead' found but no 'tr' inside.");
         } else { } // console.log("  -> [Table Processor v31] No 'thead' found in table.");
 
@@ -662,7 +672,7 @@
     // --- Main Configuration Object ---
     const geminiConfig = {
       platformName: 'Gemini',
-      version: 31, // v31: Config version identifier
+      version: 33, // v33: Fixed list item multi-paragraph indentation
       selectors: {
         turnContainer: 'user-query, model-response',
         userMessageContainer: 'user-query', userText: '.query-text',
@@ -881,7 +891,7 @@
     }; // End geminiConfig
 
     window.geminiConfig = geminiConfig;
-    // console.log("geminiConfig initialized (v31 - Added h1-h6 and blockquote support)");
+    // console.log("geminiConfig initialized (v33 - Fixed list item multi-paragraph indentation)");
 
     /**
      * Special fixed version to handle blockquotes with nested lists
