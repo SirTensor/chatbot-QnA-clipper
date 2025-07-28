@@ -2,8 +2,8 @@
 
 (function() {
     // Initialization check
-    // v35: Fixed code block whitespace preservation - removed trim() to preserve meaningful leading spaces
-    if (window.geminiConfig && window.geminiConfig.version >= 35) { return; }
+    // v39: Fixed code content indentation to match code block delimiters
+    if (window.geminiConfig && window.geminiConfig.version >= 39) { return; }
 
     // --- Helper Functions ---
 
@@ -29,7 +29,7 @@
     }
 
     /**
-     * v35: Enhanced code block processing that handles mixed content and preserves whitespace
+     * v37: Enhanced code block processing that handles mixed content with proper indentation tracking
      * @param {HTMLElement} codeEl - The code-block element
      * @returns {Array} - Array of content items (code blocks and text)
      */
@@ -46,18 +46,20 @@
         // Get code content
         const codeElement = codeEl.querySelector('code[data-test-id="code-content"]');
         if (codeElement) {
-            // v35 Fix: Don't use trim() as it removes meaningful leading/trailing spaces
+            // v37: Don't use trim() as it removes meaningful leading/trailing spaces
             // Only remove leading/trailing newlines while preserving internal spacing
             let rawContent = codeElement.textContent || '';
             rawContent = rawContent.replace(/^\n+/, '').replace(/\n+$/, '');
             
-            // v34: Handle mixed content - detect if this contains both code and markdown
+            // v37: Enhanced mixed content handling with proper code block language detection and indentation
             if (rawContent.includes('```') && (rawContent.includes('- ') || rawContent.includes('1.'))) {
                 // This is mixed content, need to split it properly
                 const lines = rawContent.split('\n');
                 let currentCodeLines = [];
                 let currentMarkdownLines = [];
                 let inCodeBlock = true; // Start assuming we're in code
+                let currentCodeLanguage = language; // Track language for current code block
+                let codeBlockIndent = ''; // Track indentation level for code blocks
                 
                 for (let i = 0; i < lines.length; i++) {
                     const line = lines[i];
@@ -69,8 +71,9 @@
                         if (currentCodeLines.length > 0) {
                             results.push({
                                 type: 'code_block',
-                                language: language,
-                                content: currentCodeLines.join('\n')
+                                language: currentCodeLanguage,
+                                content: currentCodeLines.join('\n'),
+                                indentLevel: codeBlockIndent
                             });
                             currentCodeLines = [];
                         }
@@ -85,8 +88,9 @@
                             // Save current code block
                             results.push({
                                 type: 'code_block',
-                                language: language,
-                                content: currentCodeLines.join('\n')
+                                language: currentCodeLanguage,
+                                content: currentCodeLines.join('\n'),
+                                indentLevel: codeBlockIndent
                             });
                             currentCodeLines = [];
                         }
@@ -96,7 +100,8 @@
                     }
                     
                     // Check for return to code (```python or similar)
-                    if (trimmedLine.match(/^```\w+$/)) {
+                    const codeBlockMatch = trimmedLine.match(/^```(\w+)$/);
+                    if (codeBlockMatch) {
                         // Save accumulated markdown
                         if (currentMarkdownLines.length > 0) {
                             results.push({
@@ -105,6 +110,13 @@
                             });
                             currentMarkdownLines = [];
                         }
+                        
+                        // Use the actual indentation from the ```python line itself
+                        const actualIndentMatch = line.match(/^(\s*)/);
+                        codeBlockIndent = actualIndentMatch ? actualIndentMatch[1] : '';
+                        
+                        // Set language for the new code block
+                        currentCodeLanguage = codeBlockMatch[1];
                         inCodeBlock = true;
                         continue;
                     }
@@ -121,8 +133,9 @@
                 if (currentCodeLines.length > 0) {
                     results.push({
                         type: 'code_block',
-                        language: language,
-                        content: currentCodeLines.join('\n')
+                        language: currentCodeLanguage,
+                        content: currentCodeLines.join('\n'),
+                        indentLevel: codeBlockIndent
                     });
                 }
                 if (currentMarkdownLines.length > 0) {
@@ -250,7 +263,7 @@
             // 3. Process code blocks within this list item
             if (codeBlocks.length > 0) {
                 codeBlocks.forEach((codeEl, idx) => {
-                    // v34: Use enhanced code block processing (now returns array)
+                    // v37: Use enhanced code block processing (now returns array)
                     const codeItems = processEnhancedCodeBlock(codeEl);
                     
                     codeItems.forEach(codeItem => {
@@ -261,7 +274,12 @@
                             let codeContentLines = [];
                             const lang = codeItem.language || '';
                             codeContentLines.push(`\`\`\`${lang}`);
-                            codeContentLines = codeContentLines.concat(codeItem.content.split('\n'));
+                            
+                            // Add code lines with trimmed whitespace for consistent indentation
+                            codeItem.content.split('\n').forEach(codeLine => {
+                                const trimmedCodeLine = codeLine.replace(/^\s*/, '');
+                                codeContentLines.push(trimmedCodeLine);
+                            });
                             codeContentLines.push('```');
 
                             // Add the list marker line ONLY if no direct content was added before.
@@ -439,7 +457,7 @@
                     processedElements.add(node);
                 }
                 else if (tagName === 'response-element') {
-                    // v34: Handle response-element containing code blocks
+                    // v38: Handle response-element containing code blocks using original indentation
                     const codeBlocks = node.querySelectorAll('code-block');
                     codeBlocks.forEach(codeBlock => {
                         const codeItems = processEnhancedCodeBlock(codeBlock);
@@ -448,11 +466,15 @@
                             
                             if (codeItem.type === 'code_block') {
                                 const lang = codeItem.language || '';
-                                lines.push(`> \`\`\`${lang}`);
+                                // Use the original indentation from the mixed content
+                                const effectiveIndent = codeItem.indentLevel || '';
+                                lines.push(`> ${effectiveIndent}\`\`\`${lang}`);
                                 codeItem.content.split('\n').forEach(codeLine => {
-                                    lines.push(`> ${codeLine}`);
+                                    // Remove leading whitespace from code content and apply consistent indentation
+                                    const trimmedCodeLine = codeLine.replace(/^\s*/, '');
+                                    lines.push(`> ${effectiveIndent}${trimmedCodeLine}`);
                                 });
-                                lines.push(`> \`\`\``);
+                                lines.push(`> ${effectiveIndent}\`\`\``);
                             } else if (codeItem.type === 'text') {
                                 codeItem.content.split('\n').forEach(textLine => {
                                     lines.push(`> ${textLine}`);
@@ -471,11 +493,14 @@
                         
                         if (codeItem.type === 'code_block') {
                             const lang = codeItem.language || '';
-                            lines.push(`> \`\`\`${lang}`);
+                            const indent = codeItem.indentLevel || '';
+                            lines.push(`> ${indent}\`\`\`${lang}`);
                             codeItem.content.split('\n').forEach(codeLine => {
-                                lines.push(`> ${codeLine}`);
+                                // Remove leading whitespace from code content and apply consistent indentation
+                                const trimmedCodeLine = codeLine.replace(/^\s*/, '');
+                                lines.push(`> ${indent}${trimmedCodeLine}`);
                             });
-                            lines.push(`> \`\`\``);
+                            lines.push(`> ${indent}\`\`\``);
                         } else if (codeItem.type === 'text') {
                             codeItem.content.split('\n').forEach(textLine => {
                                 lines.push(`> ${textLine}`);
@@ -826,7 +851,7 @@
     // --- Main Configuration Object ---
           const geminiConfig = {
         platformName: 'Gemini',
-        version: 35, // v35: Fixed code block whitespace preservation - removed trim() to preserve meaningful leading spaces
+        version: 39, // v39: Fixed code content indentation to match code block delimiters
       selectors: {
         turnContainer: 'user-query, model-response',
         userMessageContainer: 'user-query', userText: '.query-text',
@@ -1048,7 +1073,7 @@
     }; // End geminiConfig
 
     window.geminiConfig = geminiConfig;
-    // console.log("geminiConfig initialized (v35 - Fixed code block whitespace preservation)");
+    // console.log("geminiConfig initialized (v37 - Enhanced mixed content with proper code block indentation)");
 
     /**
      * Special fixed version to handle blockquotes with nested lists
