@@ -789,8 +789,8 @@
       userAttachmentFilename: 'span.truncate',
       userAttachmentImagePreviewDiv: 'div[style*="background-image"]',
       userAttachmentFileIcon: 'svg[aria-label="Text File"]',
-      assistantContentContainer: 'div.message-bubble',
-      assistantRelevantBlocks: ':scope > :is(p, h1, h2, h3, h4, h5, h6, ol, ul, div.not-prose, div.grid, div.overflow-x-auto, blockquote)',
+      assistantContentContainer: 'div.response-content-markdown',
+      assistantRelevantBlocks: ':scope > :is(p, h1, h2, h3, h4, h5, h6, ol, ul, div.not-prose, div.grid, div.overflow-x-auto, blockquote, hr)',
       listItem: 'li',
       assistantCodeBlockOuterContainer: 'div.not-prose',
       assistantCodeBlockInnerContainer: 'div.not-prose > div.relative',
@@ -823,11 +823,15 @@
         return null;
       }
 
-      // Process ALL child nodes of the bubble using the existing recursive node processor.
-      // This handles various structures (multiple <p>, <div>, text nodes, etc.) within the user message.
-      const fullText = processChildNodes(userBubble).trim();
+      // First try to find the response-content-markdown container
+      const contentContainer = userBubble.querySelector('div.response-content-markdown');
+      const targetContainer = contentContainer || userBubble;
 
-      // console.log("[Grok Extractor] Extracted user text (processed bubble):", fullText || "null");
+      // Process ALL child nodes of the target container using the existing recursive node processor.
+      // This handles various structures (multiple <p>, <div>, text nodes, etc.) within the user message.
+      const fullText = processChildNodes(targetContainer).trim();
+
+      // console.log("[Grok Extractor] Extracted user text (processed container):", fullText || "null");
       return fullText || null; // Return null if the result is an empty string
     },
     extractUserUploadedImages: (turnElement) => { /* ... unchanged ... */ const images = []; const selectors = grokConfig.selectors; turnElement.querySelectorAll(selectors.userAttachmentChip).forEach(chip => { const imgPreviewDiv = chip.querySelector(selectors.userAttachmentImagePreviewDiv); const filenameElement = chip.querySelector(selectors.userAttachmentFilename); if (imgPreviewDiv && filenameElement) { const filename = filenameElement.textContent?.trim(); const style = imgPreviewDiv.getAttribute('style'); const match = style?.match(/url\\("?([^")]+)"?\\)/); const previewUrl = match ? match[1] : null; if (filename && previewUrl) { const fullUrl = getFullImageUrlFromPreview(previewUrl); if (fullUrl) { images.push({ type: 'image', sourceUrl: fullUrl, isPreviewOnly: true, extractedContent: filename }); } } } }); return images; },
