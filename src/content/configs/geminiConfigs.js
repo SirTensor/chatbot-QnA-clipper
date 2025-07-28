@@ -1,9 +1,9 @@
-// geminiConfigs.js (v35 - Fixed code block whitespace preservation)
+// geminiConfigs.js (v40 - Added artifactType extraction for interactive blocks)
 
 (function() {
     // Initialization check
-    // v39: Fixed code content indentation to match code block delimiters
-    if (window.geminiConfig && window.geminiConfig.version >= 39) { return; }
+    // v40: Added artifactType extraction for interactive blocks in Gemini
+    if (window.geminiConfig && window.geminiConfig.version >= 40) { return; }
 
     // --- Helper Functions ---
 
@@ -851,7 +851,7 @@
     // --- Main Configuration Object ---
           const geminiConfig = {
         platformName: 'Gemini',
-        version: 39, // v39: Fixed code content indentation to match code block delimiters
+        version: 40, // v40: Added artifactType extraction for interactive blocks in Gemini
       selectors: {
         turnContainer: 'user-query, model-response',
         userMessageContainer: 'user-query', userText: '.query-text',
@@ -1022,8 +1022,22 @@
               else if (isInteractiveBlock) { // v32: Explicit check using the selector
                   const titleElement = element.querySelector(geminiConfig.selectors.interactiveBlockTitle);
                   const title = titleElement ? titleElement.textContent?.trim() : '[Interactive Block]';
-                  // v32: Push as interactive block type
-                  contentItems.push({ type: 'interactive_block', title: title, code: null, language: null });
+                  
+                  // v40: Extract timestamp information as artifactType for Gemini
+                  let artifactType = null;
+                  const timestampElement = element.querySelector('span[data-test-id="creation-timestamp"]');
+                  if (timestampElement) {
+                      artifactType = timestampElement.textContent?.trim();
+                  }
+                  
+                  // v32: Push as interactive block type with artifactType
+                  contentItems.push({ 
+                      type: 'interactive_block', 
+                      title: title, 
+                      artifactType: artifactType, // Add artifactType for Gemini 
+                      code: null, 
+                      language: null 
+                  });
                   processedElements.add(element);
                   element.querySelectorAll('*').forEach(child => processedElements.add(child)); // Mark children processed
               }
@@ -1073,7 +1087,7 @@
     }; // End geminiConfig
 
     window.geminiConfig = geminiConfig;
-    // console.log("geminiConfig initialized (v37 - Enhanced mixed content with proper code block indentation)");
+    // console.log("geminiConfig initialized (v40 - Added artifactType extraction for interactive blocks)");
 
     /**
      * Special fixed version to handle blockquotes with nested lists
