@@ -349,9 +349,9 @@
   }
 
    /**
-   * Processes artifact buttons/cells within assistant messages to extract title only.
+   * Processes artifact buttons/cells within assistant messages to extract title and type.
    * @param {HTMLElement} artifactCellEl - The artifact cell element (`div.artifact-block-cell`).
-   * @returns {object|null} - An interactive_block content item with title only.
+   * @returns {object|null} - An interactive_block content item with title and type.
    */
   function processArtifactButton(artifactCellEl) { // Renamed parameter for clarity
     const selectors = window.claudeConfig.selectors;
@@ -359,12 +359,28 @@
     const titleElement = artifactCellEl.querySelector(selectors.artifactTitle);
     const title = titleElement ? titleElement.textContent?.trim() : '[Artifact]'; // Default title
 
-    // console.log(`[Claude Extractor v6] Found artifact cell with title: "${title}". Code extraction skipped.`);
+    // Find artifact type - just extract whatever text is there
+    // Try multiple possible selectors for type element
+    let typeElement = artifactCellEl.querySelector('div[class*="text-sm"][class*="text-text-300"]');
+    if (!typeElement) {
+      typeElement = artifactCellEl.querySelector('.text-sm.text-text-300');
+    }
+    if (!typeElement) {
+      typeElement = artifactCellEl.querySelector('div.text-sm');
+    }
+    
+    let artifactType = 'Code'; // Default fallback
+    if (typeElement) {
+      // Clean up the text but keep everything including version info
+      const rawText = typeElement.textContent?.trim() || '';
+      artifactType = rawText.replace(/\s+/g, ' ').replace(/&nbsp;/g, '').replace(/\u00A0/g, '').trim() || 'Code';
+    }
 
-    // Return an interactive_block item with only the title
+    // Return an interactive_block item with title and artifact type
     return {
         type: 'interactive_block',
         title: title,
+        artifactType: artifactType, // Add artifact type
         code: null, // Explicitly set code to null
         language: null // Explicitly set language to null
     };
@@ -626,7 +642,7 @@
       tableElement: 'table', // The actual table element
 
       // --- Artifact (Interactive Block) Selectors ---
-      artifactContainerDiv: 'div.py-2', // The div containing the artifact button/cell
+      artifactContainerDiv: 'div.py-2, div.pt-2.pb-3, div.pt-3.pb-3, div[class*="pt-"][class*="pb-"]', // The div containing the artifact button/cell
       artifactButton: 'div.artifact-block-cell', // The inner div passed to processArtifactButton
       artifactTitle: 'div.leading-tight', // Title text within the artifact cell
 
@@ -750,13 +766,19 @@
           return [];
       }
 
-      console.log(`[Claude Extractor v6] Processing direct children of assistant container.`);
       const directChildren = Array.from(assistantContainer.children);
 
       directChildren.forEach((child, index) => {
           const tagNameLower = child.tagName.toLowerCase();
-          console.log(`[Claude Extractor v6] Processing Child #${index}: <${tagNameLower}>`);
           let item = null; // Define item here
+
+          // First check if this element contains an artifact anywhere inside it
+          const artifactCell = child.querySelector && child.querySelector(selectors.artifactButton);
+          if (artifactCell) {
+              item = processArtifactButton(artifactCell);
+              if (item) contentItems.push(item);
+              return; // Skip further processing for this element
+          }
 
           // Case 1: Child is a container for text, lists, or code blocks (any div)
           if (tagNameLower === 'div') {
@@ -920,21 +942,9 @@
                    });
               }
           }
-          // Case 2: Child is the container for an artifact button
-          else if (child.matches(selectors.artifactContainerDiv)) { // Handle div.py-2
-             // Find the interactive cell *inside* this container
-             const artifactCell = child.querySelector(selectors.artifactButton); // artifactButton selects div.artifact-block-cell
-             if (artifactCell) {
-                 // console.log("  -> Handling as Artifact Container Div");
-                 item = processArtifactButton(artifactCell); // Pass the cell div
-                 if (item) contentItems.push(item);
-             } else {
-                  console.warn("  -> Found artifact container div, but no artifact cell inside. Skipping.");
-             }
-          }
-          // Case 3: Unhandled direct child
+          // Case 2: Unhandled direct child (artifacts are already handled above)
           else {
-              console.warn(`  -> Skipping unhandled direct child type <${tagNameLower}>`);
+              // Skip unhandled elements
           }
       }); // End forEach loop
 

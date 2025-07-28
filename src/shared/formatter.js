@@ -107,27 +107,20 @@ const formatter = {
         itemText = "```" + lang + "\n" + codeContent + "```\n\n"; // Add ``` and paragraph break
         break;
       case 'interactive_block':
-        // Add title if it exists and is meaningful
-        if (item.title && item.title !== '[Code]') {
-           itemText += `> **${item.title}**\n\n`; // Make title bold and add spacing
-        } else {
-           itemText += `> [Interactive Code Block]\n\n`; // Generic placeholder if no title
-        }
+        // Format as [Interactive Block: title] followed by the artifact type
+        const title = item.title && item.title !== '[Code]' ? item.title : 'Artifact';
+        const artifactType = item.artifactType || 'Code'; // Default to 'Code' if not specified
+        
+        itemText += `> [Interactive Block: ${title}]\n`;
+        itemText += `> ${artifactType}\n\n`;
+        
         // Add code block if code exists
         if (item.code && item.code.trim()) {
             const lang = item.language || '';
             // Ensure content has a trailing newline before closing backticks
             const codeContent = item.code.trimEnd() + '\n'; // Trim trailing space, add newline
             itemText += "```" + lang + "\n" + codeContent + "```\n\n"; // Add ```, language, code, and paragraph break
-        } else if (item.title && item.title !== '[Code]'){ // If there's a title but no code extracted
-            itemText += ``; // > (Code content not extracted)\n\n
-        } else if (!item.title && !(item.code && item.code.trim())) {
-             itemText += `> (Title and code content not extracted)\n\n`; // If both are missing
         }
-         // Ensure the whole block ends with two newlines if not already present
-         if (!itemText.endsWith('\n\n')) {
-             itemText += itemText.endsWith('\n') ? '\n' : '\n\n';
-         }
         break;
       case 'image':
         // formatImageUrl adds ONE trailing newline. Add the second one for paragraph spacing.
