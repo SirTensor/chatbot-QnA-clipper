@@ -670,7 +670,7 @@
         userFileContainer: '.file-preview-container', userFileItem: '.file-upload-link', userFileName: '.new-file-name', userFileType: '.new-file-type',
         assistantContentArea: 'div.markdown.markdown-main-panel',
         // Added all heading levels (h1-h6) to relevantBlocks and response-element for nested code blocks
-        relevantBlocks: 'p, h1, h2, h3, h4, h5, h6, ul, ol, code-block, single-image, div.attachment-container.immersive-entry-chip, table, blockquote, response-element',
+        relevantBlocks: 'p, h1, h2, h3, h4, h5, h6, ul, ol, code-block, single-image, div.attachment-container.immersive-entry-chip, table, blockquote, response-element, hr',
         listItem: 'li',
         codeBlockContent: 'pre > code', codeBlockLangIndicator: 'div.code-block-decoration > span',
         imageContainerAssistant: 'single-image', imageElementAssistant: 'img.image.loaded', imageCaption: 'div.caption', imageElement: 'img',
@@ -767,6 +767,7 @@
               const isTable = tagNameLower === 'table';
               const isList = tagNameLower === 'ul' || tagNameLower === 'ol';
               const isParagraph = tagNameLower === 'p'; // Paragraphs might contain other things now
+              const isHorizontalRule = tagNameLower === 'hr';
 
               let item = null;
 
@@ -839,6 +840,11 @@
                   if (item) contentItems.push(item);
                   processedElements.add(element);
                   element.querySelectorAll('*').forEach(child => processedElements.add(child));
+              }
+              else if (isHorizontalRule) {
+                  // Add horizontal rule as markdown
+                  QAClipper.Utils.addTextItem(contentItems, '---');
+                  processedElements.add(element);
               }
               else if (isHeading) {
                   const level = parseInt(tagNameLower.charAt(1));
