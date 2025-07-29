@@ -55,8 +55,8 @@
     }
     let itemIndex = 0;
 
-    // Calculate indent based on level - 2 spaces per level for Grok style
-    const indent = '  '.repeat(level);
+    // Calculate indent based on level - 4 spaces per level for Grok style within blockquotes
+    const indent = '    '.repeat(level);
     // Add blockquote prefix if list is within blockquote
     const bqPrefix = isWithinBlockquote ? '> '.repeat(blockquoteLevel) : '';
 
@@ -154,8 +154,8 @@
             if (codeItem) {
               const lang = codeItem.language || '';
               
-              // Calculate indentation for nested code blocks
-              const nestedIndent = '  '.repeat(level + 1);
+                       // Calculate indentation for nested code blocks
+          const nestedIndent = '    '.repeat(level + 1);
               
               // Format the code with proper list indentation and blockquote prefix if needed
               const codeLines = codeItem.content.split('\n');
@@ -361,6 +361,89 @@
   }
 
   /**
+   * Processes a list item within a blockquote context, maintaining proper formatting
+   * @param {HTMLElement} liElement - The list item element
+   * @param {number} blockquoteLevel - The blockquote nesting level
+   * @returns {object|null} - Object with title and content array, or null
+   */
+  function processListItemInBlockquote(liElement, blockquoteLevel) {
+    const prefix = '> '.repeat(blockquoteLevel);
+    
+    // Extract the direct text content (title) from the li element
+    let title = '';
+    const contentLines = [];
+    
+    // Process all child nodes to separate direct text from nested structures
+    Array.from(liElement.childNodes).forEach(node => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const text = node.textContent.trim();
+        if (text) {
+          title += text;
+        }
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        const tagName = node.tagName.toLowerCase();
+        
+        // Direct text elements (like <p>, <strong>) contribute to title
+        if (['p', 'strong', 'b', 'em', 'i', 'span'].includes(tagName)) {
+          const textContent = node.textContent.trim();
+          if (textContent) {
+            title += textContent;
+          }
+        }
+        // Nested structures (lists, blockquotes, code blocks) go to content
+        else if (tagName === 'ul' || tagName === 'ol') {
+          // Add empty line before nested list
+          contentLines.push(`${prefix}`);
+          
+          // Process nested list with proper indentation
+          const nestedListResult = processList(node, tagName, 1, true, blockquoteLevel);
+          if (nestedListResult) {
+            nestedListResult.content.split('\n').forEach(line => {
+              contentLines.push(line);
+            });
+          }
+        }
+        else if (tagName === 'blockquote') {
+          // Add empty line before nested blockquote
+          contentLines.push(`${prefix}`);
+          
+          // Process nested blockquote
+          const nestedBlockquoteContent = processBlockquote(node, blockquoteLevel);
+          if (nestedBlockquoteContent) {
+            nestedBlockquoteContent.split('\n').forEach(line => {
+              contentLines.push(line);
+            });
+          }
+        }
+        else if (node.matches(window.grokConfig.selectors.assistantCodeBlockOuterContainer)) {
+          // Add empty line before code block
+          contentLines.push(`${prefix}`);
+          
+          // Process code block
+          const innerCodeContainer = node.querySelector(window.grokConfig.selectors.assistantCodeBlockInnerContainer);
+          if (innerCodeContainer) {
+            const codeItem = processCodeBlock(innerCodeContainer);
+            if (codeItem) {
+              const lang = codeItem.language || '';
+              
+              contentLines.push(`${prefix}\`\`\`${lang}`);
+              codeItem.content.split('\n').forEach(line => {
+                contentLines.push(`${prefix}${line}`);
+              });
+              contentLines.push(`${prefix}\`\`\``);
+            }
+          }
+        }
+      }
+    });
+    
+    return title.trim() ? { 
+      title: title.trim().replace(/^\*\*|\*\*$/g, ''), // Remove existing bold markers
+      content: contentLines.length > 0 ? contentLines : null 
+    } : null;
+  }
+
+  /**
    * Processes blockquote elements and their child elements
    * @param {HTMLElement} element - The blockquote element
    * @param {number} nestLevel - The nesting level of the blockquote (0 for top level)
@@ -498,8 +581,80 @@
           }
         }
         
-        // Handle lists
-        else if (tagName === 'ul' || tagName === 'ol') {
+        // Handle ordered lists (ol) - process each child element sequentially
+        else if (tagName === 'ol') {
+          // If the previous element was a nested blockquote, add an empty line with just the blockquote prefix
+          if (previousWasNestedBlockquote) {
+            resultLines.push(`${prefix}`);
+            previousWasNestedBlockquote = false;
+          }
+
+          // Add spacing before list if needed
+          if (resultLines.length > 0 && !previousWasBlock) {
+            resultLines.push(`${prefix}`);
+          }
+
+          // For ordered lists in blockquotes, we need to process each child element in order
+          // This includes both <li> elements and any code blocks that appear between them
+          let listItemNumber = 1;
+          let hasProcessedAnyItems = false;
+          
+          Array.from(node.childNodes).forEach(childNode => {
+            if (childNode.nodeType === Node.ELEMENT_NODE) {
+              const childTagName = childNode.tagName.toLowerCase();
+              
+              if (childTagName === 'li') {
+                // Process the list item with correct numbering and blockquote context
+                // We need to handle nested structures within the list item
+                const processedLiContent = processListItemInBlockquote(childNode, nestLevel + 1);
+                if (processedLiContent) {
+                  // Add the numbered list item
+                  resultLines.push(`${prefix}${listItemNumber}. **${processedLiContent.title}**`);
+                  
+                  // Add any nested content with proper indentation
+                  if (processedLiContent.content) {
+                    processedLiContent.content.forEach(line => {
+                      resultLines.push(line);
+                    });
+                  }
+                  
+                  listItemNumber++;
+                  hasProcessedAnyItems = true;
+                }
+              }
+              // Handle code blocks that appear as direct children of <ol> (between <li> elements)
+              else if (childNode.matches(window.grokConfig.selectors.assistantCodeBlockOuterContainer)) {
+                const innerCodeContainer = childNode.querySelector(window.grokConfig.selectors.assistantCodeBlockInnerContainer);
+                if (innerCodeContainer) {
+                  const codeItem = processCodeBlock(innerCodeContainer);
+                  if (codeItem) {
+                    const lang = codeItem.language || '';
+                    
+                    // Add spacing before code block if we've processed items
+                    if (hasProcessedAnyItems) {
+                      resultLines.push(`${prefix}`);
+                    }
+                    
+                    // Add code block with proper blockquote formatting
+                    resultLines.push(`${prefix}\`\`\`${lang}`);
+                    
+                    const codeLines = codeItem.content.split('\n');
+                    codeLines.forEach(line => {
+                      resultLines.push(`${prefix}${line}`);
+                    });
+                    
+                    resultLines.push(`${prefix}\`\`\``);
+                  }
+                }
+              }
+            }
+          });
+          
+          previousWasBlock = false;
+        }
+        
+        // Handle unordered lists
+        else if (tagName === 'ul') {
           // If the previous element was a nested blockquote, add an empty line with just the blockquote prefix
           if (previousWasNestedBlockquote) {
             resultLines.push(`${prefix}`);
