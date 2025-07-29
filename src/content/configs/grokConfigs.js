@@ -1,12 +1,12 @@
-// --- Updated grokConfigs.js (v7 - Table Handling) ---
+// --- Updated grokConfigs.js (v9 - Complex Nesting Support) ---
 
 /**
  * Configuration for extracting Q&A data from Grok (grok.com)
- * Version: 7 (Added table processing)
+ * Version: 9 (Added complex nesting pattern support with wide spacing and * markers)
  */
 (function() {
   // Initialization check
-  if (window.grokConfig && window.grokConfig.version >= 7) { // Updated version check
+  if (window.grokConfig && window.grokConfig.version >= 9) { // Updated version check
     // console.log("Grok config already initialized (v" + window.grokConfig.version + "), skipping.");
     return;
   }
@@ -55,10 +55,63 @@
     }
     let itemIndex = 0;
 
-    // Calculate indent based on level - 4 spaces per level for Grok style within blockquotes
-    const indent = '    '.repeat(level);
-    // Add blockquote prefix if list is within blockquote
-    const bqPrefix = isWithinBlockquote ? '> '.repeat(blockquoteLevel) : '';
+    // Calculate indent based on level - 3 spaces per level
+    let indent = '';
+    let bqPrefix = '';
+    
+    if (isWithinBlockquote) {
+      // Determine if we're in a complex nested structure (like ordered list > blockquote > list)
+      // by checking the parent structure
+      const parentList = el.closest('ol');
+      const isComplexNesting = parentList && parentList.closest('blockquote');
+      
+      if (isComplexNesting && blockquoteLevel >= 2) {
+        // Complex nesting pattern like html_1.md
+        if (blockquoteLevel === 2) {
+          bqPrefix = '>      > '; // 6 spaces between > markers
+          indent = level > 0 ? '   '.repeat(level) : '';
+        } else if (blockquoteLevel === 3) {
+          bqPrefix = '>      >     > '; // 6 spaces, then 5 spaces
+          indent = level > 0 ? '   '.repeat(level) : '';
+        } else if (blockquoteLevel === 4) {
+          bqPrefix = '>      >     >     > '; // Pattern continues
+          indent = level > 0 ? '   '.repeat(level) : '';
+        } else if (blockquoteLevel === 5) {
+          bqPrefix = '>      >     >     >     > ';
+          indent = level > 0 ? '   '.repeat(level) : '';
+        } else {
+          // For even deeper levels
+          let fullPrefix = '> ';
+          for (let i = 1; i < blockquoteLevel; i++) {
+            if (i === 1) {
+              fullPrefix += '     > '; // 6 spaces after first >
+            } else {
+              fullPrefix += '    > '; // 5 spaces for subsequent levels
+            }
+          }
+          bqPrefix = fullPrefix;
+          indent = level > 0 ? '   '.repeat(level) : '';
+        }
+      } else {
+        // Simple blockquote nesting
+        if (blockquoteLevel === 1) {
+          bqPrefix = '> ';
+          indent = level > 0 ? '   '.repeat(level) : '';
+        } else if (blockquoteLevel === 2) {
+          bqPrefix = '> > ';
+          indent = level > 0 ? '   '.repeat(level) : '';
+        } else if (blockquoteLevel === 3) {
+          bqPrefix = '> > > ';
+          indent = level > 0 ? '   '.repeat(level) : '';
+        } else {
+          bqPrefix = '> '.repeat(blockquoteLevel);
+          indent = level > 0 ? '   '.repeat(level) : '';
+        }
+      }
+    } else {
+      // Normal list indentation when not in blockquote
+      indent = '   '.repeat(level);
+    }
 
     el.querySelectorAll(':scope > li').forEach(li => {
       // 1. Find any nested lists first to handle them separately
@@ -107,8 +160,19 @@
       const trimmedItemMarkdown = itemMarkdown.trim();
 
       if (trimmedItemMarkdown || nestedListElements.length > 0 || blockquoteElements.length > 0 || codeBlockElements.length > 0) {
-        // 8. Calculate marker
-        const marker = listType === 'ul' ? '-' : `${startNum + itemIndex}.`;
+        // 8. Calculate marker - use appropriate markers based on context
+        let marker;
+        if (listType === 'ul') {
+          // Use '*' for lists inside complex nested blockquotes with wide spacing
+          const hasWideSpacing = bqPrefix.includes('     >'); // 5+ spaces indicates complex nesting
+          if (hasWideSpacing && level === 0) {
+            marker = '*';
+          } else {
+            marker = '-';
+          }
+        } else {
+          marker = `${startNum + itemIndex}.`;
+        }
         
         // 9. Assemble the line with blockquote prefix if needed
         let line = `${bqPrefix}${indent}${marker} ${trimmedItemMarkdown}`;
@@ -131,18 +195,23 @@
         blockquoteElements.forEach(blockquote => {
           const bqContent = processBlockquote(blockquote, isWithinBlockquote ? blockquoteLevel : 0);
           if (bqContent) {
-            // Calculate indentation for nested blockquotes
-            const nestedIndent = '  '.repeat(level + 1);
-            const indentedBqContent = bqContent.split('\n').map(line => {
-              // If already within a blockquote, don't change the prefix, just add indentation
-              if (isWithinBlockquote) {
-                return line;
-              }
-              // Otherwise, indent the blockquote content relative to the list
-              return `${nestedIndent}${line}`;
-            }).join('\n');
+            // For blockquotes inside list items, apply parent list's indentation
+            const nestedIndent = '   '.repeat(level + 1); // 3 spaces per level
             
-            processedItems.push(indentedBqContent);
+            // Split content into lines and apply proper indentation
+            const lines = bqContent.split('\n');
+            lines.forEach(line => {
+              if (line.trim()) {
+                // If we're already in a blockquote, only add 3-space indentation for nested code blocks
+                // Regular blockquote content should not get extra indentation
+                if (isWithinBlockquote) {
+                  processedItems.push(line);
+                } else {
+                  // Otherwise, add the parent list's indentation before the blockquote marker
+                  processedItems.push(`${nestedIndent}${line}`);
+                }
+              }
+            });
           }
         });
         
@@ -154,12 +223,19 @@
             if (codeItem) {
               const lang = codeItem.language || '';
               
-                       // Calculate indentation for nested code blocks
-          const nestedIndent = '    '.repeat(level + 1);
+              // Calculate indentation for nested code blocks
+              const nestedIndent = '   '.repeat(level + 1); // 3 spaces per level
               
               // Format the code with proper list indentation and blockquote prefix if needed
               const codeLines = codeItem.content.split('\n');
-              const codeIndent = isWithinBlockquote ? `${bqPrefix}${nestedIndent}` : nestedIndent;
+              let codeIndent;
+              
+              if (isWithinBlockquote) {
+                // Add 3-space indentation for code blocks in list items within blockquotes
+                codeIndent = `${bqPrefix}   ${nestedIndent}`;
+              } else {
+                codeIndent = nestedIndent;
+              }
               
               // Add opening fence with correct indentation
               processedItems.push(`${codeIndent}\`\`\`${lang}`);
@@ -265,7 +341,7 @@
   }
 
   /**
-   * NEW IN v7: Processes a table element and converts it to Markdown format.
+   * Processes a table element and converts it to Markdown format (added in v7).
    * @param {HTMLElement} tableElement - The table element or its container.
    * @returns {string|null} - Markdown representation of the table or null if invalid.
    */
@@ -276,12 +352,12 @@
           : tableElement.querySelector('table');
       
       if (!table) {
-          console.warn("[Grok Extractor v7] No table found in element:", tableElement);
-          return null;
-      }
+                      console.warn("[Grok Extractor v9] No table found in element:", tableElement);
+            return null;
+        }
 
-      const rows = [];
-      let columnCount = 0;
+        const rows = [];
+        let columnCount = 0;
 
       // Process Table Header (thead)
       const thead = table.querySelector('thead');
@@ -322,9 +398,9 @@
       }
 
       if (columnCount === 0) {
-          console.warn("[Grok Extractor v7] Could not determine column count for table:", table);
-          return null;
-      }
+                      console.warn("[Grok Extractor v9] Could not determine column count for table:", table);
+            return null;
+        }
 
       // Process Table Body (tbody)
       const tbody = table.querySelector('tbody');
@@ -438,7 +514,7 @@
     });
     
     return title.trim() ? { 
-      title: title.trim().replace(/^\*\*|\*\*$/g, ''), // Remove existing bold markers
+      title: title.trim(), // Keep the title as-is, including bold markers
       content: contentLines.length > 0 ? contentLines : null 
     } : null;
   }
@@ -468,15 +544,10 @@
       if (node.nodeType === Node.TEXT_NODE) {
         const text = node.textContent.trim();
         if (text) {
-          // If the previous element was a nested blockquote, add an empty line with just the blockquote prefix
-          if (previousWasNestedBlockquote) {
-            resultLines.push(`${prefix}`);
-            previousWasNestedBlockquote = false;
-          }
-          
           // Only add non-empty text nodes
           resultLines.push(`${prefix}${text}`);
           previousWasBlock = false;
+          previousWasNestedBlockquote = false;
         }
       }
       
@@ -486,14 +557,6 @@
         
         // Handle headings - convert to Markdown style headings
         if (['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(tagName)) {
-          // Add a blank line before headings if needed
-          if (resultLines.length > 0 && !previousWasBlock) {
-            resultLines.push(`${prefix}`);
-          }
-          
-          // Reset the nested blockquote flag
-          previousWasNestedBlockquote = false;
-          
           // Extract the heading level number from the tag
           const level = parseInt(tagName.substring(1));
           const hashes = '#'.repeat(level);
@@ -504,24 +567,12 @@
           // Format as Markdown heading
           resultLines.push(`${prefix}${hashes} ${headingText}`);
           
-          // Add a blank line after the heading
-          resultLines.push(`${prefix}`);
-          previousWasBlock = true;
+          previousWasBlock = false;
+          previousWasNestedBlockquote = false;
         }
         
         // Handle paragraphs
         else if (tagName === 'p') {
-          // If the previous element was a nested blockquote, add an empty line with just the blockquote prefix
-          if (previousWasNestedBlockquote) {
-            resultLines.push(`${prefix}`);
-            previousWasNestedBlockquote = false;
-          }
-          
-          // Add a blank line before paragraphs if needed
-          if (resultLines.length > 0 && !previousWasBlock) {
-            resultLines.push(`${prefix}`);
-          }
-          
           // Convert paragraph content to markdown
           const content = processNode(node);
           
@@ -529,20 +580,13 @@
             content.split('\n').forEach(line => {
               resultLines.push(`${prefix}${line}`);
             });
-            
-            // Add a blank line after paragraphs
-            resultLines.push(`${prefix}`);
-            previousWasBlock = true;
+            previousWasBlock = false;
+            previousWasNestedBlockquote = false;
           }
         }
         
         // Handle code blocks (div.not-prose elements)
         else if (node.matches(window.grokConfig.selectors.assistantCodeBlockOuterContainer)) {
-          // Add spacing before code block if needed
-          if (resultLines.length > 0 && !previousWasBlock) {
-            resultLines.push(`${prefix}`);
-          }
-          
           const innerCodeContainer = node.querySelector(window.grokConfig.selectors.assistantCodeBlockInnerContainer);
           if (innerCodeContainer) {
             const codeItem = processCodeBlock(innerCodeContainer);
@@ -559,40 +603,24 @@
               
               resultLines.push(`${prefix}\`\`\``);
               
-              // Add a blank line after the code block
-              resultLines.push(`${prefix}`);
-              previousWasBlock = true;
+              previousWasBlock = false;
+              previousWasNestedBlockquote = false;
             }
           }
         }
         
         // Handle nested blockquotes
         else if (tagName === 'blockquote') {
-          // Add spacing before nested blockquote if needed
-          if (resultLines.length > 0 && !previousWasBlock) {
-            resultLines.push(`${prefix}`);
-          }
-          
           const nestedContent = processBlockquote(node, nestLevel + 1);
           if (nestedContent) {
             resultLines.push(nestedContent);
-            previousWasBlock = true;
-            previousWasNestedBlockquote = true;
+            previousWasBlock = false;
+            previousWasNestedBlockquote = false;
           }
         }
         
         // Handle ordered lists (ol) - process each child element sequentially
         else if (tagName === 'ol') {
-          // If the previous element was a nested blockquote, add an empty line with just the blockquote prefix
-          if (previousWasNestedBlockquote) {
-            resultLines.push(`${prefix}`);
-            previousWasNestedBlockquote = false;
-          }
-
-          // Add spacing before list if needed
-          if (resultLines.length > 0 && !previousWasBlock) {
-            resultLines.push(`${prefix}`);
-          }
 
           // For ordered lists in blockquotes, we need to process each child element in order
           // This includes both <li> elements and any code blocks that appear between them
@@ -608,8 +636,16 @@
                 // We need to handle nested structures within the list item
                 const processedLiContent = processListItemInBlockquote(childNode, nestLevel + 1);
                 if (processedLiContent) {
-                  // Add the numbered list item
-                  resultLines.push(`${prefix}${listItemNumber}. **${processedLiContent.title}**`);
+                  // Check if we're in a complex nested structure
+                  const isComplexStructure = element.closest('ol') && nestLevel >= 1;
+                  
+                  if (isComplexStructure) {
+                    // For complex structures, format differently
+                    resultLines.push(`${prefix}   ${listItemNumber}. ${processedLiContent.title}`);
+                  } else {
+                    // Add the numbered list item with bold
+                    resultLines.push(`${prefix}${listItemNumber}. **${processedLiContent.title}**`);
+                  }
                   
                   // Add any nested content with proper indentation
                   if (processedLiContent.content) {
@@ -630,10 +666,7 @@
                   if (codeItem) {
                     const lang = codeItem.language || '';
                     
-                    // Add spacing before code block if we've processed items
-                    if (hasProcessedAnyItems) {
-                      resultLines.push(`${prefix}`);
-                    }
+
                     
                     // Add code block with proper blockquote formatting
                     resultLines.push(`${prefix}\`\`\`${lang}`);
@@ -655,42 +688,27 @@
         
         // Handle unordered lists
         else if (tagName === 'ul') {
-          // If the previous element was a nested blockquote, add an empty line with just the blockquote prefix
-          if (previousWasNestedBlockquote) {
-            resultLines.push(`${prefix}`);
-            previousWasNestedBlockquote = false;
-          }
-
-          // Add spacing before list if needed
-          if (resultLines.length > 0 && !previousWasBlock) {
-            resultLines.push(`${prefix}`);
-          }
 
           // Process the list: start at level 0 within the blockquote context,
           // pass isWithinBlockquote=true, and the correct blockquoteLevel.
           const listResult = processList(node, tagName, 0, true, nestLevel + 1);
           if (listResult) {
-            // listResult.content already includes the content
-            resultLines.push(listResult.content);
-            previousWasBlock = false;
-          }
-        }
-        
-        // Handle other elements (like spans, strong, etc.)
-        else if (previousWasNestedBlockquote) {
-          resultLines.push(`${prefix}`);
-          previousWasNestedBlockquote = false;
-          
-          const inlineContent = processNode(node);
-          
-          if (inlineContent) {
-            inlineContent.split('\n').forEach(line => {
-              resultLines.push(`${prefix}${line}`);
+            // processList already handles the blockquote prefixes correctly
+            // Just split and add the lines
+            const lines = listResult.content.split('\n');
+            lines.forEach((line, idx) => {
+              if (line.trim()) {
+                resultLines.push(line);
+              } else if (idx < lines.length - 1) {
+                // Preserve empty lines between list items in complex nesting
+                resultLines.push(prefix.trim());
+              }
             });
             previousWasBlock = false;
           }
         }
         
+        // Handle other elements (like spans, strong, etc.)
         else {
           const inlineContent = processNode(node);
           
@@ -699,39 +717,22 @@
               resultLines.push(`${prefix}${line}`);
             });
             previousWasBlock = false;
+            previousWasNestedBlockquote = false;
           }
         }
       }
     });
     
-    // Clean up redundant blank lines
-    const cleanedLines = [];
-    for (let i = 0; i < resultLines.length; i++) {
-      const line = resultLines[i];
-      const isBlankLine = line.trim() === prefix.trim();
-      
-      // Skip consecutive blank lines
-      if (isBlankLine && i > 0 && resultLines[i-1].trim() === prefix.trim()) {
-        continue;
-      }
-      
-      cleanedLines.push(line);
-    }
-    
-    // Remove trailing blank line if exists
-    if (cleanedLines.length > 0 && cleanedLines[cleanedLines.length-1].trim() === prefix.trim()) {
-      cleanedLines.pop();
-    }
-    
-    return cleanedLines.join('\n');
+    // Return the result without extra cleanup to match html_1.md format
+    return resultLines.join('\n');
   }
 
-  /**
-   * Recursively processes a DOM node and its children to generate Markdown text.
-   * **Updated in v7:** Also handles table elements and blockquotes.
-   * @param {Node} node - The DOM node to process.
-   * @returns {string} - The Markdown representation of the node and its children.
-   */
+      /**
+     * Recursively processes a DOM node and its children to generate Markdown text.
+     * **Updated in v9:** Added complex nesting pattern support.
+     * @param {Node} node - The DOM node to process.
+     * @returns {string} - The Markdown representation of the node and its children.
+     */
   function processNode(node) {
     const selectors = window.grokConfig?.selectors;
     if (!selectors) return ''; // Config must be loaded
@@ -780,6 +781,10 @@
             const blockquoteContent = processBlockquote(node, 0);
             // Return ONLY the blockquote content; spacing handled by processChildNodes
             return blockquoteContent || '';
+        }
+        if (tagName === 'hr') {
+            // Return horizontal rule as markdown
+            return '---';
         }
 
         // Skip elements meant to be handled differently or ignored
@@ -933,7 +938,7 @@
   // --- Main Configuration Object ---
   const grokConfig = {
     platformName: 'Grok',
-    version: 7, // Updated config version
+    version: 9, // Updated config version
     selectors: {
       turnContainer: 'div.relative.group.flex.flex-col.justify-center[class*="items-"]',
       userMessageIndicator: '.items-end',
@@ -992,13 +997,13 @@
     extractUserUploadedImages: (turnElement) => { /* ... unchanged ... */ const images = []; const selectors = grokConfig.selectors; turnElement.querySelectorAll(selectors.userAttachmentChip).forEach(chip => { const imgPreviewDiv = chip.querySelector(selectors.userAttachmentImagePreviewDiv); const filenameElement = chip.querySelector(selectors.userAttachmentFilename); if (imgPreviewDiv && filenameElement) { const filename = filenameElement.textContent?.trim(); const style = imgPreviewDiv.getAttribute('style'); const match = style?.match(/url\\("?([^")]+)"?\\)/); const previewUrl = match ? match[1] : null; if (filename && previewUrl) { const fullUrl = getFullImageUrlFromPreview(previewUrl); if (fullUrl) { images.push({ type: 'image', sourceUrl: fullUrl, isPreviewOnly: true, extractedContent: filename }); } } } }); return images; },
     extractUserUploadedFiles: (turnElement) => { /* ... unchanged ... */ const files = []; const selectors = grokConfig.selectors; turnElement.querySelectorAll(selectors.userAttachmentChip).forEach(chip => { const fileIcon = chip.querySelector(selectors.userAttachmentFileIcon); const filenameElement = chip.querySelector(selectors.userAttachmentFilename); if (fileIcon && filenameElement && !chip.querySelector(selectors.userAttachmentImagePreviewDiv)) { const fileName = filenameElement.textContent?.trim(); if (fileName) { files.push({ type: 'file', fileName: fileName, fileType: 'File', isPreviewOnly: true, extractedContent: null }); } } }); return files; },
 
-    /**
-     * Extracts structured content items (text, code, images, lists, tables, blockquotes) from an assistant's message bubble.
-     * Iterates through relevant block-level elements within the bubble and processes them accordingly.
-     * **Updated in v7:** Added blockquote handling.
-     * @param {HTMLElement} turnElement - The assistant turn container element.
-     * @returns {Array<object>} - An array of structured content items.
-     */
+          /**
+       * Extracts structured content items (text, code, images, lists, tables, blockquotes) from an assistant's message bubble.
+       * Iterates through relevant block-level elements within the bubble and processes them accordingly.
+       * **Updated in v9:** Added complex nesting pattern support with wide spacing and * markers.
+       * @param {HTMLElement} turnElement - The assistant turn container element.
+       * @returns {Array<object>} - An array of structured content items.
+       */
     extractAssistantContent: (turnElement) => {
       const contentItems = [];
       const selectors = grokConfig.selectors;
@@ -1008,18 +1013,18 @@
         return [];
       }
 
-      // console.log(`[Grok Extractor v7] Processing assistant message bubble.`);
-      // Select the relevant block elements directly within the message bubble
-      const relevantBlocks = assistantContainer.querySelectorAll(selectors.assistantRelevantBlocks);
-      const processedElements = new Set(); // Keep track of processed elements
+              // console.log(`[Grok Extractor v9] Processing assistant message bubble.`);
+        // Select the relevant block elements directly within the message bubble
+        const relevantBlocks = assistantContainer.querySelectorAll(selectors.assistantRelevantBlocks);
+        const processedElements = new Set(); // Keep track of processed elements
 
-      relevantBlocks.forEach((block, index) => {
-          // Skip if this element was already processed as part of a larger block
-          if (processedElements.has(block)) return;
+        relevantBlocks.forEach((block, index) => {
+            // Skip if this element was already processed as part of a larger block
+            if (processedElements.has(block)) return;
 
-          const tagNameLower = block.tagName.toLowerCase();
-          // console.log(`[Grok Extractor v7] Processing Block #${index}: <${tagNameLower}>`);
-          let item = null; // To hold the result of processing functions
+            const tagNameLower = block.tagName.toLowerCase();
+            // console.log(`[Grok Extractor v9] Processing Block #${index}: <${tagNameLower}>`);
+            let item = null; // To hold the result of processing functions
 
           // --- Process based on block type ---
 
@@ -1049,7 +1054,7 @@
               processedElements.add(block);
               block.querySelectorAll('*').forEach(child => processedElements.add(child));
           }
-          // NEW IN v7: Handle Tables
+          // Handle Tables (added in v7)
           else if (tagNameLower === 'div' && block.classList.contains('table-container')) {
               // console.log("  -> Handling as Table Container");
               // Check if there's a table inside
@@ -1073,7 +1078,7 @@
           // Handle Lists (using processList which uses processChildNodes -> processNode that now handles nested blocks)
           else if (tagNameLower === 'ul' || tagNameLower === 'ol') {
               // console.log(`  -> Handling as ${tagNameLower.toUpperCase()} List`);
-              item = processList(block, tagNameLower); // processList returns { type: 'text', content: '...' }
+              item = processList(block, tagNameLower, 0, false, 0); // Start with level 0, not in blockquote
               if (item) {
                   // Add the text item containing the fully formatted list (including nested items/blocks)
                   QAClipper.Utils.addTextItem(contentItems, item.content);
@@ -1082,16 +1087,22 @@
               // Mark children as processed because processList->processChildNodes handled them
               block.querySelectorAll('*').forEach(child => processedElements.add(child));
           }
-          // NEW IN v7: Handle Blockquotes
-          else if (tagNameLower === 'blockquote') {
-              // console.log(`  -> Handling as Blockquote`);
-              const blockquoteContent = processBlockquote(block, 0);
-              if (blockquoteContent) {
-                  QAClipper.Utils.addTextItem(contentItems, blockquoteContent);
-              }
+                      // Handle Blockquotes (added complex nesting support in v9)
+            else if (tagNameLower === 'blockquote') {
+                // console.log(`  -> Handling as Blockquote`);
+                const blockquoteContent = processBlockquote(block, 0);
+                if (blockquoteContent) {
+                    QAClipper.Utils.addTextItem(contentItems, blockquoteContent);
+                }
+                processedElements.add(block);
+                // Mark children as processed because processBlockquote handled them
+                block.querySelectorAll('*').forEach(child => processedElements.add(child));
+            }
+          // Handle Horizontal Rules (HR tags)
+          else if (tagNameLower === 'hr') {
+              // console.log(`  -> Handling as Horizontal Rule`);
+              QAClipper.Utils.addTextItem(contentItems, '---');
               processedElements.add(block);
-              // Mark children as processed because processBlockquote handled them
-              block.querySelectorAll('*').forEach(child => processedElements.add(child));
           }
           // Handle Paragraphs and Headings (using processChildNodes -> processNode that now handles nested blocks)
           else if (['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(tagNameLower)) {
@@ -1113,14 +1124,14 @@
           }
           // --- Fallback / Unhandled ---
           else {
-              console.warn(`[Grok Extractor v7]   -> Skipping unhandled direct block type <${tagNameLower}>`, block);
-              processedElements.add(block);
-          }
-      }); // End forEach loop over relevantBlocks
+                              console.warn(`[Grok Extractor v9]   -> Skipping unhandled direct block type <${tagNameLower}>`, block);
+                processedElements.add(block);
+            }
+        }); // End forEach loop over relevantBlocks
 
-      // console.log("[Grok Extractor v7] Final assistant contentItems:", JSON.stringify(contentItems, null, 2));
-      return contentItems; // Return the array of extracted content items
-    }, // End extractAssistantContent
+        // console.log("[Grok Extractor v9] Final assistant contentItems:", JSON.stringify(contentItems, null, 2));
+        return contentItems; // Return the array of extracted content items
+      }, // End extractAssistantContent
 
   }; // End grokConfig
 
@@ -1129,4 +1140,4 @@
   // console.log("grokConfig.js initialized (v" + grokConfig.version + ")");
 
 })(); // End of IIFE
-// --- END OF UPDATED FILE grokConfigs.js ---
+// --- END OF UPDATED FILE grokConfigs.js (v9) ---
