@@ -238,129 +238,125 @@
          const listItemsToProcess = Array.from(el.querySelectorAll(':scope > li'));
 
          listItemsToProcess.forEach(li => {
-             // Clone to safely extract direct text content
-             const liClone = li.cloneNode(true);
-
-             // Identify all major nested elements within the list item
-             const nestedElements = [];
-             Array.from(li.childNodes).forEach((node, index) => {
-                 if (node.nodeType === Node.ELEMENT_NODE) {
-                     const tagName = node.tagName.toLowerCase();
-                     let shouldRemove = false;
-                     if (tagName === 'ul' || tagName === 'ol') {
-                         nestedElements.push({ type: 'list', element: node, index });
-                         shouldRemove = true;
-                     } else if (tagName === 'pre') {
-                         nestedElements.push({ type: 'pre', element: node, index });
-                         shouldRemove = true;
-                     } else if (tagName === 'blockquote') {
-                         nestedElements.push({ type: 'blockquote', element: node, index });
-                         shouldRemove = true;
-                     }
-                     // Remove the identified nested element from the clone *carefully*
-                     if (shouldRemove) {
-                         const cloneChild = Array.from(liClone.childNodes).find(cn => cn === node); // Find corresponding node in clone
-                         if (cloneChild && cloneChild.parentNode === liClone) {
-                              liClone.removeChild(cloneChild);
-                         }
-                     }
-                 }
-             });
-
-
-             // Sort nested elements by their original position
-             nestedElements.sort((a, b) => a.index - b.index);
-
-             // --- Process the list item content ---
-
              let currentContentLines = []; // Store lines for the current list item
              let hasAddedContent = false; // Track if anything was added for this li
-
-             // 1. Process the direct text content of the list item
-             const directTextContent = extractListItemTextContent(liClone); // Use the helper
              const marker = listType === 'ul' ? '-' : `${itemIndex + 1}.`;
 
-             if (directTextContent) {
-                 const itemTextLines = directTextContent.split('\n');
-                 itemTextLines.forEach((line, idx) => {
-                     if (idx === 0) {
-                         currentContentLines.push(`${bqPrefix}${indent}${marker} ${line}`);
-                     } else {
-                         // Subsequent lines need more indentation
-                         currentContentLines.push(`${bqPrefix}${textIndent}${line}`);
+             // Process child nodes sequentially to preserve order
+             const processNodes = (nodes, isFirstLevel = true) => {
+                 let textBuffer = ''; // Buffer to accumulate text content
+                 
+                 const flushTextBuffer = () => {
+                     if (textBuffer.trim()) {
+                         const textLines = textBuffer.trim().split('\n');
+                         textLines.forEach((line, idx) => {
+                             if (!hasAddedContent && idx === 0) {
+                                 // First content gets the list marker
+                                 currentContentLines.push(`${bqPrefix}${indent}${marker} ${line}`);
+                                 hasAddedContent = true;
+                             } else {
+                                 // Subsequent lines need more indentation
+                                 currentContentLines.push(`${bqPrefix}${textIndent}${line}`);
+                             }
+                         });
+                         textBuffer = '';
+                     }
+                 };
+
+                 Array.from(nodes).forEach(node => {
+                     if (node.nodeType === Node.TEXT_NODE) {
+                         // Accumulate text content
+                         const text = node.textContent || '';
+                         if (text.trim()) {
+                             textBuffer += text;
+                         }
+                     } else if (node.nodeType === Node.ELEMENT_NODE) {
+                         const tagName = node.tagName.toLowerCase();
+                         
+                         if (tagName === 'pre') {
+                             // Flush any accumulated text before processing code block
+                             flushTextBuffer();
+                             
+                             const codeItem = processCodeBlock(node);
+                             if (codeItem) {
+                                 if (!hasAddedContent) {
+                                     // If this is the first element, add the marker line first
+                                     currentContentLines.push(`${bqPrefix}${indent}${marker} `);
+                                     hasAddedContent = true;
+                                 }
+                                 const codeBlockIndent = textIndent;
+                                 const lang = codeItem.language || '';
+                                 currentContentLines.push(`${bqPrefix}${codeBlockIndent}\`\`\`${lang}`);
+                                 codeItem.content.split('\n').forEach(line => {
+                                     currentContentLines.push(`${bqPrefix}${codeBlockIndent}${line}`);
+                                 });
+                                 currentContentLines.push(`${bqPrefix}${codeBlockIndent}\`\`\``);
+                             }
+                         } else if (tagName === 'ul' || tagName === 'ol') {
+                             // Flush any accumulated text before processing nested list
+                             flushTextBuffer();
+                             
+                             const nestedResult = processList(node, tagName, level + 1, isWithinBlockquote, blockquoteLevel);
+                             if (nestedResult && nestedResult.content) {
+                                 if (!hasAddedContent) {
+                                     // If first element, need to merge marker with first line of nested list
+                                     const nestedLines = nestedResult.content.split('\n');
+                                     const firstNestedLine = nestedLines[0] || '';
+                                     // Extract content after blockquote prefix and list marker/indent
+                                     const firstLineContent = firstNestedLine.substring(bqPrefix.length).trim().replace(/^[-*0-9.]+\s+/, '');
+                                     currentContentLines.push(`${bqPrefix}${indent}${marker} ${firstLineContent}`);
+                                     // Add rest of the lines
+                                     currentContentLines.push(...nestedLines.slice(1));
+                                     hasAddedContent = true;
+                                 } else {
+                                     // Append nested list content directly
+                                     currentContentLines.push(nestedResult.content);
+                                 }
+                             }
+                         } else if (tagName === 'blockquote') {
+                             // Flush any accumulated text before processing blockquote
+                             flushTextBuffer();
+                             
+                             const bqContent = processBlockquote(node, blockquoteLevel);
+                             if (bqContent) {
+                                 if (!hasAddedContent) {
+                                     // If first element, add marker line first
+                                     currentContentLines.push(`${bqPrefix}${indent}${marker} `);
+                                     hasAddedContent = true;
+                                 }
+                                 const bqLines = bqContent.split('\n');
+                                 // Indent each line of the blockquote content under the list item
+                                 bqLines.forEach(line => {
+                                     // line already has its '>' prefixes from processBlockquote
+                                     // Indent based on list level, preserving existing '>' prefixes
+                                     const effectiveLine = line.startsWith(bqPrefix) ? line.substring(bqPrefix.length) : line;
+                                     currentContentLines.push(`${bqPrefix}${textIndent}${effectiveLine}`);
+                                 });
+                                 if (bqLines.length > 0) hasAddedContent = true;
+                             }
+                         } else {
+                             // For other elements, convert to markdown and add to text buffer
+                             const elementMarkdown = enhancedHtmlToMarkdown(node, {
+                                 skipElementCheck: shouldSkipElement
+                             });
+                             if (elementMarkdown.trim()) {
+                                 textBuffer += elementMarkdown;
+                             }
+                         }
                      }
                  });
-                 hasAddedContent = true;
-             }
+                 
+                 // Flush any remaining text
+                 flushTextBuffer();
+             };
 
-             // 2. Process nested elements in their original order
-             nestedElements.forEach(nestedEl => {
-                 if (nestedEl.type === 'pre') {
-                     const codeItem = processCodeBlock(nestedEl.element);
-                     if (codeItem) {
-                         if (!hasAddedContent) {
-                             // If this is the first element, add the marker line first
-                             currentContentLines.push(`${bqPrefix}${indent}${marker} `);
-                             hasAddedContent = true; // Marker line counts as content
-                         }
-                         const codeBlockIndent = textIndent; // Code always indented one level deeper
-                         const lang = codeItem.language || '';
-                         currentContentLines.push(`${bqPrefix}${codeBlockIndent}\`\`\`${lang}`);
-                         codeItem.content.split('\n').forEach(line => {
-                             currentContentLines.push(`${bqPrefix}${codeBlockIndent}${line}`);
-                         });
-                         currentContentLines.push(`${bqPrefix}${codeBlockIndent}\`\`\``);
-                         // hasAddedContent is already true
-                     }
-                 } else if (nestedEl.type === 'list') {
-                     const nestedList = nestedEl.element;
-                     const nestedType = nestedList.tagName.toLowerCase();
-                     // Recursive call, passing blockquote context
-                     const nestedResult = processList(nestedList, nestedType, level + 1, isWithinBlockquote, blockquoteLevel);
-                     if (nestedResult && nestedResult.content) {
-                          if (!hasAddedContent) {
-                               // If first element, need to merge marker with first line of nested list
-                               const nestedLines = nestedResult.content.split('\n');
-                               const firstNestedLine = nestedLines[0] || '';
-                               // Extract content after blockquote prefix and list marker/indent
-                               const firstLineContent = firstNestedLine.substring(bqPrefix.length).trim().replace(/^[-*0-9.]+\s+/, '');
-                               currentContentLines.push(`${bqPrefix}${indent}${marker} ${firstLineContent}`);
-                               // Add rest of the lines
-                               currentContentLines.push(...nestedLines.slice(1));
-                               hasAddedContent = true;
-                          } else {
-                              // Append nested list content directly
-                              currentContentLines.push(nestedResult.content);
-                          }
-                     }
-                 } else if (nestedEl.type === 'blockquote') {
-                     const blockquote = nestedEl.element;
-                     // Call the main processBlockquote, passing the *current* blockquote level
-                     const bqContent = processBlockquote(blockquote, blockquoteLevel);
-                     if (bqContent) {
-                         if (!hasAddedContent) {
-                             // If first element, add marker line first
-                              currentContentLines.push(`${bqPrefix}${indent}${marker} `);
-                              hasAddedContent = true;
-                         }
-                         const bqLines = bqContent.split('\n');
-                         // Indent each line of the blockquote content under the list item
-                         bqLines.forEach(line => {
-                             // line already has its '>' prefixes from processBlockquote
-                             // Indent based on list level, preserving existing '>' prefixes
-                             const effectiveLine = line.startsWith(bqPrefix) ? line.substring(bqPrefix.length) : line; // Remove outer bq prefix if present
-                             currentContentLines.push(`${bqPrefix}${textIndent}${effectiveLine}`);
-                         });
-                         // Ensure content is marked as added
-                         if (bqLines.length > 0) hasAddedContent = true;
-                     }
-                 }
-             });
+             // Process all child nodes
+             processNodes(li.childNodes);
 
              // If absolutely nothing was added (e.g., empty <li>), add the marker line
              if (!hasAddedContent) {
-                  currentContentLines.push(`${bqPrefix}${indent}${marker} `);
-                  hasAddedContent = true; // Mark as added even if just marker
+                 currentContentLines.push(`${bqPrefix}${indent}${marker} `);
+                 hasAddedContent = true;
              }
 
              // Add the processed lines for this item to the main lines array
