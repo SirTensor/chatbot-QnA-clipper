@@ -616,7 +616,7 @@
             // Return ONLY the list content; spacing handled by processChildNodes
             return listData ? listData.content : '';
         }
-        if (tagName === 'table' || (tagName === 'div' && node.classList.contains('overflow-x-auto'))) {
+        if (tagName === 'table' || (tagName === 'div' && node.classList.contains('table-container'))) {
             const tableMarkdown = processTableToMarkdown(node);
             // Return ONLY the table content; spacing handled by processChildNodes
             return tableMarkdown || '';
@@ -790,7 +790,7 @@
       userAttachmentImagePreviewDiv: 'div[style*="background-image"]',
       userAttachmentFileIcon: 'svg[aria-label="Text File"]',
       assistantContentContainer: 'div.response-content-markdown',
-      assistantRelevantBlocks: ':scope > :is(p, h1, h2, h3, h4, h5, h6, ol, ul, div.not-prose, div.grid, div.overflow-x-auto, blockquote, hr)',
+      assistantRelevantBlocks: ':scope > :is(p, h1, h2, h3, h4, h5, h6, ol, ul, div.not-prose, div.grid, div.table-container, blockquote, hr)',
       listItem: 'li',
       assistantCodeBlockOuterContainer: 'div.not-prose',
       assistantCodeBlockInnerContainer: 'div.not-prose > div.relative',
@@ -799,7 +799,7 @@
       assistantImageGrid: 'div.grid',
       assistantImageElement: 'img.object-cover.relative',
       inlineCodeSpan: 'span.text-sm.px-1.rounded-sm.\\!font-mono',
-      assistantTableContainer: 'div.overflow-x-auto',
+      assistantTableContainer: 'div.table-container',
       assistantTable: 'table',
       blockquoteContainer: 'blockquote',
       imageCaption: null,
@@ -895,7 +895,7 @@
               block.querySelectorAll('*').forEach(child => processedElements.add(child));
           }
           // NEW IN v7: Handle Tables
-          else if (tagNameLower === 'div' && block.classList.contains('overflow-x-auto')) {
+          else if (tagNameLower === 'div' && block.classList.contains('table-container')) {
               // console.log("  -> Handling as Table Container");
               // Check if there's a table inside
               const tableElement = block.querySelector('table');
@@ -912,7 +912,7 @@
                   processedElements.add(tableElement);
                   tableElement.querySelectorAll('*').forEach(child => processedElements.add(child));
               } else {
-                  // console.log("  -> div.overflow-x-auto found, but no table inside. Skipping.");
+                  // console.log("  -> div.table-container found, but no table inside. Skipping.");
               }
           }
           // Handle Lists (using processList which uses processChildNodes -> processNode that now handles nested blocks)
