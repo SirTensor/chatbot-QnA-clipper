@@ -25,11 +25,13 @@ A Chrome extension that extracts and formats Q&A conversations from AI chatbot p
 You can install the extension directly from the [Chrome Web Store](https://chromewebstore.google.com/detail/pblpjemjhgflddhdajfkieakdmmellmh).
 
 ### Manual Installation
-1. Download or clone this repository.
-2. Open Chrome and navigate to `chrome://extensions/`.
-3. Enable "Developer mode" (toggle in the top-right corner).
-4. Click "Load unpacked" and select the extension directory **where you downloaded or cloned the repository**.
-5. **Important:** Keep this directory in place. Chrome loads the extension directly from this folder, so if you move or delete it, the extension will stop working.
+1. Go to the [Releases page](https://github.com/SirTensor/chatbot-QnA-clipper/releases).
+2. From the latest release's "Assets" section, download the distribution `.zip` file (e.g., `chatbot-clipper-v1.x.x.zip`).
+3. Unzip the downloaded file.
+4. Open Chrome and navigate to `chrome://extensions/`.
+5. Enable "Developer mode" (toggle in the top-right corner).
+6. Click "Load unpacked" and select the unzipped extension directory.
+7. **Important:** Keep this directory in place. Chrome loads the extension directly from this folder, so if you move or delete it, the extension will stop working.
 
 ## Usage
 
