@@ -1,8 +1,8 @@
-// claudeConfig.js (v6 - Blockquote Support)
+// claudeConfig.js (v7 - User Message Line Break Fix)
 
 (function() {
   // Initialization check to prevent re-running the script if already loaded
-  if (window.claudeConfig && window.claudeConfig.version >= 6) {
+  if (window.claudeConfig && window.claudeConfig.version >= 7) {
     // console.log("Claude config already initialized (v" + window.claudeConfig.version + "), skipping.");
     return;
   }
@@ -260,11 +260,11 @@
    */
   function processTableToMarkdown(tableElement) {
     if (!tableElement || tableElement.tagName.toLowerCase() !== 'table') {
-      console.warn("[Claude Extractor v6] Invalid table element:", tableElement);
+      console.warn("[Claude Extractor v7] Invalid table element:", tableElement);
       return null;
     }
 
-    // console.log("[Claude Extractor v6] Processing table to Markdown");
+    // console.log("[Claude Extractor v7] Processing table to Markdown");
     const markdownRows = [];
     let columnCount = 0;
 
@@ -291,7 +291,7 @@
     }
 
     if (columnCount === 0) {
-      console.warn("[Claude Extractor v6] Table has no header (thead > tr > th). Trying fallback to first row.");
+      console.warn("[Claude Extractor v7] Table has no header (thead > tr > th). Trying fallback to first row.");
       // If there is no header, attempt to use the first row as the header
       const firstRow = tableElement.querySelector(':scope > tbody > tr:first-child');
       if (firstRow) {
@@ -311,7 +311,7 @@
     }
 
     if (columnCount === 0) {
-      console.warn("[Claude Extractor v6] Cannot determine table structure. Skipping.");
+      console.warn("[Claude Extractor v7] Cannot determine table structure. Skipping.");
       return null;
     }
 
@@ -336,14 +336,14 @@
           });
           markdownRows.push(`| ${cellContent.join(' | ')} |`);
         } else {
-          console.warn("[Claude Extractor v6] Table row skipped due to column count mismatch:", cells.length, "vs", columnCount);
+          console.warn("[Claude Extractor v7] Table row skipped due to column count mismatch:", cells.length, "vs", columnCount);
         }
       }
     }
 
     // Check if there is at least a header + separator + data row
     const markdownTable = markdownRows.length > 2 ? markdownRows.join('\n') : null;
-    // console.log("[Claude Extractor v6] Generated Markdown table:", markdownTable);
+    // console.log("[Claude Extractor v7] Generated Markdown table:", markdownTable);
     
     return markdownTable ? { type: 'text', content: markdownTable } : null;
   }
@@ -604,7 +604,7 @@
   // --- Main Configuration Object ---
   const claudeConfig = {
     platformName: 'Claude',
-    version: 6, // Update config version identifier for blockquote support
+    version: 7, // Update config version identifier for user message line break fix
     selectors: {
       // Container for a single turn (user or assistant)
       turnContainer: 'div[data-test-render-count]',
@@ -677,8 +677,47 @@
 
         // Handle common block elements like p, ul, ol, blockquote
         if (tagNameLower === 'p') {
-          const markdownText = QAClipper.Utils.htmlToMarkdown(child, { skipElementCheck: shouldSkipElement }).trim();
-          if (markdownText) QAClipper.Utils.addTextItem(contentItems, markdownText);
+          // Special handling for whitespace-pre-wrap paragraphs
+          if (child.classList.contains('whitespace-pre-wrap')) {
+            // For whitespace-pre-wrap, we need to preserve the exact text including line breaks
+            // First, clone the element to avoid modifying the original
+            const clonedChild = child.cloneNode(true);
+            
+            // Replace inline code elements with markdown syntax
+            const codeElements = clonedChild.querySelectorAll('code');
+            codeElements.forEach(codeEl => {
+              const codeText = codeEl.textContent;
+              const replacement = document.createTextNode(`\`${codeText}\``);
+              codeEl.parentNode.replaceChild(replacement, codeEl);
+            });
+            
+            // Replace strong elements with markdown syntax
+            const strongElements = clonedChild.querySelectorAll('strong');
+            strongElements.forEach(strongEl => {
+              const strongText = strongEl.textContent;
+              const replacement = document.createTextNode(`**${strongText}**`);
+              strongEl.parentNode.replaceChild(replacement, strongEl);
+            });
+            
+            // Replace em elements with markdown syntax
+            const emElements = clonedChild.querySelectorAll('em');
+            emElements.forEach(emEl => {
+              const emText = emEl.textContent;
+              const replacement = document.createTextNode(`*${emText}*`);
+              emEl.parentNode.replaceChild(replacement, emEl);
+            });
+            
+            // Get the text content which preserves line breaks
+            const textWithLineBreaks = clonedChild.textContent.trim();
+            
+            if (textWithLineBreaks) {
+              QAClipper.Utils.addTextItem(contentItems, textWithLineBreaks);
+            }
+          } else {
+            // For regular paragraphs, use the existing markdown conversion
+            const markdownText = QAClipper.Utils.htmlToMarkdown(child, { skipElementCheck: shouldSkipElement }).trim();
+            if (markdownText) QAClipper.Utils.addTextItem(contentItems, markdownText);
+          }
         } else if (tagNameLower === 'ul') {
           const listMarkdown = processList(child, 'ul', 0);
           if (listMarkdown) QAClipper.Utils.addTextItem(contentItems, listMarkdown); // Add text content
@@ -724,7 +763,7 @@
           let absoluteSrc = src;
           if (src && !src.startsWith('http') && !src.startsWith('blob:') && !src.startsWith('data:')) {
               try { absoluteSrc = new URL(src, window.location.origin).href; }
-              catch (e) { console.error("[Claude Extractor v6] Error creating absolute URL for image:", e, src); }
+              catch (e) { console.error("[Claude Extractor v7] Error creating absolute URL for image:", e, src); }
           }
           if (absoluteSrc && !absoluteSrc.startsWith('blob:') && !absoluteSrc.startsWith('data:')) {
              images.push({ type: 'image', sourceUrl: absoluteSrc, isPreviewOnly: src !== absoluteSrc, extractedContent: alt });
@@ -762,7 +801,7 @@
       const selectors = claudeConfig.selectors;
       const assistantContainer = turnElement.querySelector(selectors.assistantMessageContainer);
       if (!assistantContainer) {
-          console.warn("[Claude Extractor v6] Assistant message container not found.");
+          console.warn("[Claude Extractor v7] Assistant message container not found.");
           return [];
       }
 
@@ -948,7 +987,7 @@
           }
       }); // End forEach loop
 
-      // console.log("[Claude Extractor v6] Final assistant contentItems:", JSON.stringify(contentItems, null, 2));
+      // console.log("[Claude Extractor v7] Final assistant contentItems:", JSON.stringify(contentItems, null, 2));
       return contentItems;
     }, // End extractAssistantContent
 
