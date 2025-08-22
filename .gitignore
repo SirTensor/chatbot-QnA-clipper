@@ -143,3 +143,6 @@ grok*.html
 debug/
 builds/
 backups/
+
+# Ignore CLAUDE.md
+CLAUDE.md
