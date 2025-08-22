@@ -1,12 +1,12 @@
-// --- Updated grokConfigs.js (v9 - Complex Nesting Support) ---
+// --- Updated grokConfigs.js (v10 - KaTeX/LaTeX Support) ---
 
 /**
  * Configuration for extracting Q&A data from Grok (grok.com)
- * Version: 9 (Added complex nesting pattern support with wide spacing and * markers)
+ * Version: 10 (Added KaTeX/LaTeX extraction support for math expressions)
  */
 (function() {
   // Initialization check
-  if (window.grokConfig && window.grokConfig.version >= 9) { // Updated version check
+  if (window.grokConfig && window.grokConfig.version >= 10) { // Updated version check
     // console.log("Grok config already initialized (v" + window.grokConfig.version + "), skipping.");
     return;
   }
@@ -29,7 +29,8 @@
     return element.matches(selectors.assistantImageGrid) || // Handled by processAssistantImageGrid
            element.closest(selectors.userAttachmentChip) || // Skip content inside user attachment chips
            element.matches(selectors.assistantCodeBlockInnerContainer) || // Skip inner code div (handled by processCodeBlock)
-           element.tagName.toLowerCase() === 'blockquote'; // Skip blockquotes (handled by processBlockquote)
+           element.tagName.toLowerCase() === 'blockquote' || // Skip blockquotes (handled by processBlockquote)
+           (element.tagName.toLowerCase() === 'span' && element.classList.contains('katex-html')); // Skip KaTeX HTML rendering (we use LaTeX source)
            // REMOVED: Lists (ul/ol) and tables are now processed by processNode/processList/processTableToMarkdown
            // element.tagName.toLowerCase() === 'ul' ||
            // element.tagName.toLowerCase() === 'ol' ||
@@ -352,7 +353,7 @@
           : tableElement.querySelector('table');
       
       if (!table) {
-                      console.warn("[Grok Extractor v9] No table found in element:", tableElement);
+                      console.warn("[Grok Extractor v10] No table found in element:", tableElement);
             return null;
         }
 
@@ -398,7 +399,7 @@
       }
 
       if (columnCount === 0) {
-                      console.warn("[Grok Extractor v9] Could not determine column count for table:", table);
+                      console.warn("[Grok Extractor v10] Could not determine column count for table:", table);
             return null;
         }
 
@@ -727,9 +728,23 @@
     return resultLines.join('\n');
   }
 
+  /**
+   * Extracts LaTeX source code from KaTeX span elements
+   * @param {HTMLElement} katexElement - The span.katex element
+   * @returns {string|null} - The LaTeX source code or null if not found
+   */
+  function extractKaTexSource(katexElement) {
+    // Look for the annotation element with LaTeX source
+    const annotation = katexElement.querySelector('annotation[encoding="application/x-tex"]');
+    if (annotation && annotation.textContent) {
+      return annotation.textContent.trim();
+    }
+    return null;
+  }
+
       /**
      * Recursively processes a DOM node and its children to generate Markdown text.
-     * **Updated in v9:** Added complex nesting pattern support.
+     * **Updated in v10:** Added KaTeX/LaTeX extraction support.
      * @param {Node} node - The DOM node to process.
      * @returns {string} - The Markdown representation of the node and its children.
      */
@@ -807,6 +822,35 @@
         }
 
         // --- Handle INLINE Elements --- (if not a block handled above)
+        
+        // Handle KaTeX display math containers (katex-display > katex)
+        if (tagName === 'span' && node.classList.contains('katex-display')) {
+          const katexElement = node.querySelector('.katex');
+          if (katexElement) {
+            const latexSource = extractKaTexSource(katexElement);
+            if (latexSource) {
+              return `\\[\n${latexSource}\n\\]`;
+            }
+          }
+          // If we can't extract LaTeX, fall back to processing children
+          return processChildNodes(node);
+        }
+        
+        // Handle KaTeX inline math expressions
+        if (tagName === 'span' && node.classList.contains('katex')) {
+          // Skip if this katex element is inside a katex-display (already handled above)
+          if (node.parentElement && node.parentElement.classList.contains('katex-display')) {
+            return '';
+          }
+          
+          const latexSource = extractKaTexSource(node);
+          if (latexSource) {
+            return `\\(${latexSource}\\)`;
+          }
+          // If we can't extract LaTeX, fall back to processing children
+          return processChildNodes(node);
+        }
+        
         let content = processChildNodes(node); // Process children first for inlines
 
         if (tagName === 'strong' || tagName === 'b') { return `**${content}**`; }
@@ -938,7 +982,7 @@
   // --- Main Configuration Object ---
   const grokConfig = {
     platformName: 'Grok',
-    version: 9, // Updated config version
+    version: 10, // Updated config version - Added KaTeX/LaTeX extraction support
     selectors: {
       turnContainer: 'div.relative.group.flex.flex-col.justify-center[class*="items-"]',
       userMessageIndicator: '.items-end',
@@ -950,7 +994,7 @@
       userAttachmentImagePreviewDiv: 'div[style*="background-image"]',
       userAttachmentFileIcon: 'svg[aria-label="Text File"]',
       assistantContentContainer: 'div.response-content-markdown',
-      assistantRelevantBlocks: ':scope > :is(p, h1, h2, h3, h4, h5, h6, ol, ul, div.not-prose, div.grid, div.table-container, blockquote, hr)',
+      assistantRelevantBlocks: ':scope > :is(p, h1, h2, h3, h4, h5, h6, ol, ul, div.not-prose, div.grid, div.table-container, blockquote, hr, span.katex-display)',
       listItem: 'li',
       assistantCodeBlockOuterContainer: 'div.not-prose',
       assistantCodeBlockInnerContainer: 'div.not-prose > div.relative',
@@ -962,6 +1006,10 @@
       assistantTableContainer: 'div.table-container',
       assistantTable: 'table',
       blockquoteContainer: 'blockquote',
+      katexContainer: 'span.katex',
+      katexMathML: 'span.katex-mathml',
+      katexHTML: 'span.katex-html',
+      katexDisplayContainer: 'span.katex-display',
       imageCaption: null,
       interactiveBlockContainer: null,
       interactiveBlockTitle: null,
@@ -1000,7 +1048,7 @@
           /**
        * Extracts structured content items (text, code, images, lists, tables, blockquotes) from an assistant's message bubble.
        * Iterates through relevant block-level elements within the bubble and processes them accordingly.
-       * **Updated in v9:** Added complex nesting pattern support with wide spacing and * markers.
+       * **Updated in v10:** Added KaTeX/LaTeX extraction support for math expressions.
        * @param {HTMLElement} turnElement - The assistant turn container element.
        * @returns {Array<object>} - An array of structured content items.
        */
@@ -1013,7 +1061,7 @@
         return [];
       }
 
-              // console.log(`[Grok Extractor v9] Processing assistant message bubble.`);
+              // console.log(`[Grok Extractor v10] Processing assistant message bubble.`);
         // Select the relevant block elements directly within the message bubble
         const relevantBlocks = assistantContainer.querySelectorAll(selectors.assistantRelevantBlocks);
         const processedElements = new Set(); // Keep track of processed elements
@@ -1023,7 +1071,7 @@
             if (processedElements.has(block)) return;
 
             const tagNameLower = block.tagName.toLowerCase();
-            // console.log(`[Grok Extractor v9] Processing Block #${index}: <${tagNameLower}>`);
+            // console.log(`[Grok Extractor v10] Processing Block #${index}: <${tagNameLower}>`);
             let item = null; // To hold the result of processing functions
 
           // --- Process based on block type ---
@@ -1087,7 +1135,7 @@
               // Mark children as processed because processList->processChildNodes handled them
               block.querySelectorAll('*').forEach(child => processedElements.add(child));
           }
-                      // Handle Blockquotes (added complex nesting support in v9)
+                      // Handle Blockquotes (added complex nesting support in v9, KaTeX support in v10)
             else if (tagNameLower === 'blockquote') {
                 // console.log(`  -> Handling as Blockquote`);
                 const blockquoteContent = processBlockquote(block, 0);
@@ -1103,6 +1151,19 @@
               // console.log(`  -> Handling as Horizontal Rule`);
               QAClipper.Utils.addTextItem(contentItems, '---');
               processedElements.add(block);
+          }
+          // Handle KaTeX Display Math
+          else if (tagNameLower === 'span' && block.classList.contains('katex-display')) {
+              // console.log(`  -> Handling as KaTeX Display Math`);
+              const katexElement = block.querySelector('.katex');
+              if (katexElement) {
+                  const latexSource = extractKaTexSource(katexElement);
+                  if (latexSource) {
+                      QAClipper.Utils.addTextItem(contentItems, `\\[\n${latexSource}\n\\]`);
+                  }
+              }
+              processedElements.add(block);
+              block.querySelectorAll('*').forEach(child => processedElements.add(child));
           }
           // Handle Paragraphs and Headings (using processChildNodes -> processNode that now handles nested blocks)
           else if (['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(tagNameLower)) {
@@ -1124,12 +1185,12 @@
           }
           // --- Fallback / Unhandled ---
           else {
-                              console.warn(`[Grok Extractor v9]   -> Skipping unhandled direct block type <${tagNameLower}>`, block);
+                              console.warn(`[Grok Extractor v10]   -> Skipping unhandled direct block type <${tagNameLower}>`, block);
                 processedElements.add(block);
             }
         }); // End forEach loop over relevantBlocks
 
-        // console.log("[Grok Extractor v9] Final assistant contentItems:", JSON.stringify(contentItems, null, 2));
+        // console.log("[Grok Extractor v10] Final assistant contentItems:", JSON.stringify(contentItems, null, 2));
         return contentItems; // Return the array of extracted content items
       }, // End extractAssistantContent
 
@@ -1140,4 +1201,4 @@
   // console.log("grokConfig.js initialized (v" + grokConfig.version + ")");
 
 })(); // End of IIFE
-// --- END OF UPDATED FILE grokConfigs.js (v9) ---
+// --- END OF UPDATED FILE grokConfigs.js (v10) ---
