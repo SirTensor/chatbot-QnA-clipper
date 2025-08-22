@@ -1,8 +1,8 @@
-// claudeConfig.js (v7 - User Message Line Break Fix)
+// claudeConfig.js (v8 - Updated for new Claude HTML structure with font-claude-response)
 
 (function() {
   // Initialization check to prevent re-running the script if already loaded
-  if (window.claudeConfig && window.claudeConfig.version >= 7) {
+  if (window.claudeConfig && window.claudeConfig.version >= 8) {
     // console.log("Claude config already initialized (v" + window.claudeConfig.version + "), skipping.");
     return;
   }
@@ -61,14 +61,15 @@
       // Clone the li to manipulate it without affecting the original DOM
       const liClone = li.cloneNode(true);
 
-      // Find and process pre elements (code blocks) within the li before removing them
-      const codeBlocksInLi = Array.from(li.querySelectorAll(':scope > pre'));
+      // Find and process code blocks within the li before removing them
+      // Look for both old pre elements and new div container structure
+      const codeBlocksInLi = Array.from(li.querySelectorAll(':scope > pre, :scope > div.relative[class*="group/copy"]'));
       let codeBlocksContent = '';
       
       if (codeBlocksInLi.length > 0) {
         // Process each code block and collect their content
-        codeBlocksInLi.forEach(preElement => {
-          const codeItem = processCodeBlock(preElement);
+        codeBlocksInLi.forEach(codeBlockElement => {
+          const codeItem = processCodeBlock(codeBlockElement);
           if (codeItem && codeItem.type === 'code_block') {
             const languageSpec = codeItem.language ? `${codeItem.language}` : '';
             codeBlocksContent += `\`\`\`${languageSpec}\n${codeItem.content}\n\`\`\``;
@@ -77,17 +78,30 @@
             codeBlocksContent += `${codeItem.content}`;
           }
           
-          // Also remove the pre element from the clone to prevent duplicate processing
-          const preInClone = liClone.querySelector(`:scope > pre[data-testid="${preElement.getAttribute('data-testid')}"]`);
-          if (preInClone) {
-            liClone.removeChild(preInClone);
-          } else {
-            // If we can't find by data-testid, find the corresponding position
-            const preElements = liClone.querySelectorAll(':scope > pre');
-            if (preElements.length > 0) {
-              const index = Array.from(li.querySelectorAll(':scope > pre')).indexOf(preElement);
-              if (index >= 0 && index < preElements.length) {
-                liClone.removeChild(preElements[index]);
+          // Remove the code block element from the clone to prevent duplicate processing
+          const tagName = codeBlockElement.tagName.toLowerCase();
+          if (tagName === 'pre') {
+            // Handle old pre elements
+            const preInClone = liClone.querySelector(`:scope > pre[data-testid="${codeBlockElement.getAttribute('data-testid')}"]`);
+            if (preInClone) {
+              liClone.removeChild(preInClone);
+            } else {
+              // If we can't find by data-testid, find the corresponding position
+              const preElements = liClone.querySelectorAll(':scope > pre');
+              if (preElements.length > 0) {
+                const index = Array.from(li.querySelectorAll(':scope > pre')).indexOf(codeBlockElement);
+                if (index >= 0 && index < preElements.length) {
+                  liClone.removeChild(preElements[index]);
+                }
+              }
+            }
+          } else if (tagName === 'div') {
+            // Handle new div container structure
+            const divContainers = liClone.querySelectorAll(':scope > div.relative[class*="group/copy"]');
+            if (divContainers.length > 0) {
+              const index = Array.from(li.querySelectorAll(':scope > div.relative[class*="group/copy"]')).indexOf(codeBlockElement);
+              if (index >= 0 && index < divContainers.length) {
+                liClone.removeChild(divContainers[index]);
               }
             }
           }
@@ -106,10 +120,20 @@
       );
       blockquotesInClone.forEach(bq => liClone.removeChild(bq));
 
+
       // Get the markdown for the li content *without* the nested lists and blockquotes
       let itemMarkdown = QAClipper.Utils.htmlToMarkdown(liClone, {
         skipElementCheck: shouldSkipElement,
       }).trim();
+      
+      // If no markdown content was extracted but we have code blocks, 
+      // try to extract just the text content
+      if (!itemMarkdown && codeBlocksContent) {
+        const textContent = liClone.textContent?.trim();
+        if (textContent) {
+          itemMarkdown = textContent;
+        }
+      }
 
       // Recursively process the *original* nested lists found directly within the li
       let nestedContent = '';
@@ -183,8 +207,8 @@
   }
 
   /**
-   * Processes <pre> elements containing code blocks.
-   * @param {HTMLElement} el - The <pre> element.
+   * Processes code block elements (either <pre> or container <div> elements).
+   * @param {HTMLElement} el - The container element (could be <pre> or <div>).
    * @returns {object|null} - A code_block content item or null.
    */
   function processCodeBlock(el) {
@@ -196,51 +220,66 @@
       return processTableToMarkdown(tableElement);
     }
     
-    // General code block processing
-    const codeElement = el.querySelector(selectors.codeBlockContent);
-    // If no code element is found using the specific selector, try a more general approach
-    const actualCodeElement = codeElement || el.querySelector('code');
+    // Check if this is the new div container structure
+    let preElement = null;
+    let codeElement = null;
+    let langIndicatorElement = null;
     
-    // Extract code text, default to empty string if element not found
-    const code = actualCodeElement ? actualCodeElement.textContent : '';
+    if (el.tagName.toLowerCase() === 'div') {
+      // New structure: div container with pre.code-block__code inside
+      preElement = el.querySelector('pre.code-block__code');
+      if (preElement) {
+        codeElement = preElement.querySelector('code');
+        // Look for language indicator in the container div
+        langIndicatorElement = el.querySelector('div.text-text-500.font-small');
+      }
+    } else if (el.tagName.toLowerCase() === 'pre') {
+      // Old structure: direct pre element
+      preElement = el;
+      codeElement = el.querySelector(selectors.codeBlockContent) || el.querySelector('code');
+      langIndicatorElement = el.querySelector(selectors.codeBlockLangIndicator);
+    }
+    
+    // Extract code text
+    const code = codeElement ? codeElement.textContent : '';
     
     // Language detection - try multiple approaches
     let language = null;
     
-    if (actualCodeElement) {
-        // Method 1: Check for language- classes
-        const langClass = Array.from(actualCodeElement.classList || []).find(cls => cls.startsWith('language-'));
+    // Method 1: Check for language- classes on code element
+    if (codeElement) {
+        const langClass = Array.from(codeElement.classList || []).find(cls => cls.startsWith('language-'));
         if (langClass) {
             language = langClass.replace('language-', '');
         }
-        
-        // Method 2: Special handling for pre > code without language class
-        if (!language && actualCodeElement.parentElement === el && !langClass) {
-            // This is a plain code block without language specification
-            language = "text";  // Use "text" as fallback language identifier
-        }
     }
     
-    // Method 3: Check the language indicator div if class name fails
-    if (!language) {
-        const langIndicator = el.querySelector(selectors.codeBlockLangIndicator);
-        if (langIndicator) {
-            const indicatorText = langIndicator.textContent?.trim();
-            language = indicatorText && indicatorText.toLowerCase() !== "" ? 
-                       indicatorText.toLowerCase() : "text";
-        }
+    // Method 2: Check the language indicator div (new structure priority)
+    if (!language && langIndicatorElement) {
+        const indicatorText = langIndicatorElement.textContent?.trim();
+        language = indicatorText && indicatorText.toLowerCase() !== "" ? 
+                   indicatorText.toLowerCase() : "text";
     }
     
-    // Method 4: Try to infer language from div.text-text-500.text-xs with language name
-    // This is especially useful for code blocks in list items
+    // Method 3: Try to infer language from other div.text-text-500.text-xs elements
     if (!language) {
-        const langDivs = el.querySelectorAll('div.text-text-500.text-xs');
+        const langDivs = el.querySelectorAll('div.text-text-500.text-xs, div.text-text-500.font-small');
         for (const div of langDivs) {
             const langText = div.textContent?.trim().toLowerCase();
             if (langText && langText !== '') {
                 language = langText;
                 break;
             }
+        }
+    }
+
+    // Method 4: Check old selector pattern
+    if (!language) {
+        const oldLangIndicator = el.querySelector(selectors.codeBlockLangIndicator);
+        if (oldLangIndicator) {
+            const indicatorText = oldLangIndicator.textContent?.trim();
+            language = indicatorText && indicatorText.toLowerCase() !== "" ? 
+                       indicatorText.toLowerCase() : "text";
         }
     }
 
@@ -601,10 +640,71 @@
     return cleanedLines.join('\n');
   }
 
+  /**
+   * Helper function to process individual content elements
+   * @param {HTMLElement} element - The element to process
+   * @param {Array} contentItems - Array to add processed items to
+   * @param {Object} selectors - Selector configuration
+   */
+  function processContentElement(element, contentItems, selectors) {
+      const tagNameLower = element.tagName.toLowerCase();
+      let item = null;
+
+      if (tagNameLower === 'p') {
+          const markdownText = QAClipper.Utils.htmlToMarkdown(element, { skipElementCheck: shouldSkipElement }).trim();
+          if (markdownText) QAClipper.Utils.addTextItem(contentItems, markdownText);
+      } else if (tagNameLower === 'ul') {
+          const listMarkdown = processList(element, 'ul', 0);
+          if (listMarkdown) contentItems.push({ type: 'text', content: listMarkdown });
+      } else if (tagNameLower === 'ol') {
+          const listMarkdown = processList(element, 'ol', 0);
+          if (listMarkdown) contentItems.push({ type: 'text', content: listMarkdown });
+      } else if (tagNameLower === 'pre') {
+          // Check if the pre element contains a table first
+          const tableElement = element.querySelector(selectors.tableElement);
+          if (tableElement) {
+              // Process as a table if found
+              item = processTableToMarkdown(tableElement);
+          } else {
+              // Process as a code block if no table is found
+              item = processCodeBlock(element);
+          }
+          if (item) contentItems.push(item);
+      } else if (tagNameLower === 'blockquote') {
+          const blockquoteContent = processBlockquote(element, 0);
+          if (blockquoteContent) {
+              QAClipper.Utils.addTextItem(contentItems, blockquoteContent);
+          }
+      } else if (tagNameLower.match(/^h[1-6]$/)) { // Handle headings h1-h6
+          const level = parseInt(tagNameLower.substring(1), 10);
+          const prefix = '#'.repeat(level);
+          const headingText = QAClipper.Utils.htmlToMarkdown(element, { 
+              skipElementCheck: shouldSkipElement
+          }).trim();
+          if (headingText) {
+              QAClipper.Utils.addTextItem(contentItems, `${prefix} ${headingText}`);
+          }
+      } else if (tagNameLower === 'div') {
+          // Check if this is a code block container with the new structure
+          const preElement = element.querySelector('pre.code-block__code');
+          if (preElement) {
+              // This is a code block container - process it
+              item = processCodeBlock(element); // Pass the container div, not just the pre
+              if (item) contentItems.push(item);
+          } else {
+              // For other divs, try generic markdown conversion
+              const divMarkdown = QAClipper.Utils.htmlToMarkdown(element, { skipElementCheck: shouldSkipElement }).trim();
+              if (divMarkdown) {
+                  QAClipper.Utils.addTextItem(contentItems, divMarkdown);
+              }
+          }
+      }
+  }
+
   // --- Main Configuration Object ---
   const claudeConfig = {
     platformName: 'Claude',
-    version: 7, // Update config version identifier for user message line break fix
+    version: 8, // Update config version identifier for new HTML structure
     selectors: {
       // Container for a single turn (user or assistant)
       turnContainer: 'div[data-test-render-count]',
@@ -620,7 +720,7 @@
       userFilePreviewContent: 'div.whitespace-pre-wrap',
 
       // --- Assistant Turn Selectors ---
-      assistantMessageContainer: 'div.font-claude-message',
+      assistantMessageContainer: 'div.font-claude-response',
       // Selector for the grid *inside* a tabindex div (used in v6 logic)
       assistantContentGridInTabindex: ':scope > div.grid-cols-1',
       // Selector for content elements *inside* the grid (used in v6 logic)
@@ -800,194 +900,51 @@
       const contentItems = [];
       const selectors = claudeConfig.selectors;
       const assistantContainer = turnElement.querySelector(selectors.assistantMessageContainer);
+      
       if (!assistantContainer) {
-          console.warn("[Claude Extractor v7] Assistant message container not found.");
-          return [];
+          console.warn("[Claude Extractor v8] Assistant container not found");
+          return contentItems;
       }
 
+      // Process all direct children of the assistant container to handle multiple content blocks
       const directChildren = Array.from(assistantContainer.children);
-
-      directChildren.forEach((child, index) => {
+      
+      directChildren.forEach((child) => {
           const tagNameLower = child.tagName.toLowerCase();
-          let item = null; // Define item here
-
-          // First check if this element contains an artifact anywhere inside it
-          const artifactCell = child.querySelector && child.querySelector(selectors.artifactButton);
-          if (artifactCell) {
-              item = processArtifactButton(artifactCell);
-              if (item) contentItems.push(item);
-              return; // Skip further processing for this element
+          
+          // Skip flex spacing elements
+          if (child.classList.contains('flex') && child.classList.contains('flex-col') && child.classList.contains('gap-2')) {
+              return;
           }
-
-          // Case 1: Child is a container for text, lists, or code blocks (any div)
+          
           if (tagNameLower === 'div') {
-              // console.log("  -> Handling as Text/List/Code Container (div)");
-              // Find the grid inside this div - look for grid-cols-1 grid class
-              const gridInside = child.querySelector('div.grid-cols-1.grid, div.grid.grid-cols-1');
-              if (gridInside) {
-                  // Process existing content elements within the grid
-                  const contentElements = gridInside.querySelectorAll(selectors.assistantContentElementsInGrid);
-                  contentElements.forEach(contentElement => {
-                      const contentTagName = contentElement.tagName.toLowerCase();
-                      // console.log(`    -> Processing Grid Element: <${contentTagName}>`);
-
-                      if (contentTagName === 'p') {
-                          const markdownText = QAClipper.Utils.htmlToMarkdown(contentElement, { skipElementCheck: shouldSkipElement }).trim();
-                          if (markdownText) QAClipper.Utils.addTextItem(contentItems, markdownText);
-                      } else if (contentTagName === 'ul') {
-                          const listMarkdown = processList(contentElement, 'ul', 0);
-                          if (listMarkdown) contentItems.push({ type: 'text', content: listMarkdown });
-                      } else if (contentTagName === 'ol') {
-                          const listMarkdown = processList(contentElement, 'ol', 0);
-                          if (listMarkdown) contentItems.push({ type: 'text', content: listMarkdown });
-                      } else if (contentTagName === 'pre') {
-                          // Check if the pre element contains a table first
-                          const tableElement = contentElement.querySelector(selectors.tableElement);
-                          if (tableElement) {
-                              // Process as a table if found
-                              item = processTableToMarkdown(tableElement);
-                          } else {
-                              // Process as a code block if no table is found
-                              item = processCodeBlock(contentElement);
-                          }
-                          if (item) contentItems.push(item);
-                      } else if (contentTagName === 'blockquote') {
-                          const blockquoteContent = processBlockquote(contentElement, 0);
-                          if (blockquoteContent) {
-                              QAClipper.Utils.addTextItem(contentItems, blockquoteContent);
-                          }
-                      } else if (contentTagName.match(/^h[1-6]$/)) { // Handle headings h1-h6
-                          const level = parseInt(contentTagName.substring(1), 10);
-                          const prefix = '#'.repeat(level);
-                          const headingText = QAClipper.Utils.htmlToMarkdown(contentElement, { 
-                              skipElementCheck: shouldSkipElement,
-                              // Optionally ignore specific tags within headings if needed
-                              // ignoreTags: [] 
-                          }).trim();
-                          if (headingText) {
-                              QAClipper.Utils.addTextItem(contentItems, `${prefix} ${headingText}`);
-                          }
-                      } else if (contentTagName === 'div') {
-                          // Check if this div is a code block container
-                          // Look for the pattern: div.relative with pre element inside
-                          if (contentElement.classList.contains('relative') || 
-                              contentElement.querySelector('pre.code-block__code') ||
-                              contentElement.querySelector('pre[class*="code-block"]')) {
-                              
-                              // Find the pre element inside this container (may be nested in another div)
-                              const preElement = contentElement.querySelector('pre');
-                              if (preElement) {
-                                  // Check if the pre element contains a table first
-                                  const tableElement = preElement.querySelector(selectors.tableElement);
-                                  if (tableElement) {
-                                      // Process as a table if found
-                                      item = processTableToMarkdown(tableElement);
-                                  } else {
-                                      // Process as a code block if no table is found
-                                      item = processCodeBlock(preElement);
-                                  }
-                                  if (item) contentItems.push(item);
-                              } else {
-                                  // console.log(`    -> Code block container div found but no pre element inside`);
-                              }
-                          } else {
-                              // For other divs, try generic markdown conversion
-                              const divMarkdown = QAClipper.Utils.htmlToMarkdown(contentElement, { skipElementCheck: shouldSkipElement }).trim();
-                              if (divMarkdown) {
-                                  QAClipper.Utils.addTextItem(contentItems, divMarkdown);
-                              }
-                          }
-                      } else {
-                          // console.log(`    -> Skipping unhandled grid element: <${contentTagName}>`);
-                      }
+              // Check for artifact containers first
+              const artifactCell = child.querySelector(selectors.artifactButton);
+              if (artifactCell) {
+                  const item = processArtifactButton(artifactCell);
+                  if (item) contentItems.push(item);
+                  return;
+              }
+              
+              // Look for content grids within this div
+              const contentGrid = child.querySelector('div.grid-cols-1.grid.gap-2\\.5, div[class*="grid-cols-1"][class*="grid"][class*="gap-2"]');
+              if (contentGrid) {
+                  // Process children of the content grid
+                  const gridChildren = Array.from(contentGrid.children);
+                  gridChildren.forEach((gridChild) => {
+                      processContentElement(gridChild, contentItems, selectors);
                   });
               } else {
-                   // console.warn("  -> Grid not found inside div. Trying to process direct content.");
-                   // Fallback: If grid is not found, find content elements directly within the div
-                   const directContent = child.querySelectorAll(':scope > :is(p, ol, ul, pre, h1, h2, h3, h4, h5, h6, blockquote, div)');
-                   directContent.forEach(contentElement => {
-                        const contentTagName = contentElement.tagName.toLowerCase();
-                        if (contentTagName === 'p') {
-                            const markdownText = QAClipper.Utils.htmlToMarkdown(contentElement, { skipElementCheck: shouldSkipElement }).trim();
-                            if (markdownText) QAClipper.Utils.addTextItem(contentItems, markdownText);
-                        }
-                        else if (contentTagName === 'ul') {
-                            const listMarkdown = processList(contentElement, 'ul', 0);
-                            if (listMarkdown) contentItems.push({ type: 'text', content: listMarkdown });
-                        }
-                        else if (contentTagName === 'ol') {
-                            const listMarkdown = processList(contentElement, 'ol', 0);
-                            if (listMarkdown) contentItems.push({ type: 'text', content: listMarkdown });
-                        }
-                        else if (contentTagName === 'pre') {
-                            // Check if the pre element contains a table first in fallback path
-                            const tableElement = contentElement.querySelector(selectors.tableElement);
-                            if (tableElement) {
-                                // Process as a table if found
-                                item = processTableToMarkdown(tableElement);
-                            } else {
-                                // Process as a code block if no table is found
-                                item = processCodeBlock(contentElement);
-                            }
-                            if (item) contentItems.push(item);
-                        }
-                        else if (contentTagName === 'blockquote') {
-                            const blockquoteContent = processBlockquote(contentElement, 0);
-                            if (blockquoteContent) {
-                                QAClipper.Utils.addTextItem(contentItems, blockquoteContent);
-                            }
-                        } 
-                        else if (contentTagName.match(/^h[1-6]$/)) { // Handle headings h1-h6 in fallback
-                            const level = parseInt(contentTagName.substring(1), 10);
-                            const prefix = '#'.repeat(level);
-                            const headingText = QAClipper.Utils.htmlToMarkdown(contentElement, { 
-                                skipElementCheck: shouldSkipElement 
-                            }).trim();
-                            if (headingText) {
-                                QAClipper.Utils.addTextItem(contentItems, `${prefix} ${headingText}`);
-                            }
-                        }
-                        else if (contentTagName === 'div') {
-                            // Check if this div is a code block container (fallback path)
-                            // Look for the pattern: div.relative with pre element inside
-                            if (contentElement.classList.contains('relative') || 
-                                contentElement.querySelector('pre.code-block__code') ||
-                                contentElement.querySelector('pre[class*="code-block"]')) {
-                                
-                                // Find the pre element inside this container (may be nested in another div)
-                                const preElement = contentElement.querySelector('pre');
-                                if (preElement) {
-                                    // Check if the pre element contains a table first
-                                    const tableElement = preElement.querySelector(selectors.tableElement);
-                                    if (tableElement) {
-                                        // Process as a table if found
-                                        item = processTableToMarkdown(tableElement);
-                                    } else {
-                                        // Process as a code block if no table is found
-                                        item = processCodeBlock(preElement);
-                                    }
-                                    if (item) contentItems.push(item);
-                                } else {
-                                    // console.log(`    -> Code block container div found but no pre element inside (fallback)`);
-                                }
-                            } else {
-                                // For other divs, try generic markdown conversion
-                                const divMarkdown = QAClipper.Utils.htmlToMarkdown(contentElement, { skipElementCheck: shouldSkipElement }).trim();
-                                if (divMarkdown) {
-                                    QAClipper.Utils.addTextItem(contentItems, divMarkdown);
-                                }
-                            }
-                        }
-                   });
+                  // If no grid found, process this div directly
+                  processContentElement(child, contentItems, selectors);
               }
+          } else {
+              // Process non-div elements directly
+              processContentElement(child, contentItems, selectors);
           }
-          // Case 2: Unhandled direct child (artifacts are already handled above)
-          else {
-              // Skip unhandled elements
-          }
-      }); // End forEach loop
+      });
 
-      // console.log("[Claude Extractor v7] Final assistant contentItems:", JSON.stringify(contentItems, null, 2));
+      // console.log("[Claude Extractor v8] Final assistant contentItems:", JSON.stringify(contentItems, null, 2));
       return contentItems;
     }, // End extractAssistantContent
 
