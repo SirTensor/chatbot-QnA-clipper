@@ -2,8 +2,8 @@
 
 (function() {
     // Initialization check
-    // v26: Enhanced user text extraction to properly handle code blocks
-    if (window.chatgptConfig && window.chatgptConfig.version === 26) { return; }
+    // v29: Fixed LaTeX duplication in headings by processing KaTeX before headings
+    if (window.chatgptConfig && window.chatgptConfig.version === 29) { return; }
 
     // --- Helper Functions ---
 
@@ -39,7 +39,28 @@
             }
         });
         
-        // Process headings to ensure they use markdown syntax
+        // Process KaTeX elements for LaTeX extraction FIRST (before heading processing)
+        const katexInlineElements = clone.querySelectorAll('span.katex');
+        katexInlineElements.forEach(katexEl => {
+            const mathML = katexEl.querySelector('.katex-mathml annotation[encoding="application/x-tex"]');
+            if (mathML) {
+                const latex = mathML.textContent.trim();
+                const replacementText = document.createTextNode(`$${latex}$`);
+                katexEl.parentNode.replaceChild(replacementText, katexEl);
+            }
+        });
+
+        const katexDisplayElements = clone.querySelectorAll('span.katex-display');
+        katexDisplayElements.forEach(katexEl => {
+            const mathML = katexEl.querySelector('.katex-mathml annotation[encoding="application/x-tex"]');
+            if (mathML) {
+                const latex = mathML.textContent.trim();
+                const replacementText = document.createTextNode(`$$${latex}$$`);
+                katexEl.parentNode.replaceChild(replacementText, katexEl);
+            }
+        });
+
+        // Process headings to ensure they use markdown syntax (after KaTeX is already processed)
         const headings = clone.querySelectorAll('h1, h2, h3, h4, h5, h6');
         headings.forEach(heading => {
             const level = parseInt(heading.tagName.substring(1));
@@ -80,6 +101,7 @@
             // Replace the checkbox with our markdown-style checkbox text
             checkbox.parentNode.replaceChild(replacementText, checkbox);
         });
+
         
         // Call the original markdown converter with our pre-processed clone
         return QAClipper.Utils.htmlToMarkdown(clone, options).trim();
@@ -604,6 +626,32 @@
                  element.querySelectorAll('*').forEach(child => processedElements.add(child)); // processBlockquote handles children
                  handledSeparately = true;
              }
+             else if (tagNameLower === 'span' && element.classList.contains('katex-display')) {
+                 flushMdBlock();
+                 if (processedElements.has(element)) return;
+                 // Handle standalone display math
+                 const mathML = element.querySelector('.katex-mathml annotation[encoding="application/x-tex"]');
+                 if (mathML) {
+                     const latex = mathML.textContent.trim();
+                     QAClipper.Utils.addTextItem(contentItems, `$$${latex}$$`);
+                 }
+                 processedElements.add(element);
+                 element.querySelectorAll('*').forEach(child => processedElements.add(child));
+                 handledSeparately = true;
+             }
+             else if (tagNameLower === 'span' && element.classList.contains('katex')) {
+                 flushMdBlock();
+                 if (processedElements.has(element)) return;
+                 // Handle standalone inline math
+                 const mathML = element.querySelector('.katex-mathml annotation[encoding="application/x-tex"]');
+                 if (mathML) {
+                     const latex = mathML.textContent.trim();
+                     QAClipper.Utils.addTextItem(contentItems, `$${latex}$`);
+                 }
+                 processedElements.add(element);
+                 element.querySelectorAll('*').forEach(child => processedElements.add(child));
+                 handledSeparately = true;
+             }
 
              // --- Accumulate Standard Blocks ---
              if (!handledSeparately) {
@@ -723,7 +771,7 @@
     // --- Main Configuration Object ---
     const chatgptConfig = {
       platformName: 'ChatGPT',
-      version: 26, // v26: Enhanced user text extraction to properly handle code blocks
+      version: 29, // v29: Fixed LaTeX duplication in headings by processing KaTeX before headings
       selectors: { // Updated selectors for new table structure
         turnContainer: 'article[data-testid^="conversation-turn-"]',
         userMessageContainer: 'div[data-message-author-role="user"]',
@@ -749,6 +797,8 @@
           div.markdown.prose > div.overflow-x-auto > table,
           div.markdown.prose div.tableContainer > table,
           div.markdown.prose > div[class*="_tableContainer_"],
+          div.markdown.prose > span.katex-display,
+          div.markdown.prose > span.katex,
           :scope > pre /* Pre directly under assistant container (less common) */
         `,
         assistantTextContainer: 'div[data-message-author-role="assistant"] .markdown.prose',
@@ -829,6 +879,6 @@
 
     // Assign the config object to the window
     window.chatgptConfig = chatgptConfig;
-    // console.log("chatgptConfig initialized (v26 - Enhanced user text extraction to properly handle code blocks)");
+    // console.log("chatgptConfig initialized (v29 - Fixed LaTeX duplication in headings by processing KaTeX before headings)");
 
 })();
