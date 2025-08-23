@@ -969,8 +969,30 @@
 
     // Handle text nodes
     if (node.nodeType === Node.TEXT_NODE) {
-      // Replace tabs/newlines with a single space, collapse multiple spaces to one
-      return (node.textContent || '').replace(/[\t\n\r]+/g, ' ').replace(/ {2,}/g, ' ');
+      const textContent = node.textContent || '';
+      
+      // Check if this text node should preserve line breaks
+      // Look for parent elements with white-space: pre-wrap or break-words class
+      let shouldPreserveLineBreaks = false;
+      let parent = node.parentElement;
+      
+      while (parent && !shouldPreserveLineBreaks) {
+        const computedStyle = window.getComputedStyle(parent);
+        if (computedStyle.whiteSpace === 'pre-wrap' || 
+            computedStyle.whiteSpace === 'pre-line' ||
+            parent.classList.contains('break-words')) {
+          shouldPreserveLineBreaks = true;
+        }
+        parent = parent.parentElement;
+      }
+      
+      if (shouldPreserveLineBreaks) {
+        // Preserve line breaks, but still collapse tabs and multiple spaces
+        return textContent.replace(/\t+/g, ' ').replace(/ {2,}/g, ' ');
+      } else {
+        // Replace tabs/newlines with a single space, collapse multiple spaces to one
+        return textContent.replace(/[\t\n\r]+/g, ' ').replace(/ {2,}/g, ' ');
+      }
     }
 
     // Handle element nodes
