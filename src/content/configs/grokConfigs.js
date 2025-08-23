@@ -1,12 +1,12 @@
-// --- Updated grokConfigs.js (v10 - KaTeX/LaTeX Support) ---
+// --- Updated grokConfigs.js (v11 - Interactive Block Support) ---
 
 /**
  * Configuration for extracting Q&A data from Grok (grok.com)
- * Version: 10 (Added KaTeX/LaTeX extraction support for math expressions)
+ * Version: 11 (Added interactive block/artifact extraction support)
  */
 (function() {
   // Initialization check
-  if (window.grokConfig && window.grokConfig.version >= 10) { // Updated version check
+  if (window.grokConfig && window.grokConfig.version >= 11) { // Updated version check
     // console.log("Grok config already initialized (v" + window.grokConfig.version + "), skipping.");
     return;
   }
@@ -886,6 +886,47 @@
   }
 
   /**
+   * Processes interactive block (artifact) containers to extract block information
+   * @param {HTMLElement} interactiveContainer - The interactive block container element
+   * @returns {object|null} - Interactive block content item or null if not found
+   */
+  function processInteractiveBlock(interactiveContainer) {
+    const selectors = window.grokConfig.selectors;
+    
+    // Extract title from the container
+    const titleElement = interactiveContainer.querySelector(selectors.interactiveBlockTitle);
+    const title = titleElement ? titleElement.textContent.trim() : null;
+    
+    // Extract type - it's the second .text-fg-secondary.text-sm element (not the title)
+    const typeElements = interactiveContainer.querySelectorAll(selectors.interactiveBlockType);
+    let artifactType = null;
+    
+    // Look for the type element that's not the title
+    for (const typeElement of typeElements) {
+      const text = typeElement.textContent.trim();
+      // Skip if this element contains the title text or if it's empty
+      if (text && text !== title) {
+        artifactType = text;
+        break;
+      }
+    }
+    
+    if (!title) {
+      console.warn('[Grok Extractor] No title found for interactive block:', interactiveContainer);
+      return null;
+    }
+    
+    // Return interactive_block content item
+    return {
+      type: 'interactive_block',
+      title: title,
+      artifactType: artifactType || 'Artifact', // Default if type not found
+      code: null, // No code content available from HTML
+      language: null
+    };
+  }
+
+  /**
    * Processes chart containers with iframes to extract chart information
    * @param {HTMLElement} chartContainer - The div.py-2 container element
    * @returns {string|null} - Chart markdown representation or null if not found
@@ -1236,7 +1277,7 @@
   // --- Main Configuration Object ---
   const grokConfig = {
     platformName: 'Grok',
-    version: 10, // Updated config version - Added KaTeX/LaTeX extraction support
+    version: 11, // Updated config version - Added interactive block/artifact extraction support
     selectors: {
       turnContainer: 'div.relative.group.flex.flex-col.justify-center[class*="items-"]',
       userMessageIndicator: '.items-end',
@@ -1268,9 +1309,9 @@
       chartFrame: 'div.h-\\[500px\\].bg-surface-l1.rounded-xl.overflow-hidden.border.border-border',
       chartIframe: 'iframe[src*="artifacts.grokusercontent.com"]',
       imageCaption: null,
-      interactiveBlockContainer: null,
-      interactiveBlockTitle: null,
-      interactiveBlockContent: null,
+      interactiveBlockContainer: 'div.flex.cursor-pointer.rounded-2xl[id^="artifact_card_"]',
+      interactiveBlockTitle: '.font-medium.text-sm',
+      interactiveBlockType: '.text-fg-secondary.text-sm',
     },
 
     // --- Extraction Functions ---
@@ -1303,17 +1344,34 @@
     extractUserUploadedFiles: (turnElement) => { /* ... unchanged ... */ const files = []; const selectors = grokConfig.selectors; turnElement.querySelectorAll(selectors.userAttachmentChip).forEach(chip => { const fileIcon = chip.querySelector(selectors.userAttachmentFileIcon); const filenameElement = chip.querySelector(selectors.userAttachmentFilename); if (fileIcon && filenameElement && !chip.querySelector(selectors.userAttachmentImagePreviewDiv)) { const fileName = filenameElement.textContent?.trim(); if (fileName) { files.push({ type: 'file', fileName: fileName, fileType: 'File', isPreviewOnly: true, extractedContent: null }); } } }); return files; },
 
           /**
-       * Extracts structured content items (text, code, images, lists, tables, blockquotes) from an assistant's message bubble.
+       * Extracts structured content items (text, code, images, lists, tables, blockquotes, interactive blocks) from an assistant's message bubble.
        * Iterates through relevant block-level elements within the bubble and processes them accordingly.
-       * **Updated in v10:** Added KaTeX/LaTeX extraction support for math expressions.
+       * **Updated in v11:** Added interactive block/artifact extraction support.
        * @param {HTMLElement} turnElement - The assistant turn container element.
        * @returns {Array<object>} - An array of structured content items.
        */
     extractAssistantContent: (turnElement) => {
       const contentItems = [];
       const selectors = grokConfig.selectors;
+      
+      // First, look for interactive blocks anywhere in the turn element
+      const messageBubble = turnElement.querySelector(selectors.messageBubble);
+      if (messageBubble) {
+        const interactiveBlocks = messageBubble.querySelectorAll(selectors.interactiveBlockContainer);
+        interactiveBlocks.forEach(block => {
+          const interactiveItem = processInteractiveBlock(block);
+          if (interactiveItem) {
+            contentItems.push(interactiveItem);
+          }
+        });
+      }
+      
       const assistantContainer = turnElement.querySelector(selectors.assistantContentContainer);
       if (!assistantContainer) {
+        // If no regular content container but we found interactive blocks, return them
+        if (contentItems.length > 0) {
+          return contentItems;
+        }
         console.warn("[Grok Extractor] Assistant message bubble not found.");
         return [];
       }
