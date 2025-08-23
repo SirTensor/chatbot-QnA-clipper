@@ -680,42 +680,80 @@
       let item = null;
 
       if (tagNameLower === 'p') {
-          // First check if this paragraph contains KaTeX elements
-          const katexElements = element.querySelectorAll('.katex-display, .katex:not(.katex-display .katex)');
-          if (katexElements.length > 0) {
-              // Process the paragraph with KaTeX elements
-              let processedText = '';
-              const childNodes = Array.from(element.childNodes);
+          // Special handling for whitespace-pre-wrap paragraphs (preserves line breaks)
+          if (element.classList.contains('whitespace-pre-wrap')) {
+              // For whitespace-pre-wrap, we need to preserve the exact text including line breaks
+              // First, clone the element to avoid modifying the original
+              const clonedElement = element.cloneNode(true);
               
-              childNodes.forEach(node => {
-                  if (node.nodeType === Node.TEXT_NODE) {
-                      processedText += node.textContent;
-                  } else if (node.nodeType === Node.ELEMENT_NODE) {
-                      const katexContainer = node.closest('.katex-display') || (node.classList && node.classList.contains('katex-display'));
-                      const inlineKatex = node.classList && node.classList.contains('katex') && !katexContainer;
-                      
-                      if (katexContainer || inlineKatex) {
-                          const katexMath = processKaTeX(node);
-                          if (katexMath) {
-                              processedText += katexMath;
-                          }
-                      } else {
-                          // For non-KaTeX elements, convert to markdown normally
-                          const nodeMarkdown = QAClipper.Utils.htmlToMarkdown(node, { skipElementCheck: shouldSkipElement }).trim();
-                          if (nodeMarkdown) {
-                              processedText += nodeMarkdown;
-                          }
-                      }
-                  }
+              // Replace inline code elements with markdown syntax
+              const codeElements = clonedElement.querySelectorAll('code');
+              codeElements.forEach(codeEl => {
+                  const codeText = codeEl.textContent;
+                  const replacement = document.createTextNode(`\`${codeText}\``);
+                  codeEl.parentNode.replaceChild(replacement, codeEl);
               });
               
-              if (processedText.trim()) {
-                  QAClipper.Utils.addTextItem(contentItems, processedText.trim());
+              // Replace strong elements with markdown syntax
+              const strongElements = clonedElement.querySelectorAll('strong');
+              strongElements.forEach(strongEl => {
+                  const strongText = strongEl.textContent;
+                  const replacement = document.createTextNode(`**${strongText}**`);
+                  strongEl.parentNode.replaceChild(replacement, strongEl);
+              });
+              
+              // Replace em elements with markdown syntax
+              const emElements = clonedElement.querySelectorAll('em');
+              emElements.forEach(emEl => {
+                  const emText = emEl.textContent;
+                  const replacement = document.createTextNode(`*${emText}*`);
+                  emEl.parentNode.replaceChild(replacement, emEl);
+              });
+              
+              // Get the text content which preserves line breaks
+              const textWithLineBreaks = clonedElement.textContent.trim();
+              
+              if (textWithLineBreaks) {
+                  QAClipper.Utils.addTextItem(contentItems, textWithLineBreaks);
               }
           } else {
-              // Regular paragraph without KaTeX
-              const markdownText = QAClipper.Utils.htmlToMarkdown(element, { skipElementCheck: shouldSkipElement }).trim();
-              if (markdownText) QAClipper.Utils.addTextItem(contentItems, markdownText);
+              // First check if this paragraph contains KaTeX elements
+              const katexElements = element.querySelectorAll('.katex-display, .katex:not(.katex-display .katex)');
+              if (katexElements.length > 0) {
+                  // Process the paragraph with KaTeX elements
+                  let processedText = '';
+                  const childNodes = Array.from(element.childNodes);
+                  
+                  childNodes.forEach(node => {
+                      if (node.nodeType === Node.TEXT_NODE) {
+                          processedText += node.textContent;
+                      } else if (node.nodeType === Node.ELEMENT_NODE) {
+                          const katexContainer = node.closest('.katex-display') || (node.classList && node.classList.contains('katex-display'));
+                          const inlineKatex = node.classList && node.classList.contains('katex') && !katexContainer;
+                          
+                          if (katexContainer || inlineKatex) {
+                              const katexMath = processKaTeX(node);
+                              if (katexMath) {
+                                  processedText += katexMath;
+                              }
+                          } else {
+                              // For non-KaTeX elements, convert to markdown normally
+                              const nodeMarkdown = QAClipper.Utils.htmlToMarkdown(node, { skipElementCheck: shouldSkipElement }).trim();
+                              if (nodeMarkdown) {
+                                  processedText += nodeMarkdown;
+                              }
+                          }
+                      }
+                  });
+                  
+                  if (processedText.trim()) {
+                      QAClipper.Utils.addTextItem(contentItems, processedText.trim());
+                  }
+              } else {
+                  // Regular paragraph without KaTeX
+                  const markdownText = QAClipper.Utils.htmlToMarkdown(element, { skipElementCheck: shouldSkipElement }).trim();
+                  if (markdownText) QAClipper.Utils.addTextItem(contentItems, markdownText);
+              }
           }
       } else if (tagNameLower === 'span') {
           // Check if this is a KaTeX container at the top level
