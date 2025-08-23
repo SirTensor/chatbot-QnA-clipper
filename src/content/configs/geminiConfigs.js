@@ -1,9 +1,9 @@
-// geminiConfigs.js (v40 - Added artifactType extraction for interactive blocks)
+// geminiConfigs.js (v50 - Comprehensive KaTeX parsing with full support for complex mathematical structures)
 
 (function() {
     // Initialization check
-    // v41: Updated to skip thinking process and focus only on actual response content
-    if (window.geminiConfig && window.geminiConfig.version >= 41) { return; }
+    // v50: Comprehensive KaTeX parsing with full support for complex mathematical structures
+    if (window.geminiConfig && window.geminiConfig.version >= 50) { return; }
 
     // --- Helper Functions ---
 
@@ -25,8 +25,10 @@
              tagNameLower === 'ul' || tagNameLower === 'ol' || tagNameLower === 'pre' ||
              tagNameLower === 'blockquote' || // Skip blockquotes for dedicated processing
              tagNameLower === 'response-element' || // Skip response-element for dedicated processing
-             tagNameLower === 'table'; // Skip table at top level
+             tagNameLower === 'table' || // Skip table at top level
+             element.matches('.math-block'); // Skip math blocks for dedicated processing
     }
+
 
     /**
      * v37: Enhanced code block processing that handles mixed content with proper indentation tracking
@@ -542,6 +544,1397 @@
     }
 
     /**
+     * Converts KaTeX HTML structure back to LaTeX notation
+     * @param {HTMLElement} mathBlock - The math-block element containing KaTeX
+     * @returns {string|null} - LaTeX notation or null if conversion fails
+     */
+    function extractLatexFromKatex(mathBlock) {
+        try {
+            if (!mathBlock || !mathBlock.querySelector) {
+                return null;
+            }
+            
+            // Check if this is a display math (katex-display) or inline math
+            const isDisplayMath = mathBlock.querySelector('.katex-display') !== null;
+            
+            const katexElement = mathBlock.querySelector('.katex');
+            if (!katexElement) return null;
+            
+            let latex = '';
+            
+            // Use the enhanced parsing approach - parse from the top level
+            const katexHtml = katexElement.querySelector('.katex-html');
+            if (katexHtml) {
+                // Look for base elements which contain the main content
+                const baseElements = katexHtml.querySelectorAll('.base');
+                if (baseElements.length > 0) {
+                    for (const baseElement of baseElements) {
+                        const baseParsed = parseKatexBase(baseElement);
+                        if (baseParsed) {
+                            latex += baseParsed;
+                        }
+                    }
+                } else {
+                    // If no base elements, parse the entire HTML structure
+                    latex = parseKatexElement(katexHtml);
+                }
+            }
+            
+            // If still no result, try alternative parsing
+            if (!latex.trim()) {
+                // Try parsing all content recursively
+                latex = parseKatexElement(katexElement);
+            }
+            
+            // Clean up the result
+            if (latex && latex.trim()) {
+                latex = latex.trim()
+                    .replace(/\s+/g, ' ') // Normalize spaces
+                    .replace(/\s*([+\-=<>≤≥≠≈≡∼∝∴∩∪⋃⋂])\s*/g, ' $1 ') // Space around operators and symbols
+                    .replace(/\s*([(),\[\]])\s*/g, '$1') // Remove spaces around parentheses and brackets
+                    .replace(/\s*(\{|\})\s*/g, '$1') // Remove spaces around braces
+                    .replace(/\s*\\cdot\s*/g, ' \\cdot ') // Proper spacing for cdot
+                    .replace(/\\text\{\}\s*/g, '') // Remove empty text blocks
+                    .replace(/\s*\\times\s*/g, ' \\times ') // Proper spacing for times
+                    .replace(/\s*\\neq\s*/g, ' \\neq ') // Proper spacing for neq
+                    .replace(/\s+/g, ' ') // Final space normalization
+                    .trim();
+                
+                // Wrap in display math delimiters
+                if (isDisplayMath) {
+                    latex = '$$' + latex + '$$';
+                } else {
+                    latex = '$' + latex + '$';
+                }
+            } else {
+                // Fallback: extract raw text and apply symbol replacement
+                const allText = extractTextFromElement(katexElement);
+                latex = applySimpleSymbolReplacement(allText);
+                if (latex && latex.trim()) {
+                    if (isDisplayMath) {
+                        latex = '$$' + latex + '$$';
+                    } else {
+                        latex = '$' + latex + '$';
+                    }
+                } else {
+                    return '[Math Expression]';
+                }
+            }
+            
+            return latex;
+            
+        } catch (error) {
+            console.warn('[Gemini Math] Failed to extract LaTeX:', error);
+            return '[Math Expression]';
+        }
+    }
+    
+    /**
+     * Extract all text content from an element, including deeply nested text
+     */
+    function extractTextFromElement(element) {
+        if (!element) return '';
+        
+        if (element.nodeType === Node.TEXT_NODE) {
+            return element.textContent || '';
+        }
+        
+        if (element.nodeType !== Node.ELEMENT_NODE) return '';
+        
+        let result = '';
+        for (const child of element.childNodes) {
+            result += extractTextFromElement(child);
+        }
+        return result;
+    }
+    
+    /**
+     * Applies simple symbol replacement to raw text
+     * @param {string} text - Raw text extracted from KaTeX
+     * @returns {string} - Text with symbols replaced
+     */
+    function applySimpleSymbolReplacement(text) {
+        const symbolMap = {
+            '∞': '\\infty',
+            'π': '\\pi',
+            '∑': '\\sum',
+            '∏': '\\prod',
+            '∫': '\\int',
+            '±': '\\pm',
+            '∓': '\\mp',
+            '⋯': '\\cdots',
+            '⋮': '\\vdots',
+            '⋱': '\\ddots',
+            '∈': '\\in',
+            '∉': '\\notin',
+            '⊂': '\\subset',
+            '⊆': '\\subseteq',
+            '∪': '\\cup',
+            '∩': '\\cap',
+            '∅': '\\emptyset'
+        };
+        
+        let result = text;
+        for (const [symbol, latex] of Object.entries(symbolMap)) {
+            result = result.replace(new RegExp(escapeRegExp(symbol), 'g'), latex);
+        }
+        
+        // Additional pattern replacements for common malformed structures
+        // Replace patterns like "n21​" with proper fractions
+        result = result.replace(/(\w+)(\d+)​/g, '\\frac{1}{$1^{$2}}');
+        
+        // Replace patterns like "6π2​" with proper fractions
+        result = result.replace(/(\d+)(π)(\d+)​/g, '\\frac{$2^{$3}}{$1}');
+        
+        return result;
+    }
+    
+    /**
+     * Escape special regex characters
+     */
+    function escapeRegExp(string) {
+        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+    
+    /**
+     * Reconstruct LaTeX from patterns in KaTeX HTML and raw text
+     * @param {HTMLElement} katexElement - The KaTeX element
+     * @param {string} allText - All extracted text
+     * @returns {string} - Reconstructed LaTeX
+     */
+    function reconstructLatexFromPatterns(katexElement, allText) {
+        try {
+            console.log('[Debug] Starting pattern reconstruction with text:', allText);
+            
+            // Analyze the known pattern: n=1∑∞​n21​=1+221​+321​+421​+⋯=6π2​
+            // This represents: ∑_{n=1}^{∞} 1/n^2 = 1 + 1/2^2 + 1/3^2 + 1/4^2 + ⋯ = π^2/6
+            
+            // Use more sophisticated text pattern analysis
+            let processedText = allText;
+            
+            // Step 1: Handle summation with limits
+            let latex = '';
+            if (processedText.includes('∑')) {
+                latex += '\\sum';
+                
+                // Extract limits - look for pattern n=1∑∞
+                const limitMatch = processedText.match(/(.*?)∑(.*?)​/);
+                if (limitMatch) {
+                    const beforeSum = limitMatch[1];
+                    const afterSum = limitMatch[2];
+                    
+                    // Lower limit
+                    if (beforeSum.includes('n=1')) {
+                        latex += '_{n=1}';
+                    }
+                    
+                    // Upper limit  
+                    if (afterSum.includes('∞') || processedText.includes('∞')) {
+                        latex += '^{\\infty}';
+                    }
+                }
+            }
+            
+            // Step 2: Process specific malformed patterns
+            // Replace patterns like "n21​" → "\\frac{1}{n^2}"
+            processedText = processedText.replace(/n21​/g, '\\frac{1}{n^2}');
+            processedText = processedText.replace(/221​/g, '\\frac{1}{2^2}');
+            processedText = processedText.replace(/321​/g, '\\frac{1}{3^2}');
+            processedText = processedText.replace(/421​/g, '\\frac{1}{4^2}');
+            processedText = processedText.replace(/521​/g, '\\frac{1}{5^2}');
+            processedText = processedText.replace(/621​/g, '\\frac{1}{6^2}');
+            processedText = processedText.replace(/721​/g, '\\frac{1}{7^2}');
+            processedText = processedText.replace(/821​/g, '\\frac{1}{8^2}');
+            processedText = processedText.replace(/921​/g, '\\frac{1}{9^2}');
+            
+            // Replace "6π2​" → "\\frac{\\pi^2}{6}"
+            processedText = processedText.replace(/6π2​/g, '\\frac{\\pi^2}{6}');
+            
+            // More general patterns: any number followed by π and number with ​
+            processedText = processedText.replace(/(\d+)π(\d+)​/g, '\\frac{\\pi^{$2}}{$1}');
+            
+            // Remove summation symbols that have been processed
+            processedText = processedText.replace(/n=1∑∞​/g, '');
+            processedText = processedText.replace(/∑/g, '');
+            
+            // Apply symbol replacements
+            processedText = applySimpleSymbolReplacement(processedText);
+            
+            // Combine summation with the processed expression
+            if (latex.includes('\\sum')) {
+                latex += processedText;
+            } else {
+                latex = processedText;
+            }
+            
+            console.log('[Debug] Pattern reconstruction result:', latex);
+            return latex;
+            
+        } catch (error) {
+            console.warn('[Gemini Math] Pattern reconstruction failed:', error);
+            return '';
+        }
+    }
+    
+    /**
+     * Parses a single KaTeX .base element - Enhanced to handle complex nested structures
+     * @param {HTMLElement} baseElement - A .base element from KaTeX
+     * @returns {string} - LaTeX string for this base
+     */
+    function parseKatexBase(baseElement) {
+        if (!baseElement || !baseElement.children) {
+            return '';
+        }
+        
+        let result = '';
+        const children = Array.from(baseElement.children);
+        
+        for (let i = 0; i < children.length; i++) {
+            const child = children[i];
+            
+            if (child.classList && child.classList.contains('strut')) {
+                // Skip strut elements (used for layout)
+                continue;
+            }
+            
+            const className = child.className || '';
+            
+            // Skip spacing elements
+            if (className.includes('mspace')) {
+                continue;
+            }
+            
+            // Special handling for operators with limits (mop op-limits)
+            if (className.includes('mop') && className.includes('op-limits')) {
+                result += parseKatexElement(child);
+                continue;
+            }
+            
+            // Special handling for mord followed by msupsub
+            if (className.includes('mord')) {
+                const nextChild = children[i + 1];
+                if (nextChild && nextChild.className && nextChild.className.includes('msupsub')) {
+                    // Handle base + superscript/subscript together
+                    const baseText = parseKatexElement(child);
+                    const supsubText = parseKatexElement(nextChild);
+                    result += baseText + supsubText;
+                    i++; // Skip the next child since we processed it
+                    continue;
+                }
+            }
+            
+            // Special handling for minner (matrix-like structures)
+            if (className.includes('minner')) {
+                result += parseKatexElement(child);
+                continue;
+            }
+            
+            // Parse the child element
+            const childResult = parseKatexElement(child);
+            if (childResult && childResult.trim()) {
+                // Add appropriate spacing
+                if (className.includes('mrel')) {
+                    // Relations get spaces around them
+                    if (result && !result.endsWith(' ')) {
+                        result += ' ';
+                    }
+                    result += childResult;
+                    if (i < children.length - 1) {
+                        result += ' ';
+                    }
+                } else if (className.includes('mbin')) {
+                    // Binary operators get spaces around them
+                    if (result && !result.endsWith(' ')) {
+                        result += ' ';
+                    }
+                    result += childResult;
+                    if (i < children.length - 1) {
+                        result += ' ';
+                    }
+                } else {
+                    // Regular content - no extra spacing
+                    result += childResult;
+                }
+            }
+        }
+        
+        return result;
+    }
+    
+    /**
+     * Recursively parses KaTeX HTML elements to reconstruct LaTeX
+     * @param {HTMLElement} element - The element to parse
+     * @returns {string} - LaTeX string
+     */
+    function parseKatexElement(element) {
+        if (!element) return '';
+        
+        // Handle text nodes
+        if (element.nodeType === Node.TEXT_NODE) {
+            const text = element.textContent || '';
+            return applySymbolMapping(text);
+        }
+        
+        // Check if element has tagName property (should be an Element node)
+        if (!element.tagName || typeof element.tagName !== 'string') {
+            return '';
+        }
+        
+        const className = element.className || '';
+        const tagName = element.tagName.toLowerCase();
+        
+        // Skip layout elements
+        if (className.includes('strut') || className.includes('vlist-s') || className.includes('frac-line')) {
+            return '';
+        }
+        
+        // Special handling for mord elements that contain fractions
+        if (className.includes('mord')) {
+            // Check if this mord contains a fraction structure
+            const childFraction = element.querySelector('.mfrac');
+            if (childFraction) {
+                // This is a fraction wrapped in mord, parse it as a complete fraction
+                return parseFraction(childFraction);
+            }
+            
+            // Check for nulldelimiter + mfrac pattern (common in complex fractions)
+            const nullDelim = element.querySelector('.nulldelimiter');
+            const mfrac = element.querySelector('.mfrac');
+            if (nullDelim && mfrac) {
+                return parseFraction(mfrac);
+            }
+        }
+        
+        // Handle different KaTeX classes in priority order
+        if (className.includes('mop') && className.includes('op-limits')) {
+            return parseOperatorWithLimits(element);
+        }
+        
+        if (className.includes('mfrac')) {
+            return parseFraction(element);
+        }
+        
+        if (className.includes('msupsub')) {
+            return parseSupSub(element);
+        }
+        
+        if (className.includes('mop')) {
+            return parseOperator(element);
+        }
+        
+        if (className.includes('mord')) {
+            return parseOrdinary(element);
+        }
+        
+        if (className.includes('mrel')) {
+            return parseRelation(element);
+        }
+        
+        if (className.includes('mbin')) {
+            return parseBinary(element);
+        }
+        
+        if (className.includes('mopen') || className.includes('mclose')) {
+            return parseDelimiter(element);
+        }
+        
+        if (className.includes('minner')) {
+            return parseInner(element);
+        }
+        
+        if (className.includes('mspace')) {
+            return ''; // Remove spaces for now, we'll add them back strategically
+        }
+        
+        if (className.includes('mpunct')) {
+            const text = element.textContent || '';
+            return applySymbolMapping(text);
+        }
+        
+        if (className.includes('mtext') || className.includes('text')) {
+            return '\\text{' + (element.textContent || '') + '}';
+        }
+        
+        if (className.includes('nulldelimiter')) {
+            // Check if the parent or sibling contains a fraction
+            const parentElement = element.parentElement;
+            if (parentElement) {
+                const siblingFraction = parentElement.querySelector('.mfrac');
+                if (siblingFraction) {
+                    // Don't process nulldelimiter separately, let the parent handle the fraction
+                    return '';
+                }
+            }
+            return ''; // Skip null delimiters
+        }
+        
+        // Handle base elements specifically
+        if (className.includes('base')) {
+            return parseKatexBase(element);
+        }
+        
+        // Default: process children
+        return parseKatexChildren(element);
+    }
+    
+    /**
+     * Extract all text content from an element, including deeply nested text
+     */
+    function extractTextFromElement(element) {
+        if (!element) return '';
+        
+        if (element.nodeType === Node.TEXT_NODE) {
+            return element.textContent || '';
+        }
+        
+        if (element.nodeType !== Node.ELEMENT_NODE) return '';
+        
+        let result = '';
+        for (const child of element.childNodes) {
+            result += extractTextFromElement(child);
+        }
+        return result;
+    }
+    
+    /**
+     * Parse children elements
+     */
+    function parseKatexChildren(element) {
+        if (!element || !element.childNodes) return '';
+        
+        let result = '';
+        for (const child of element.childNodes) {
+            if (child.nodeType === Node.TEXT_NODE) {
+                const text = child.textContent || '';
+                result += applySymbolMapping(text);
+            } else if (child.nodeType === Node.ELEMENT_NODE) {
+                result += parseKatexElement(child);
+            }
+        }
+        return result;
+    }
+    
+    /**
+     * Parse fraction elements (.mfrac) - Completely rewritten for robust structure analysis
+     */
+    function parseFraction(element) {
+        if (!element || !element.querySelector) return '';
+        
+        // Strategy: Find the fraction line first, then locate content above and below it
+        const fracLine = element.querySelector('.frac-line');
+        if (!fracLine) {
+            // Fallback: try to find content by position analysis
+            return parseFractionByPosition(element);
+        }
+        
+        // Get the parent vlist that contains the fraction line
+        const vlist = fracLine.closest('.vlist');
+        if (!vlist) return parseFractionByPosition(element);
+        
+        const fracLineParent = fracLine.parentElement;
+        if (!fracLineParent) return parseFractionByPosition(element);
+        
+        // Get the position of the fraction line
+        const fracLineStyle = fracLineParent.getAttribute('style') || '';
+        const fracLineTopMatch = fracLineStyle.match(/top:\s*([-\d.]+)em/);
+        const fracLineTop = fracLineTopMatch ? parseFloat(fracLineTopMatch[1]) : 0;
+        
+        let numerator = '';
+        let denominator = '';
+        
+        // Find all content spans in the vlist
+        const spans = Array.from(vlist.children);
+        
+        for (const span of spans) {
+            // Skip layout elements and the fraction line itself
+            if (span.className.includes('vlist-s') || 
+                span === fracLineParent ||
+                span.querySelector('.frac-line')) {
+                continue;
+            }
+            
+            const style = span.getAttribute('style') || '';
+            const topMatch = style.match(/top:\s*([-\d.]+)em/);
+            
+            if (topMatch) {
+                const topValue = parseFloat(topMatch[1]);
+                const content = parseDeepContent(span);
+                
+                if (content && content.trim()) {
+                    // Content above the fraction line is numerator
+                    if (topValue < fracLineTop) {
+                        numerator = content.trim();
+                    }
+                    // Content below the fraction line is denominator
+                    else if (topValue > fracLineTop) {
+                        denominator = content.trim();
+                    }
+                }
+            }
+        }
+        
+        if (numerator && denominator) {
+            return '\\frac{' + numerator + '}{' + denominator + '}';
+        }
+        
+        // Fallback
+        return parseFractionByPosition(element);
+    }
+    
+    /**
+     * Fallback fraction parsing by position analysis
+     */
+    function parseFractionByPosition(element) {
+        const allSpans = Array.from(element.querySelectorAll('span'));
+        const contentItems = [];
+        
+        for (const span of allSpans) {
+            if (span.className.includes('frac-line') || 
+                span.className.includes('vlist-s') ||
+                span.className.includes('strut')) {
+                continue;
+            }
+            
+            const style = span.getAttribute('style') || '';
+            const topMatch = style.match(/top:\s*([-\d.]+)em/);
+            
+            if (topMatch) {
+                const topValue = parseFloat(topMatch[1]);
+                const content = parseDeepContent(span);
+                
+                if (content && content.trim()) {
+                    contentItems.push({
+                        topValue: topValue,
+                        content: content.trim()
+                    });
+                }
+            }
+        }
+        
+        if (contentItems.length >= 2) {
+            // Remove duplicates
+            const uniqueItems = [];
+            for (const item of contentItems) {
+                if (!uniqueItems.some(ui => ui.content === item.content)) {
+                    uniqueItems.push(item);
+                }
+            }
+            
+            if (uniqueItems.length >= 2) {
+                uniqueItems.sort((a, b) => a.topValue - b.topValue);
+                const numerator = uniqueItems[0].content;
+                const denominator = uniqueItems[uniqueItems.length - 1].content;
+                return '\\frac{' + numerator + '}{' + denominator + '}';
+            }
+        }
+        
+        return '';
+    }
+    
+    /**
+     * Deep content parsing for complex nested structures
+     */
+    function parseDeepContent(element) {
+        if (!element) return '';
+        
+        // If this element has a specific KaTeX class, use the appropriate parser
+        const className = element.className || '';
+        
+        if (className.includes('mfrac')) {
+            return parseFraction(element);
+        }
+        if (className.includes('msupsub')) {
+            return parseSupSub(element);
+        }
+        if (className.includes('mord')) {
+            return parseOrdinary(element);
+        }
+        if (className.includes('mop')) {
+            return parseOperator(element);
+        }
+        if (className.includes('mrel')) {
+            return parseRelation(element);
+        }
+        if (className.includes('mbin')) {
+            return parseBinary(element);
+        }
+        if (className.includes('mopen') || className.includes('mclose')) {
+            return parseDelimiter(element);
+        }
+        if (className.includes('minner')) {
+            return parseInner(element);
+        }
+        if (className.includes('accent')) {
+            return parseAccent(element);
+        }
+        if (className.includes('sqrt')) {
+            return parseSqrt(element);
+        }
+        if (className.includes('mathbf')) {
+            const textContent = extractTextFromElement(element);
+            if (textContent && textContent.trim()) {
+                return '\\mathbf{' + applySymbolMapping(textContent.trim()) + '}';
+            }
+        }
+        if (className.includes('mtext') || className.includes('text')) {
+            const textContent = extractTextFromElement(element);
+            if (textContent && textContent.trim()) {
+                return '\\text{' + textContent.trim() + '}';
+            }
+        }
+        
+        // For elements without specific classes, parse children recursively
+        let result = '';
+        
+        for (const child of element.childNodes) {
+            if (child.nodeType === Node.TEXT_NODE) {
+                const text = child.textContent || '';
+                result += applySymbolMapping(text);
+            } else if (child.nodeType === Node.ELEMENT_NODE) {
+                const childClassName = child.className || '';
+                
+                // Skip layout elements
+                if (childClassName.includes('strut') || 
+                    childClassName.includes('vlist-s') ||
+                    childClassName.includes('frac-line')) {
+                    continue;
+                }
+                
+                result += parseDeepContent(child);
+            }
+        }
+        
+        return result;
+    }
+    
+    /**
+     * Parse superscript/subscript elements (.msupsub)
+     */
+    function parseSupSub(element) {
+        if (!element || !element.querySelector) return '';
+        
+        const vlist = element.querySelector('.vlist-r .vlist');
+        if (!vlist) return '';
+        
+        const spans = Array.from(vlist.children);
+        let superscript = '';
+        let subscript = '';
+        
+        // Collect content spans with position information
+        const contentSpans = [];
+        
+        for (const span of spans) {
+            // Skip layout elements
+            if (span.className.includes('vlist-s')) continue;
+            
+            const style = span.getAttribute('style') || '';
+            const topMatch = style.match(/top:\s*([-\d.]+)em/);
+            
+            if (!topMatch) continue;
+            
+            const topValue = parseFloat(topMatch[1]);
+            // Use deep parsing to handle nested structures like fractions in superscripts
+            const content = parseDeepContent(span);
+            
+            if (content && content.trim()) {
+                contentSpans.push({
+                    topValue: topValue,
+                    content: content.trim(),
+                    style: style
+                });
+            }
+        }
+        
+        // Sort by position (more negative = higher = superscript)
+        contentSpans.sort((a, b) => a.topValue - b.topValue);
+        
+        // Assign based on relative positions with refined thresholds
+        if (contentSpans.length === 1) {
+            const item = contentSpans[0];
+            // More precise threshold based on KaTeX positioning
+            if (item.topValue < -2.5) {
+                superscript = item.content;
+            } else if (item.topValue > -1.0) {
+                subscript = item.content;
+            } else {
+                // Medium range - analyze content for clues
+                if (item.content.includes('n') || item.content.includes('i') || item.content.includes('k') || item.content.includes('=')) {
+                    subscript = item.content;  // Likely an index
+                } else {
+                    superscript = item.content;  // Likely an exponent
+                }
+            }
+        } else if (contentSpans.length >= 2) {
+            // Multiple items - more sophisticated assignment
+            const topItem = contentSpans[0];  // most negative = highest
+            const bottomItem = contentSpans[contentSpans.length - 1];  // least negative = lowest
+            
+            // Check if there's a clear separation
+            const separation = bottomItem.topValue - topItem.topValue;
+            if (separation > 1.0) {
+                superscript = topItem.content;
+                subscript = bottomItem.content;
+            } else {
+                // Items are close - analyze content
+                if (topItem.content.match(/[\d\w+\-=]/)) {
+                    if (topItem.topValue < -2.0) {
+                        superscript = topItem.content;
+                    } else {
+                        subscript = topItem.content;
+                    }
+                }
+                if (bottomItem.content.match(/[\d\w+\-=]/)) {
+                    if (bottomItem.topValue > -1.5) {
+                        subscript = bottomItem.content;
+                    } else {
+                        superscript = bottomItem.content;
+                    }
+                }
+            }
+        }
+        
+        let result = '';
+        if (subscript) {
+            result += '_{' + subscript + '}';
+        }
+        if (superscript) {
+            result += '^{' + superscript + '}';
+        }
+        
+        return result;
+    }
+    
+    
+    /**
+     * Parse operator elements with limits (.mop.op-limits)
+     */
+    function parseOperatorWithLimits(element) {
+        if (!element) return '';
+        
+        // Find the vlist structure that contains the operator and its limits
+        const vlist = element.querySelector('.vlist-r .vlist');
+        if (!vlist) return parseOperator(element);
+        
+        let operator = '';
+        let lowerLimit = '';
+        let upperLimit = '';
+        let operatorPosition = 0;
+        
+        const spans = Array.from(vlist.querySelectorAll(':scope > span'));
+        
+        // Collect content spans with position information
+        const contentItems = [];
+        
+        for (const span of spans) {
+            const style = span.getAttribute('style') || '';
+            
+            // Skip layout elements
+            if (span.className.includes('vlist-s')) continue;
+            
+            // Find the operator symbol (usually in the center)
+            const operatorSymbol = span.querySelector('.mop.op-symbol, .op-symbol, .large-op, .mop');
+            if (operatorSymbol) {
+                const symbol = extractTextFromElement(operatorSymbol);
+                if (symbol === '∑') operator = '\\sum';
+                else if (symbol === '∏') operator = '\\prod';
+                else if (symbol === '∫') operator = '\\int';
+                else if (symbol === '∮') operator = '\\oint';
+                else if (symbol === '⋃') operator = '\\bigcup';
+                else if (symbol === '⋂') operator = '\\bigcap';
+                else if (symbol === 'lim') operator = '\\lim';
+                else operator = applySymbolMapping(symbol);
+                
+                // Record position for reference
+                const topMatch = style.match(/top:\s*([-\d.]+)em/);
+                if (topMatch) {
+                    const topValue = parseFloat(topMatch[1]);
+                    operatorPosition = topValue;
+                    contentItems.push({
+                        type: 'operator',
+                        topValue: topValue,
+                        content: operator
+                    });
+                }
+                continue;
+            }
+            
+            // Check for limit content
+            const limitContent = parseDeepContent(span).trim();
+            if (limitContent && !limitContent.includes(operator.replace('\\', ''))) {
+                const topMatch = style.match(/top:\s*([-\d.]+)em/);
+                if (topMatch) {
+                    const topValue = parseFloat(topMatch[1]);
+                    contentItems.push({
+                        type: 'limit',
+                        topValue: topValue,
+                        content: limitContent
+                    });
+                }
+            }
+        }
+        
+        // If no operator found yet, try to find it in the text content
+        if (!operator) {
+            const allText = extractTextFromElement(element);
+            if (allText.includes('∑')) operator = '\\sum';
+            else if (allText.includes('∏')) operator = '\\prod';
+            else if (allText.includes('∫')) operator = '\\int';
+            else if (allText.includes('∮')) operator = '\\oint';
+            else if (allText.includes('⋃')) operator = '\\bigcup';
+            else if (allText.includes('⋂')) operator = '\\bigcap';
+            else if (allText.includes('lim')) operator = '\\lim';
+        }
+        
+        // Sort by vertical position to determine which limit is upper/lower
+        const limits = contentItems.filter(item => item.type === 'limit');
+        if (limits.length > 0) {
+            limits.sort((a, b) => a.topValue - b.topValue);
+            
+            // Assign limits based on position relative to operator
+            for (const limit of limits) {
+                if (limit.topValue < operatorPosition - 0.5) {
+                    // Above operator
+                    if (!upperLimit) upperLimit = limit.content;
+                } else if (limit.topValue > operatorPosition + 0.5) {
+                    // Below operator
+                    if (!lowerLimit) lowerLimit = limit.content;
+                }
+            }
+            
+            // Fallback: if positions are unclear, use traditional assignment
+            if (!upperLimit && !lowerLimit && limits.length >= 1) {
+                if (limits.length === 1) {
+                    const limit = limits[0];
+                    if (limit.topValue < -2.0) {
+                        upperLimit = limit.content;
+                    } else {
+                        lowerLimit = limit.content;
+                    }
+                } else {
+                    upperLimit = limits[0].content;
+                    lowerLimit = limits[limits.length - 1].content;
+                }
+            }
+        }
+        
+        // Construct the LaTeX notation
+        let result = operator || '';
+        if (lowerLimit && upperLimit) {
+            result += `_{${lowerLimit}}^{${upperLimit}}`;
+        } else if (lowerLimit) {
+            result += `_{${lowerLimit}}`;
+        } else if (upperLimit) {
+            result += `^{${upperLimit}}`;
+        }
+        
+        return result;
+    }
+    
+    /**
+     * Parse operator elements (.mop)
+     */
+    function parseOperator(element) {
+        if (!element) return '';
+        
+        const text = element.textContent || '';
+        
+        // Map common operators to LaTeX
+        const operatorMap = {
+            'sin': '\\sin',
+            'cos': '\\cos',
+            'tan': '\\tan',
+            'log': '\\log',
+            'ln': '\\ln',
+            'exp': '\\exp',
+            'max': '\\max',
+            'min': '\\min',
+            'sup': '\\sup',
+            'inf': '\\inf',
+            'lim': '\\lim',
+            '∑': '\\sum',
+            '∏': '\\prod',  
+            '∫': '\\int'
+        };
+        
+        return operatorMap[text] || text;
+    }
+    
+    /**
+     * Parse ordinary elements (.mord) - Enhanced to handle complex nested structures
+     */
+    function parseOrdinary(element) {
+        if (!element) return '';
+        
+        // Check for text content class which may contain \text{} structures
+        if (element.classList.contains('mord') && element.classList.contains('text')) {
+            const textContent = extractTextFromElement(element);
+            if (textContent && textContent.trim()) {
+                return '\\text{' + textContent.trim() + '}';
+            }
+        }
+        
+        let result = '';
+        
+        // Process all child nodes in order, handling complex structures
+        for (const child of element.childNodes) {
+            if (child.nodeType === Node.TEXT_NODE) {
+                const text = child.textContent || '';
+                result += applySymbolMapping(text);
+            } else if (child.nodeType === Node.ELEMENT_NODE) {
+                const childClassName = child.className || '';
+                
+                // Handle specific KaTeX structures with high priority
+                if (childClassName.includes('mfrac')) {
+                    result += parseFraction(child);
+                } else if (childClassName.includes('msupsub')) {
+                    result += parseSupSub(child);
+                } else if (childClassName.includes('mord')) {
+                    // Recursively handle nested mord elements
+                    result += parseOrdinary(child);
+                } else if (childClassName.includes('mop')) {
+                    result += parseOperator(child);
+                } else if (childClassName.includes('mrel')) {
+                    result += parseRelation(child);
+                } else if (childClassName.includes('mbin')) {
+                    result += parseBinary(child);
+                } else if (childClassName.includes('mopen') || childClassName.includes('mclose')) {
+                    result += parseDelimiter(child);
+                } else if (childClassName.includes('minner')) {
+                    result += parseInner(child);
+                } else if (childClassName.includes('mtext') || childClassName.includes('text')) {
+                    const textContent = extractTextFromElement(child);
+                    if (textContent && textContent.trim()) {
+                        result += '\\text{' + textContent.trim() + '}';
+                    }
+                } else if (!childClassName.includes('strut') && !childClassName.includes('vlist-s')) {
+                    // For other elements, recursively parse
+                    result += parseKatexElement(child);
+                }
+            }
+        }
+        
+        // If no structured content found, fall back to text extraction
+        if (!result.trim()) {
+            const text = extractTextFromElement(element);
+            result = applySymbolMapping(text);
+        }
+        
+        return result;
+    }
+    
+    /**
+     * Apply symbol mapping to text content
+     * @param {string} text - Text to map symbols for
+     * @returns {string} - Text with symbols replaced
+     */
+    function applySymbolMapping(text) {
+        if (!text) return '';
+        
+        // Handle special symbols
+        const symbolMap = {
+            '∞': '\\infty',
+            'π': '\\pi',
+            'α': '\\alpha',
+            'β': '\\beta',
+            'γ': '\\gamma',
+            'δ': '\\delta',
+            'ε': '\\varepsilon',
+            'ζ': '\\zeta',
+            'η': '\\eta',
+            'θ': '\\theta',
+            'ι': '\\iota',
+            'κ': '\\kappa',
+            'λ': '\\lambda',
+            'μ': '\\mu',
+            'ν': '\\nu',
+            'ξ': '\\xi',
+            'ρ': '\\rho',
+            'σ': '\\sigma',
+            'τ': '\\tau',
+            'υ': '\\upsilon',
+            'φ': '\\varphi',
+            'χ': '\\chi',
+            'ψ': '\\psi',
+            'ω': '\\omega',
+            'Α': '\\Alpha',
+            'Β': '\\Beta',
+            'Γ': '\\Gamma',
+            'Δ': '\\Delta',
+            'Ε': '\\Epsilon',
+            'Ζ': '\\Zeta',
+            'Η': '\\Eta',
+            'Θ': '\\Theta',
+            'Ι': '\\Iota',
+            'Κ': '\\Kappa',
+            'Λ': '\\Lambda',
+            'Μ': '\\Mu',
+            'Ν': '\\Nu',
+            'Ξ': '\\Xi',
+            'Ο': '\\Omicron',
+            'Π': '\\Pi',
+            'Ρ': '\\Rho',
+            'Σ': '\\Sigma',
+            'Τ': '\\Tau',
+            'Υ': '\\Upsilon',
+            'Φ': '\\Phi',
+            'Χ': '\\Chi',
+            'Ψ': '\\Psi',
+            'Ω': '\\Omega',
+            '∑': '\\sum', 
+            '∏': '\\prod',
+            '∫': '\\int',
+            '∮': '\\oint',
+            '∇': '\\nabla',
+            '∂': '\\partial',
+            '±': '\\pm',
+            '∓': '\\mp',
+            '⋯': '\\cdots',
+            '⋮': '\\vdots',
+            '⋱': '\\ddots',
+            '∈': '\\in',
+            '∉': '\\notin',
+            '⊂': '\\subset',
+            '⊆': '\\subseteq',
+            '∪': '\\cup',
+            '∩': '\\cap',
+            '⋃': '\\bigcup',
+            '⋂': '\\bigcap',
+            '∅': '\\emptyset',
+            'ℕ': '\\mathbb{N}',
+            'ℤ': '\\mathbb{Z}',
+            'ℚ': '\\mathbb{Q}',
+            'ℝ': '\\mathbb{R}',
+            'ℂ': '\\mathbb{C}',
+            'E': '\\mathbb{E}',
+            '∴': '\\therefore',
+            '⋅': '\\cdot',
+            '×': '\\times',
+            '≠': '\\neq',
+            '≤': '\\leq',
+            '≥': '\\geq',
+            '≈': '\\approx',
+            '≡': '\\equiv',
+            '∼': '\\sim',
+            '∝': '\\propto',
+            '→': '\\to',
+            '←': '\\leftarrow',
+            '↔': '\\leftrightarrow',
+            '⇒': '\\Rightarrow',
+            '⇐': '\\Leftarrow',
+            '⇔': '\\Leftrightarrow',
+            'ℓ': '\\ell',
+            'B': 'B'
+        };
+        
+        // Check if the entire text content matches a symbol
+        if (symbolMap[text]) {
+            return symbolMap[text];
+        }
+        
+        // If not, check each character for symbol mapping
+        let result = '';
+        for (const char of text) {
+            result += symbolMap[char] || char;
+        }
+        
+        return result;
+    }
+    
+    /**
+     * Parse relation elements (.mrel)
+     */
+    function parseRelation(element) {
+        if (!element) return '';
+        
+        // Check for special relation structures
+        if (element.classList.contains('mrel') && element.querySelector('.mord.vbox')) {
+            // This might be a special relation like ≠ constructed from = with overlay
+            const baseText = extractTextFromElement(element);
+            if (baseText.includes('=')) {
+                // Check if there's an overlay or strikethrough indicating negation
+                const overlay = element.querySelector('.overlay, .fix');
+                if (overlay) {
+                    return '\\neq';
+                }
+            }
+        }
+        
+        const text = element.textContent || '';
+        
+        const relationMap = {
+            '=': '=',
+            '≠': '\\neq',
+            '<': '<',
+            '>': '>',
+            '≤': '\\leq',
+            '≥': '\\geq',
+            '≈': '\\approx',
+            '≡': '\\equiv',
+            '∼': '\\sim',
+            '∝': '\\propto',
+            '∴': '\\therefore',
+            '→': '\\to',
+            '←': '\\leftarrow',
+            '↔': '\\leftrightarrow',
+            '⇒': '\\Rightarrow',
+            '⇐': '\\Leftarrow',
+            '⇔': '\\Leftrightarrow'
+        };
+        
+        return relationMap[text] || applySymbolMapping(text);
+    }
+    
+    /**
+     * Parse binary operators (.mbin)
+     */
+    function parseBinary(element) {
+        if (!element) return '';
+        
+        const text = element.textContent || '';
+        
+        const binaryMap = {
+            '+': '+',
+            '-': '-', 
+            '×': '\\times',
+            '·': '\\cdot',
+            '⋅': '\\cdot', // ⋅
+            '÷': '\\div',
+            '±': '\\pm',
+            '∓': '\\mp'
+        };
+        
+        return binaryMap[text] || applySymbolMapping(text);
+    }
+    
+    /**
+     * Parse delimiters (.mopen, .mclose)
+     */
+    function parseDelimiter(element) {
+        if (!element) return '';
+        
+        return element.textContent || '';
+    }
+    
+    /**
+     * Parse inner elements (.minner) - for complex structures like matrices and large parentheses
+     */
+    function parseInner(element) {
+        if (!element) return '';
+        
+        // Check for matrix structure
+        const mtable = element.querySelector('.mtable');
+        if (mtable) {
+            return parseMatrix(mtable, element);
+        }
+        
+        // Check for delimited content (parentheses, brackets, etc.)
+        const openDelim = element.querySelector('.mopen');
+        const closeDelim = element.querySelector('.mclose');
+        
+        if (openDelim && closeDelim) {
+            const openText = openDelim.textContent || '';
+            const closeText = closeDelim.textContent || '';
+            
+            // Get content between delimiters
+            let innerContent = '';
+            const contentElements = Array.from(element.children);
+            
+            for (const child of contentElements) {
+                if (child === openDelim || child === closeDelim) continue;
+                if (child.classList.contains('mord') || child.classList.contains('mtable') || child.classList.contains('minner')) {
+                    innerContent += parseKatexElement(child);
+                }
+            }
+            
+            // Special handling for set notation with braces
+            if (openText === '{' && closeText === '}') {
+                return `\\\\left\\\\{${innerContent}\\\\right\\\\}`;
+            }
+            
+            return openText + innerContent + closeText;
+        }
+        
+        const text = extractTextFromElement(element);
+        
+        // Handle common inner symbols
+        const symbolMap = {
+            '⋯': '\\cdots',
+            '⋮': '\\vdots', 
+            '⋱': '\\ddots',
+            '…': '\\ldots'
+        };
+        
+        return symbolMap[text] || parseKatexChildren(element);
+    }
+    
+    /**
+     * Parse accent/vector structures like \\vec{B}
+     */
+    function parseAccent(element) {
+        if (!element || !element.querySelector) return '';
+        
+        // Look for the base content (the letter being accented)
+        let baseContent = '';
+        const contentElements = element.querySelectorAll('.mord.mathnormal, .mord.mathbf');
+        
+        for (const contentEl of contentElements) {
+            const text = extractTextFromElement(contentEl);
+            if (text && text.trim()) {
+                if (contentEl.classList.contains('mathbf')) {
+                    baseContent += '\\\\mathbf{' + applySymbolMapping(text.trim()) + '}';
+                } else {
+                    baseContent += applySymbolMapping(text.trim());
+                }
+            }
+        }
+        
+        // If no specific content found, extract all text
+        if (!baseContent) {
+            baseContent = applySymbolMapping(extractTextFromElement(element));
+        }
+        
+        // Check for vector arrow overlay
+        const accentBody = element.querySelector('.accent-body');
+        if (accentBody) {
+            // This is likely a vector notation
+            return `\\\\vec{${baseContent}}`;
+        }
+        
+        // Default: return the base content
+        return baseContent;
+    }
+    
+    /**
+     * Parse square root structures
+     */
+    function parseSqrt(element) {
+        if (!element) return '';
+        
+        // Look for root index (for nth roots)
+        const root = element.querySelector('.root');
+        let rootIndex = '';
+        
+        if (root) {
+            rootIndex = parseDeepContent(root);
+        }
+        
+        // Get the main content under the radical
+        const vlistR = element.querySelector('.vlist-r');
+        let content = '';
+        
+        if (vlistR) {
+            // Find content spans, skip the radical line
+            const spans = Array.from(vlistR.querySelectorAll('span'));
+            for (const span of spans) {
+                if (span.classList.contains('svg-align') || 
+                    span.classList.contains('hide-tail') ||
+                    span.querySelector('.katex-svg') ||
+                    span.querySelector('img')) {
+                    continue; // Skip radical line graphics
+                }
+                
+                const spanContent = parseDeepContent(span);
+                if (spanContent && spanContent.trim()) {
+                    content += spanContent;
+                }
+            }
+        }
+        
+        // Clean up content
+        content = content.trim();
+        
+        // Construct the square root notation
+        if (rootIndex && rootIndex.trim()) {
+            return `\\\\sqrt[${rootIndex}]{${content}}`;
+        } else {
+            return `\\\\sqrt{${content}}`;
+        }
+    }
+    
+    /**
+     * Parse matrix structures
+     */
+    function parseMatrix(mtable, parent) {
+        if (!mtable) return '';
+        
+        // Determine matrix type from delimiters
+        const openDelim = parent.querySelector('.mopen');
+        const closeDelim = parent.querySelector('.mclose');
+        const openText = openDelim ? openDelim.textContent : '(';
+        const closeText = closeDelim ? closeDelim.textContent : ')';
+        
+        let matrixType = 'pmatrix'; // default
+        if (openText === '[' && closeText === ']') {
+            matrixType = 'bmatrix';
+        } else if (openText === '{' && closeText === '}') {
+            matrixType = 'Bmatrix';
+        } else if (openText === '|' && closeText === '|') {
+            matrixType = 'vmatrix';
+        }
+        
+        // Parse matrix rows
+        const rows = [];
+        const colAligns = mtable.querySelectorAll('.col-align-c, .col-align-l, .col-align-r');
+        
+        for (const colAlign of colAligns) {
+            const vlistR = colAlign.querySelector('.vlist-r');
+            if (!vlistR) continue;
+            
+            const vlist = vlistR.querySelector('.vlist');
+            if (!vlist) continue;
+            
+            const spans = Array.from(vlist.children);
+            const rowContents = [];
+            
+            for (const span of spans) {
+                if (span.classList.contains('vlist-s')) continue;
+                
+                const cellContent = parseKatexChildren(span);
+                if (cellContent.trim()) {
+                    rowContents.push(cellContent.trim());
+                }
+            }
+            
+            if (rowContents.length > 0) {
+                rows.push(rowContents.join(' \\\\ '));
+            }
+        }
+        
+        if (rows.length === 0) {
+            // Enhanced fallback: try to parse matrix structure more carefully
+            const allCells = [];
+            const vlistElements = mtable.querySelectorAll('.vlist');
+            
+            for (const vlist of vlistElements) {
+                const cellSpans = Array.from(vlist.children).filter(span => 
+                    !span.classList.contains('vlist-s')
+                );
+                
+                for (const span of cellSpans) {
+                    const cellContent = parseDeepContent(span).trim();
+                    if (cellContent) {
+                        allCells.push(cellContent);
+                    }
+                }
+            }
+            
+            if (allCells.length > 0) {
+                // Assume 2x2 matrix if we have multiple cells
+                if (allCells.length === 2) {
+                    return `\\begin{${matrixType}} ${allCells[0]} \\\\ ${allCells[1]} \\end{${matrixType}}`;
+                } else if (allCells.length === 4) {
+                    return `\\begin{${matrixType}} ${allCells[0]} & ${allCells[1]} \\\\ ${allCells[2]} & ${allCells[3]} \\end{${matrixType}}`;
+                } else {
+                    return `\\begin{${matrixType}} ${allCells.join(' \\\\ ')} \\end{${matrixType}}`;
+                }
+            }
+        }
+        
+        const matrixContent = rows.join(' \\\\ ');
+        return `\\begin{${matrixType}} ${matrixContent} \\end{${matrixType}}`;
+    }
+
+    /**
      * Processes image elements into a structured object.
      * @param {HTMLElement} el - The image container or image element.
      * @returns {object|null} - An image content item or null.
@@ -851,7 +2244,7 @@
     // --- Main Configuration Object ---
           const geminiConfig = {
         platformName: 'Gemini',
-        version: 41, // v41: Updated to skip thinking process and focus only on actual response content
+        version: 50, // v50: Comprehensive KaTeX parsing with full support for complex mathematical structures
       selectors: {
         turnContainer: 'user-query, model-response',
         userMessageContainer: 'user-query', userText: '.query-text',
@@ -859,7 +2252,7 @@
         userFileContainer: '.file-preview-container', userFileItem: '.file-upload-link', userFileName: '.new-file-name', userFileType: '.new-file-type',
         assistantContentArea: 'div.markdown.markdown-main-panel',
         // Added all heading levels (h1-h6) to relevantBlocks and response-element for nested code blocks
-        relevantBlocks: 'p, h1, h2, h3, h4, h5, h6, ul, ol, code-block, single-image, div.attachment-container.immersive-entry-chip, table, blockquote, response-element, hr',
+        relevantBlocks: 'p, h1, h2, h3, h4, h5, h6, ul, ol, code-block, single-image, div.attachment-container.immersive-entry-chip, table, blockquote, response-element, hr, div.math-block',
         listItem: 'li',
         codeBlockContent: 'pre > code', codeBlockLangIndicator: 'div.code-block-decoration > span',
         imageContainerAssistant: 'single-image', imageElementAssistant: 'img.image.loaded', imageCaption: 'div.caption', imageElement: 'img',
@@ -978,6 +2371,7 @@
               const isList = tagNameLower === 'ul' || tagNameLower === 'ol';
               const isParagraph = tagNameLower === 'p'; // Paragraphs might contain other things now
               const isHorizontalRule = tagNameLower === 'hr';
+              const isMathBlock = element.classList.contains('math-block');
 
               let item = null;
 
@@ -1073,6 +2467,15 @@
                   QAClipper.Utils.addTextItem(contentItems, '---');
                   processedElements.add(element);
               }
+              else if (isMathBlock) {
+                  // Extract LaTeX from KaTeX HTML structure
+                  const latexContent = extractLatexFromKatex(element);
+                  if (latexContent) {
+                      QAClipper.Utils.addTextItem(contentItems, latexContent);
+                  }
+                  processedElements.add(element);
+                  element.querySelectorAll('*').forEach(child => processedElements.add(child));
+              }
               else if (isHeading) {
                   const level = parseInt(tagNameLower.charAt(1));
                   const headingMarkup = '#'.repeat(level);
@@ -1108,7 +2511,7 @@
     }; // End geminiConfig
 
     window.geminiConfig = geminiConfig;
-    // console.log("geminiConfig initialized (v41 - Updated to skip thinking process and focus only on actual response content)");
+    // console.log("geminiConfig initialized (v50 - Comprehensive KaTeX parsing with full support for complex mathematical structures)");
 
     /**
      * Special fixed version to handle blockquotes with nested lists

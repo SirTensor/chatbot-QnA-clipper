@@ -104,7 +104,7 @@
               latex = mathML.textContent.trim();
             }
             
-            // If no LaTeX source found, try alternative extraction methods for Gemini
+            // If no LaTeX source found, try alternative extraction methods
             if (!latex) {
               // Look for nested katex elements
               const katexElement = node.querySelector('.katex');
@@ -119,37 +119,7 @@
             if (latex) {
               markdown += `$${latex}$`;
             } else {
-              // Fallback: For Gemini, try to reconstruct LaTeX from text content
-              const katexHtml = node.querySelector('.katex-html');
-              if (katexHtml) {
-                const mathText = katexHtml.textContent.trim();
-                if (mathText) {
-                  // Simple LaTeX reconstruction for common patterns
-                  let reconstructedLatex = mathText;
-                  // Convert superscripts (like x²) to LaTeX format (x^2)
-                  reconstructedLatex = reconstructedLatex.replace(/([a-zA-Z])([²³⁴⁵⁶⁷⁸⁹¹⁰])/g, (match, base, sup) => {
-                    const supMap = {'²': '2', '³': '3', '⁴': '4', '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9', '¹': '1', '⁰': '0'};
-                    return `${base}^{${supMap[sup] || sup}}`;
-                  });
-                  // Convert fractions (simple case)
-                  reconstructedLatex = reconstructedLatex.replace(/(\w+)\/(\w+)/g, '\\frac{$1}{$2}');
-                  // Convert square roots
-                  reconstructedLatex = reconstructedLatex.replace(/√\(([^)]+)\)/g, '\\sqrt{$1}');
-                  reconstructedLatex = reconstructedLatex.replace(/√([a-zA-Z0-9]+)/g, '\\sqrt{$1}');
-                  // Convert Greek letters if present
-                  reconstructedLatex = reconstructedLatex.replace(/α/g, '\\alpha').replace(/β/g, '\\beta').replace(/γ/g, '\\gamma');
-                  // Convert ± symbol
-                  reconstructedLatex = reconstructedLatex.replace(/±/g, '\\pm');
-                  // Convert ≠ symbol  
-                  reconstructedLatex = reconstructedLatex.replace(/≠/g, '\\neq');
-                  
-                  markdown += `$${reconstructedLatex}$`;
-                } else {
-                  markdown += content;
-                }
-              } else {
-                markdown += content;
-              }
+              markdown += content;
             }
           } else if (tag === 'span' && (node.classList.contains('math-display') || node.classList.contains('katex-display'))) {
             // Handle KaTeX display math - covers both direct katex-display and math-display containers
@@ -175,38 +145,12 @@
             if (latex) {
               markdown += `$$${latex}$$`;
             } else {
-              // Fallback: For Gemini, try to reconstruct LaTeX from text content  
-              const katexHtml = node.querySelector('.katex-html');
-              if (katexHtml) {
-                const mathText = katexHtml.textContent.trim();
-                if (mathText) {
-                  // Simple LaTeX reconstruction for common patterns
-                  let reconstructedLatex = mathText;
-                  // Convert superscripts (like x²) to LaTeX format (x^2)
-                  reconstructedLatex = reconstructedLatex.replace(/([a-zA-Z])([²³⁴⁵⁶⁷⁸⁹¹⁰])/g, (match, base, sup) => {
-                    const supMap = {'²': '2', '³': '3', '⁴': '4', '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9', '¹': '1', '⁰': '0'};
-                    return `${base}^{${supMap[sup] || sup}}`;
-                  });
-                  // Convert fractions (simple case)
-                  reconstructedLatex = reconstructedLatex.replace(/(\w+)\/(\w+)/g, '\\frac{$1}{$2}');
-                  // Convert square roots
-                  reconstructedLatex = reconstructedLatex.replace(/√\(([^)]+)\)/g, '\\sqrt{$1}');
-                  reconstructedLatex = reconstructedLatex.replace(/√([a-zA-Z0-9]+)/g, '\\sqrt{$1}');
-                  // Convert Greek letters if present
-                  reconstructedLatex = reconstructedLatex.replace(/α/g, '\\alpha').replace(/β/g, '\\beta').replace(/γ/g, '\\gamma');
-                  // Convert ± symbol
-                  reconstructedLatex = reconstructedLatex.replace(/±/g, '\\pm');
-                  // Convert ≠ symbol  
-                  reconstructedLatex = reconstructedLatex.replace(/≠/g, '\\neq');
-                  
-                  markdown += `$$${reconstructedLatex}$$`;
-                } else {
-                  markdown += content;
-                }
-              } else {
-                markdown += content;
-              }
+              markdown += content;
             }
+          } else if (tag === 'div' && node.classList.contains('math-block')) {
+            // Skip math-block elements as they should be handled by platform-specific processors
+            // This prevents double processing when htmlToMarkdown is called on content containing math blocks
+            return; // Skip this node entirely
           } else {
             markdown += content;
           }
