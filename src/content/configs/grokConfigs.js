@@ -1,12 +1,12 @@
-// --- Updated grokConfigs.js (v11 - Interactive Block Support) ---
+// --- Updated grokConfigs.js (v12 - Fixed Content Order) ---
 
 /**
  * Configuration for extracting Q&A data from Grok (grok.com)
- * Version: 11 (Added interactive block/artifact extraction support)
+ * Version: 12 (Fixed content order - interactive blocks now appear in correct DOM position)
  */
 (function() {
   // Initialization check
-  if (window.grokConfig && window.grokConfig.version >= 11) { // Updated version check
+  if (window.grokConfig && window.grokConfig.version >= 12) { // Updated version check
     // console.log("Grok config already initialized (v" + window.grokConfig.version + "), skipping.");
     return;
   }
@@ -1277,7 +1277,7 @@
   // --- Main Configuration Object ---
   const grokConfig = {
     platformName: 'Grok',
-    version: 11, // Updated config version - Added interactive block/artifact extraction support
+    version: 12, // Updated config version - Fixed content order - interactive blocks now appear in correct DOM position
     selectors: {
       turnContainer: 'div.relative.group.flex.flex-col.justify-center[class*="items-"]',
       userMessageIndicator: '.items-end',
@@ -1354,40 +1354,69 @@
       const contentItems = [];
       const selectors = grokConfig.selectors;
       
-      // First, look for interactive blocks anywhere in the turn element
+      // Find the message bubble within the turn element
       const messageBubble = turnElement.querySelector(selectors.messageBubble);
-      if (messageBubble) {
-        const interactiveBlocks = messageBubble.querySelectorAll(selectors.interactiveBlockContainer);
-        interactiveBlocks.forEach(block => {
-          const interactiveItem = processInteractiveBlock(block);
-          if (interactiveItem) {
-            contentItems.push(interactiveItem);
-          }
-        });
-      }
-      
-      const assistantContainer = turnElement.querySelector(selectors.assistantContentContainer);
-      if (!assistantContainer) {
-        // If no regular content container but we found interactive blocks, return them
-        if (contentItems.length > 0) {
-          return contentItems;
-        }
+      if (!messageBubble) {
         console.warn("[Grok Extractor] Assistant message bubble not found.");
         return [];
       }
+      
+      // Process ALL direct children of the message bubble in DOM order
+      // This includes both response-content-markdown containers AND interactive block containers
+      const directChildren = Array.from(messageBubble.children);
+      const allElements = [];
+      
+      directChildren.forEach(child => {
+        // Check if this is a response-content-markdown container
+        if (child.matches(selectors.assistantContentContainer)) {
+          // Add all relevant blocks within this content container
+          const relevantBlocks = child.querySelectorAll(selectors.assistantRelevantBlocks);
+          relevantBlocks.forEach(block => {
+            allElements.push({ element: block, type: 'content', parent: child });
+          });
+        }
+        // Check if this child contains interactive blocks (like div.py-1)
+        else {
+          const interactiveBlocks = child.querySelectorAll(selectors.interactiveBlockContainer);
+          interactiveBlocks.forEach(block => {
+            allElements.push({ element: block, type: 'interactive', parent: child });
+          });
+        }
+      });
+      
+      // Sort elements by their DOM position
+      allElements.sort((a, b) => {
+        const position = a.element.compareDocumentPosition(b.element);
+        if (position & Node.DOCUMENT_POSITION_FOLLOWING) return -1;
+        if (position & Node.DOCUMENT_POSITION_PRECEDING) return 1;
+        return 0;
+      });
+      
+      // Process elements in correct DOM order
+      const processedElements = new Set(); // Keep track of processed elements
 
-              // console.log(`[Grok Extractor v10] Processing assistant message bubble.`);
-        // Select the relevant block elements directly within the message bubble
-        const relevantBlocks = assistantContainer.querySelectorAll(selectors.assistantRelevantBlocks);
-        const processedElements = new Set(); // Keep track of processed elements
-
-        relevantBlocks.forEach((block, index) => {
-            // Skip if this element was already processed as part of a larger block
-            if (processedElements.has(block)) return;
-
-            const tagNameLower = block.tagName.toLowerCase();
-            // console.log(`[Grok Extractor v10] Processing Block #${index}: <${tagNameLower}>`);
-            let item = null; // To hold the result of processing functions
+      allElements.forEach((elementInfo, index) => {
+          const block = elementInfo.element;
+          const elementType = elementInfo.type;
+          
+          // Skip if this element was already processed as part of a larger block
+          if (processedElements.has(block)) return;
+          
+          if (elementType === 'interactive') {
+            // Process interactive block
+            const interactiveItem = processInteractiveBlock(block);
+            if (interactiveItem) {
+              contentItems.push(interactiveItem);
+            }
+            processedElements.add(block);
+            block.querySelectorAll('*').forEach(child => processedElements.add(child));
+            return; // Skip the rest of the processing for interactive blocks
+          }
+          
+          // Process regular content blocks (elementType === 'content')
+          const tagNameLower = block.tagName.toLowerCase();
+          // console.log(`[Grok Extractor v12] Processing Block #${index}: <${tagNameLower}>`);
+          let item = null; // To hold the result of processing functions
 
           // --- Process based on block type ---
 
@@ -1543,14 +1572,14 @@
           }
           // --- Fallback / Unhandled ---
           else {
-                              console.warn(`[Grok Extractor v10]   -> Skipping unhandled direct block type <${tagNameLower}>`, block);
+                              console.warn(`[Grok Extractor v12]   -> Skipping unhandled direct block type <${tagNameLower}>`, block);
                 processedElements.add(block);
             }
-        }); // End forEach loop over relevantBlocks
+        }); // End forEach loop over allElements
 
-        // console.log("[Grok Extractor v10] Final assistant contentItems:", JSON.stringify(contentItems, null, 2));
-        return contentItems; // Return the array of extracted content items
-      }, // End extractAssistantContent
+      // console.log("[Grok Extractor v12] Final assistant contentItems:", JSON.stringify(contentItems, null, 2));
+      return contentItems; // Return the array of extracted content items
+    }, // End extractAssistantContent
 
   }; // End grokConfig
 
@@ -1559,4 +1588,4 @@
   // console.log("grokConfig.js initialized (v" + grokConfig.version + ")");
 
 })(); // End of IIFE
-// --- END OF UPDATED FILE grokConfigs.js (v11) ---
+// --- END OF UPDATED FILE grokConfigs.js (v12) ---
