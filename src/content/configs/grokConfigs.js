@@ -829,7 +829,7 @@
           if (katexElement) {
             const latexSource = extractKaTexSource(katexElement);
             if (latexSource) {
-              return `\\[\n${latexSource}\n\\]`;
+              return `$$\n${latexSource}\n$$`;
             }
           }
           // If we can't extract LaTeX, fall back to processing children
@@ -845,6 +845,23 @@
           
           const latexSource = extractKaTexSource(node);
           if (latexSource) {
+            // Check if this KaTeX is the only significant content in a paragraph
+            // If so, treat it as display math
+            let parentP = node.closest('p');
+            if (parentP) {
+              // Get all text content from the paragraph, excluding the KaTeX element
+              let paragraphClone = parentP.cloneNode(true);
+              let katexElements = paragraphClone.querySelectorAll('.katex');
+              katexElements.forEach(el => el.remove());
+              let remainingText = paragraphClone.textContent.trim();
+              
+              // If there's no other significant text, treat as display math
+              if (!remainingText) {
+                return `$$\n${latexSource}\n$$`;
+              }
+            }
+            
+            // Otherwise treat as inline math
             return `\\(${latexSource}\\)`;
           }
           // If we can't extract LaTeX, fall back to processing children
@@ -1159,7 +1176,7 @@
               if (katexElement) {
                   const latexSource = extractKaTexSource(katexElement);
                   if (latexSource) {
-                      QAClipper.Utils.addTextItem(contentItems, `\\[\n${latexSource}\n\\]`);
+                      QAClipper.Utils.addTextItem(contentItems, `$$\n${latexSource}\n$$`);
                   }
               }
               processedElements.add(block);
