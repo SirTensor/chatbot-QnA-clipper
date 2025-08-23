@@ -852,13 +852,27 @@
               }
           });
           
-          // Process remaining text content (after removing code blocks)
-          const remainingText = QAClipper.Utils.htmlToMarkdown(clone, { 
-              skipElementCheck: shouldSkipElement 
-          }).trim();
-          
-          if (remainingText) {
-              QAClipper.Utils.addTextItem(contentItems, remainingText);
+          // For elements with whitespace-pre-wrap, preserve the original text content with line breaks
+          if (textElement.classList.contains('whitespace-pre-wrap') || 
+              getComputedStyle(textElement).whiteSpace === 'pre-wrap' ||
+              getComputedStyle(textElement).whiteSpace === 'pre-line') {
+              
+              // Get the raw text content which preserves line breaks
+              const rawText = clone.textContent || clone.innerText || '';
+              const trimmedText = rawText.trim();
+              
+              if (trimmedText) {
+                  QAClipper.Utils.addTextItem(contentItems, trimmedText);
+              }
+          } else {
+              // Process remaining text content normally (after removing code blocks)
+              const remainingText = QAClipper.Utils.htmlToMarkdown(clone, { 
+                  skipElementCheck: shouldSkipElement 
+              }).trim();
+              
+              if (remainingText) {
+                  QAClipper.Utils.addTextItem(contentItems, remainingText);
+              }
           }
           
           // Combine all content items into a single text
