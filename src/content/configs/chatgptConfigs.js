@@ -89,8 +89,8 @@
             strikeEl.parentNode.replaceChild(replacementText, strikeEl);
         });
         
-        // Process task list items (checkboxes)
-        const checkboxItems = clone.querySelectorAll('li input[type="checkbox"]');
+        // Process task list items (checkboxes) - handle both li and p containers
+        const checkboxItems = clone.querySelectorAll('input[type="checkbox"]');
         checkboxItems.forEach(checkbox => {
             const isChecked = checkbox.checked;
             const checkboxMd = isChecked ? '[x] ' : '[ ] ';
@@ -295,7 +295,26 @@
                      } else if (node.nodeType === Node.ELEMENT_NODE) {
                          const tagName = node.tagName.toLowerCase();
                          
-                         if (tagName === 'pre') {
+                         // Handle checkbox items (task list items)
+                         if (tagName === 'p' && node.querySelector('input[type="checkbox"]')) {
+                             flushTextBuffer(); // Flush any existing text first
+                             
+                             const checkbox = node.querySelector('input[type="checkbox"]');
+                             const isChecked = checkbox.checked;
+                             const checkboxMd = isChecked ? '[x]' : '[ ]';
+                             
+                             // Get text content after the checkbox
+                             const textContent = node.textContent.trim();
+                             
+                             if (!hasAddedContent) {
+                                 // First content gets the list marker with checkbox
+                                 currentContentLines.push(`${bqPrefix}${indent}${marker} ${checkboxMd} ${textContent}`);
+                                 hasAddedContent = true;
+                             } else {
+                                 // Subsequent lines need more indentation
+                                 currentContentLines.push(`${bqPrefix}${textIndent}${checkboxMd} ${textContent}`);
+                             }
+                         } else if (tagName === 'pre') {
                              // Flush any accumulated text before processing code block
                              flushTextBuffer();
                              
