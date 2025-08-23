@@ -1,8 +1,8 @@
-// claudeConfig.js (v8 - Updated for new Claude HTML structure with font-claude-response)
+// claudeConfig.js (v9 - Added KaTeX/LaTeX math expression support)
 
 (function() {
   // Initialization check to prevent re-running the script if already loaded
-  if (window.claudeConfig && window.claudeConfig.version >= 8) {
+  if (window.claudeConfig && window.claudeConfig.version >= 9) {
     // console.log("Claude config already initialized (v" + window.claudeConfig.version + "), skipping.");
     return;
   }
@@ -26,11 +26,18 @@
     const isInListItem = element.closest('li') !== null;
     const isStandalonePre = tagNameLower === 'pre' && !isInListItem;
     
+    // Skip KaTeX elements as they are handled by dedicated processing
+    const isKaTeXElement = element.classList.contains('katex') || 
+                          element.classList.contains('katex-display') ||
+                          element.classList.contains('katex-mathml') ||
+                          element.classList.contains('katex-html');
+    
     return tagNameLower === 'ul' ||
            tagNameLower === 'ol' ||
            isStandalonePre || // Only skip standalone pre elements
            tagNameLower === 'table' || // Skip tables (handled separately)
            tagNameLower === 'blockquote' || // Skip blockquotes (handled separately)
+           isKaTeXElement || // Skip KaTeX elements (handled by processKaTeX)
            element.closest(selectors.artifactButton); // Check if element is INSIDE an artifact button/cell
   }
 
@@ -641,6 +648,28 @@
   }
 
   /**
+   * Processes KaTeX math expressions and converts them to LaTeX markdown format
+   * @param {HTMLElement} element - The KaTeX container element
+   * @returns {string|null} - The extracted LaTeX source or null
+   */
+  function processKaTeX(element) {
+    // Look for the annotation element that contains the original LaTeX source
+    const annotationElement = element.querySelector('annotation[encoding="application/x-tex"]');
+    if (annotationElement) {
+      const latexSource = annotationElement.textContent.trim();
+      if (latexSource) {
+        // Check if this is a display math (block) or inline math
+        const isDisplayMath = element.closest('.katex-display') !== null;
+        const result = isDisplayMath ? `$$${latexSource}$$` : `$${latexSource}$`;
+        console.log("[Claude Extractor v9] KaTeX processed:", { isDisplayMath, latexSource, result });
+        return result;
+      }
+    }
+    console.log("[Claude Extractor v9] KaTeX element found but no LaTeX source:", element);
+    return null;
+  }
+
+  /**
    * Helper function to process individual content elements
    * @param {HTMLElement} element - The element to process
    * @param {Array} contentItems - Array to add processed items to
@@ -651,8 +680,57 @@
       let item = null;
 
       if (tagNameLower === 'p') {
-          const markdownText = QAClipper.Utils.htmlToMarkdown(element, { skipElementCheck: shouldSkipElement }).trim();
-          if (markdownText) QAClipper.Utils.addTextItem(contentItems, markdownText);
+          // First check if this paragraph contains KaTeX elements
+          const katexElements = element.querySelectorAll('.katex-display, .katex:not(.katex-display .katex)');
+          if (katexElements.length > 0) {
+              // Process the paragraph with KaTeX elements
+              let processedText = '';
+              const childNodes = Array.from(element.childNodes);
+              
+              childNodes.forEach(node => {
+                  if (node.nodeType === Node.TEXT_NODE) {
+                      processedText += node.textContent;
+                  } else if (node.nodeType === Node.ELEMENT_NODE) {
+                      const katexContainer = node.closest('.katex-display') || (node.classList && node.classList.contains('katex-display'));
+                      const inlineKatex = node.classList && node.classList.contains('katex') && !katexContainer;
+                      
+                      if (katexContainer || inlineKatex) {
+                          const katexMath = processKaTeX(node);
+                          if (katexMath) {
+                              processedText += katexMath;
+                          }
+                      } else {
+                          // For non-KaTeX elements, convert to markdown normally
+                          const nodeMarkdown = QAClipper.Utils.htmlToMarkdown(node, { skipElementCheck: shouldSkipElement }).trim();
+                          if (nodeMarkdown) {
+                              processedText += nodeMarkdown;
+                          }
+                      }
+                  }
+              });
+              
+              if (processedText.trim()) {
+                  QAClipper.Utils.addTextItem(contentItems, processedText.trim());
+              }
+          } else {
+              // Regular paragraph without KaTeX
+              const markdownText = QAClipper.Utils.htmlToMarkdown(element, { skipElementCheck: shouldSkipElement }).trim();
+              if (markdownText) QAClipper.Utils.addTextItem(contentItems, markdownText);
+          }
+      } else if (tagNameLower === 'span') {
+          // Check if this is a KaTeX container at the top level
+          if (element.classList.contains('katex-display') || element.classList.contains('katex')) {
+              const katexMath = processKaTeX(element);
+              if (katexMath) {
+                  QAClipper.Utils.addTextItem(contentItems, katexMath);
+              }
+          } else {
+              // Regular span processing
+              const spanMarkdown = QAClipper.Utils.htmlToMarkdown(element, { skipElementCheck: shouldSkipElement }).trim();
+              if (spanMarkdown) {
+                  QAClipper.Utils.addTextItem(contentItems, spanMarkdown);
+              }
+          }
       } else if (tagNameLower === 'ul') {
           const listMarkdown = processList(element, 'ul', 0);
           if (listMarkdown) contentItems.push({ type: 'text', content: listMarkdown });
@@ -692,10 +770,22 @@
               item = processCodeBlock(element); // Pass the container div, not just the pre
               if (item) contentItems.push(item);
           } else {
-              // For other divs, try generic markdown conversion
-              const divMarkdown = QAClipper.Utils.htmlToMarkdown(element, { skipElementCheck: shouldSkipElement }).trim();
-              if (divMarkdown) {
-                  QAClipper.Utils.addTextItem(contentItems, divMarkdown);
+              // Check for KaTeX elements in the div
+              const katexElements = element.querySelectorAll('.katex-display, .katex:not(.katex-display .katex)');
+              if (katexElements.length > 0) {
+                  // Process each KaTeX element separately
+                  katexElements.forEach(katexEl => {
+                      const katexMath = processKaTeX(katexEl);
+                      if (katexMath) {
+                          QAClipper.Utils.addTextItem(contentItems, katexMath);
+                      }
+                  });
+              } else {
+                  // For other divs, try generic markdown conversion
+                  const divMarkdown = QAClipper.Utils.htmlToMarkdown(element, { skipElementCheck: shouldSkipElement }).trim();
+                  if (divMarkdown) {
+                      QAClipper.Utils.addTextItem(contentItems, divMarkdown);
+                  }
               }
           }
       }
@@ -704,7 +794,7 @@
   // --- Main Configuration Object ---
   const claudeConfig = {
     platformName: 'Claude',
-    version: 8, // Update config version identifier for new HTML structure
+    version: 9, // Update config version identifier for KaTeX support
     selectors: {
       // Container for a single turn (user or assistant)
       turnContainer: 'div[data-test-render-count]',
@@ -952,6 +1042,6 @@
 
   // Assign to window object
   window.claudeConfig = claudeConfig;
-  // console.log("claudeConfig.js initialized (v" + claudeConfig.version + ")");
+  console.log("claudeConfig.js initialized (v" + claudeConfig.version + ") with KaTeX support");
 
 })(); // End of IIFE
