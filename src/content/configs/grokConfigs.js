@@ -1,12 +1,12 @@
-// --- Updated grokConfigs.js (v12 - Fixed Content Order) ---
+// --- Updated grokConfigs.js (v13 - Fixed Assistant Content Extraction) ---
 
 /**
  * Configuration for extracting Q&A data from Grok (grok.com)
- * Version: 12 (Fixed content order - interactive blocks now appear in correct DOM position)
+ * Version: 13 (Fixed assistant content extraction by handling nested DOM structure)
  */
 (function() {
   // Initialization check
-  if (window.grokConfig && window.grokConfig.version >= 12) { // Updated version check
+  if (window.grokConfig && window.grokConfig.version >= 13) { // Updated version check
     // console.log("Grok config already initialized (v" + window.grokConfig.version + "), skipping.");
     return;
   }
@@ -1091,7 +1091,7 @@
   // --- Main Configuration Object ---
   const grokConfig = {
     platformName: 'Grok',
-    version: 12, // Updated config version - Fixed content order - interactive blocks now appear in correct DOM position
+    version: 13, // Updated config version - Fixed assistant content extraction by handling nested DOM structure
     selectors: {
       turnContainer: 'div.relative.group.flex.flex-col.justify-center[class*="items-"]',
       userMessageIndicator: '.items-end',
@@ -1103,7 +1103,7 @@
       userAttachmentImagePreviewDiv: 'div[style*="background-image"]',
       userAttachmentFileIcon: 'svg[aria-label="Text File"]',
       assistantContentContainer: 'div.response-content-markdown',
-      assistantRelevantBlocks: ':scope > :is(p, h1, h2, h3, h4, h5, h6, ol, ul, div.not-prose, div.grid, div.table-container, div.py-2, blockquote, hr, span.katex-display)',
+      assistantRelevantBlocks: ':scope > :is(p.break-words, h1, h2, h3, h4, h5, h6, ol, ul, div.not-prose, div.grid, div.table-container, div.py-2, blockquote, hr, span.katex-display)',
       listItem: 'li',
       assistantCodeBlockOuterContainer: 'div.not-prose',
       assistantCodeBlockInnerContainer: 'div.not-prose > div.relative',
@@ -1177,11 +1177,12 @@
       
       // Process ALL direct children of the message bubble in DOM order
       // This includes both response-content-markdown containers AND interactive block containers
+      // Updated to handle the nested structure: message-bubble > div.relative > response-content-markdown
       const directChildren = Array.from(messageBubble.children);
       const allElements = [];
       
       directChildren.forEach(child => {
-        // Check if this is a response-content-markdown container
+        // Check if this is a response-content-markdown container directly
         if (child.matches(selectors.assistantContentContainer)) {
           // Add all relevant blocks within this content container
           const relevantBlocks = child.querySelectorAll(selectors.assistantRelevantBlocks);
@@ -1189,8 +1190,17 @@
             allElements.push({ element: block, type: 'content', parent: child });
           });
         }
-        // Check if this child contains interactive blocks (like div.py-1)
+        // Check if this child contains a response-content-markdown container (nested structure)
         else {
+          const contentContainer = child.querySelector(selectors.assistantContentContainer);
+          if (contentContainer) {
+            // Add all relevant blocks within the nested content container
+            const relevantBlocks = contentContainer.querySelectorAll(selectors.assistantRelevantBlocks);
+            relevantBlocks.forEach(block => {
+              allElements.push({ element: block, type: 'content', parent: contentContainer });
+            });
+          }
+          // Check if this child contains interactive blocks (like div.py-1)
           const interactiveBlocks = child.querySelectorAll(selectors.interactiveBlockContainer);
           interactiveBlocks.forEach(block => {
             allElements.push({ element: block, type: 'interactive', parent: child });
@@ -1402,4 +1412,4 @@
   // console.log("grokConfig.js initialized (v" + grokConfig.version + ")");
 
 })(); // End of IIFE
-// --- END OF UPDATED FILE grokConfigs.js (v12) ---
+// --- END OF UPDATED FILE grokConfigs.js (v13) ---
