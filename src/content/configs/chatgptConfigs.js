@@ -467,15 +467,16 @@
 
     function processAssistantImage(el) {
          const selectors = window.chatgptConfig.selectors;
+         // Primary selector is already URL-based (localization-free)
          let targetImgElement = el.querySelector(selectors.imageElementAssistant);
          if (!targetImgElement) {
-             // Try broader fallback: any img with chatgpt.com or oaiusercontent in src
-             targetImgElement = el.querySelector('img[src*="chatgpt.com"], img[src*="oaiusercontent"]');
-             if (!targetImgElement) {
-                 console.error("[Extractor v30] Image element not found using selector:", selectors.imageElementAssistant, "in container:", el);
+             // Final fallback: any img with valid src in this container
+             targetImgElement = el.querySelector('img[src]');
+             if (!targetImgElement || targetImgElement.getAttribute('src').startsWith('data:') || targetImgElement.getAttribute('src').startsWith('blob:')) {
+                 console.error("[Extractor v30] No valid image found in container:", el);
                  return null;
              }
-             console.warn("[Extractor v30] Using broader fallback image search.");
+             console.warn("[Extractor v30] Using fallback image search (any img[src])");
          }
          const src = targetImgElement.getAttribute('src');
          if (!src || src.startsWith('data:') || src.startsWith('blob:')) {
@@ -483,7 +484,8 @@
              return null;
          }
          let altText = targetImgElement.getAttribute('alt')?.trim();
-         const extractedContent = (altText && altText !== "생성된 이미지") ? altText : "Generated Image";
+         // Use alt text if meaningful (not the default localized placeholder)
+         const extractedContent = (altText && altText.length > 0) ? altText : "Generated Image";
          try {
              const absoluteSrc = new URL(src, window.location.origin).href;
              return { type: 'image', src: absoluteSrc, alt: altText || "Generated Image", extractedContent: extractedContent };
@@ -860,7 +862,7 @@
         codeBlockContent: 'code',
         codeBlockLangIndicatorContainer: ':scope > div.contain-inline-size > div:first-child, :scope > div:first-child[class*="flex items-center"]',
         imageContainerAssistant: 'div.group\\/imagegen-image',
-        imageElementAssistant: 'img[alt="생성된 이미지"]',
+        imageElementAssistant: 'img[src*="backend-api"], img[src*="oaiusercontent"]', // URL-based selector (localization-free)
         imageCaption: null,
         interactiveBlockContainer: 'div[id^="textdoc-message-"]',
         interactiveBlockTitle: 'span.min-w-0.truncate',
