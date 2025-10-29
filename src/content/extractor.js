@@ -128,15 +128,21 @@
         (async () => {
           // --- Core Extraction Logic ---
           // 1. Select all conversation turn elements using config.selectors.turnContainer
-          const turnElements = Array.from(document.querySelectorAll(config.selectors.turnContainer));
+          let turnElements = Array.from(document.querySelectorAll(config.selectors.turnContainer));
+
+          // Try fallback selector if primary selector found nothing (for edge cases)
+          if ((!turnElements || turnElements.length === 0) && config.selectors.turnContainerFallback) {
+            turnElements = Array.from(document.querySelectorAll(config.selectors.turnContainerFallback));
+          }
+
           if (!turnElements || turnElements.length === 0) {
             // console.log(`Chatbot Clipper: No conversation turns found for selector: ${config.selectors.turnContainer}`);
             // Return a valid empty conversation structure rather than null
             // console.log(`Chatbot Clipper: Returning empty conversation structure for ${platform} - this is normal for new chats`);
-            return { 
-              platform, 
-              conversationTurns: [] 
-            }; 
+            return {
+              platform,
+              conversationTurns: []
+            };
           }
 
           const conversationTurns = [];
@@ -170,12 +176,22 @@
               } else {
                 console.warn(`Chatbot Clipper: Unknown role detected for turn element:`, turnElement);
                 // Optionally try to extract some generic text content if role is unknown
-                // turnData.textContent = extractGenericText(turnElement); 
+                // turnData.textContent = extractGenericText(turnElement);
               }
-              
-              conversationTurns.push(turnData);
+
+              // Only add turn if it has actual content (skip empty thinking/reasoning turns)
+              const hasContent = (role === 'user' && (turnData.textContent || (turnData.userAttachments && turnData.userAttachments.length > 0))) ||
+                                 (role === 'assistant' && turnData.contentItems && turnData.contentItems.length > 0) ||
+                                 (role !== 'user' && role !== 'assistant'); // Always include unknown roles for debugging
+
+              if (hasContent) {
+                conversationTurns.push(turnData);
+              }
             } catch (turnError) {
               console.error(`Error processing turn ${turnIndex}:`, turnError);
+              console.error(`Turn element:`, turnElement);
+              console.error(`Role detected:`, role);
+              console.error(`Error stack:`, turnError.stack);
               // Continue with next turn instead of failing completely
             }
           }

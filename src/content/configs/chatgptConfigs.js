@@ -1,9 +1,9 @@
-// chatgptConfigs.js (v24 - Refactored List/Blockquote Nesting)
+// chatgptConfigs.js (v30 - Fixed role detection for edge cases)
 
 (function() {
     // Initialization check
-    // v29: Fixed LaTeX duplication in headings by processing KaTeX before headings
-    if (window.chatgptConfig && window.chatgptConfig.version === 29) { return; }
+    // v30: Fixed getRole and extraction functions to handle turnElement that is already a message div
+    if (window.chatgptConfig && window.chatgptConfig.version === 30) { return; }
 
     // --- Helper Functions ---
 
@@ -798,8 +798,20 @@
             
             // Clean up temporary IDs
             topLevelBlockquotes.forEach(el => el.removeAttribute('data-temp-id'));
-        } else if (contentItems.length === 0) {
-            console.warn("[v20] Assistant text container (.prose) not found and no other blocks either in turn:", turnElement);
+        }
+
+        // If no text container and no other content, check if this is a thinking/reasoning turn
+        // These turns have no actual message content, just "Thought for Xs" UI element
+        if (contentItems.length === 0 && !textContainer) {
+            // Check if this is a thinking turn (has data-turn attribute but no message content)
+            const isThinkingTurn = turnElement.hasAttribute && turnElement.hasAttribute('data-turn') &&
+                                   !turnElement.querySelector('div[data-message-author-role]');
+
+            if (!isThinkingTurn) {
+                // Only warn if it's not a thinking turn and we genuinely expected content
+                console.warn("[v30] Assistant text container (.prose) not found and no other blocks either in turn:", turnElement);
+            }
+            // For thinking turns, silently return empty contentItems
         }
 
         return contentItems;
@@ -808,9 +820,10 @@
     // --- Main Configuration Object ---
     const chatgptConfig = {
       platformName: 'ChatGPT',
-      version: 29, // v29: Fixed LaTeX duplication in headings by processing KaTeX before headings
+      version: 30, // v30: Fixed getRole and extraction functions to handle edge cases where turnElement is already a message div
       selectors: { // Updated selectors for new table structure
         turnContainer: 'article[data-testid^="conversation-turn-"]',
+        turnContainerFallback: 'div[data-message-author-role]', // Fallback for edge cases without article wrapper
         userMessageContainer: 'div[data-message-author-role="user"]',
         userText: 'div[data-message-author-role="user"] .whitespace-pre-wrap',
         userImageContainer: 'div[data-message-author-role="user"] div.overflow-hidden.rounded-lg img[src]',
@@ -853,10 +866,27 @@
       },
 
       // --- Extraction Functions ---
-      getRole: (turnElement) => { /* Unchanged */
-          const messageElement = turnElement.querySelector(':scope div[data-message-author-role]'); return messageElement ? messageElement.getAttribute('data-message-author-role') : null; },
+      getRole: (turnElement) => {
+          // Check if turnElement itself has the role attribute (handles edge cases)
+          if (turnElement.hasAttribute && turnElement.hasAttribute('data-message-author-role')) {
+              return turnElement.getAttribute('data-message-author-role');
+          }
+
+          // Check for data-turn attribute on article tag (for thinking/reasoning turns without message div)
+          if (turnElement.hasAttribute && turnElement.hasAttribute('data-turn')) {
+              const turnType = turnElement.getAttribute('data-turn');
+              if (turnType === 'user' || turnType === 'assistant') {
+                  return turnType;
+              }
+          }
+
+          // Otherwise search for descendant with role attribute
+          const messageElement = turnElement.querySelector(':scope div[data-message-author-role]');
+          return messageElement ? messageElement.getAttribute('data-message-author-role') : null;
+      },
       extractUserText: (turnElement) => {
-          const textElement = turnElement.querySelector(chatgptConfig.selectors.userText);
+          // Look for .whitespace-pre-wrap directly (role is already verified by caller)
+          const textElement = turnElement.querySelector('.whitespace-pre-wrap');
           if (!textElement) return null;
 
           // Process user content similar to assistant content to handle code blocks
@@ -915,10 +945,46 @@
           // Combine all content items into a single text
           return contentItems.length > 0 ? contentItems.map(item => item.content).join('\n\n') : null;
       },
-      extractUserUploadedImages: (turnElement) => { /* Unchanged */
-          const images = []; const imageElements = turnElement.querySelectorAll(chatgptConfig.selectors.userImageContainer); imageElements.forEach(imgElement => { const src = imgElement.getAttribute('src'); if (src && !src.startsWith('data:') && !src.startsWith('blob:')) { let altText = imgElement.getAttribute('alt')?.trim(); const extractedContent = altText && altText !== "업로드한 이미지" ? altText : "User Uploaded Image"; try { const absoluteSrc = new URL(src, window.location.origin).href; images.push({ type: 'image', sourceUrl: absoluteSrc, isPreviewOnly: false, extractedContent: extractedContent }); } catch (e) { console.error("[Extractor v21] Error parsing user image URL:", e, src); } } }); return images; },
-      extractUserUploadedFiles: (turnElement) => { /* Unchanged */
-          const files = []; const fileContainers = turnElement.querySelectorAll(chatgptConfig.selectors.userFileContainer); fileContainers.forEach(container => { const nameElement = container.querySelector(chatgptConfig.selectors.userFileName); const typeElement = container.querySelector(chatgptConfig.selectors.userFileType); const fileName = nameElement ? nameElement.textContent?.trim() : null; let fileType = typeElement ? typeElement.textContent?.trim() : 'File'; if (fileType && fileType.includes(' ') && !['kB', 'MB', 'GB'].some(unit => fileType.endsWith(unit))) { fileType = fileType.split(' ')[0]; } else if (fileType && ['kB', 'MB', 'GB'].some(unit => fileType.endsWith(unit))) { fileType = 'File'; } if (fileName) { const previewContent = null; files.push({ type: 'file', fileName: fileName, fileType: fileType, isPreviewOnly: !previewContent, extractedContent: previewContent }); } }); return files; },
+      extractUserUploadedImages: (turnElement) => {
+          const images = [];
+          // Look for images directly (role is already verified by caller)
+          const imageElements = turnElement.querySelectorAll('div.overflow-hidden.rounded-lg img[src]');
+          imageElements.forEach(imgElement => {
+              const src = imgElement.getAttribute('src');
+              if (src && !src.startsWith('data:') && !src.startsWith('blob:')) {
+                  let altText = imgElement.getAttribute('alt')?.trim();
+                  const extractedContent = altText && altText !== "업로드한 이미지" ? altText : "User Uploaded Image";
+                  try {
+                      const absoluteSrc = new URL(src, window.location.origin).href;
+                      images.push({ type: 'image', sourceUrl: absoluteSrc, isPreviewOnly: false, extractedContent: extractedContent });
+                  } catch (e) {
+                      console.error("[Extractor] Error parsing user image URL:", e, src);
+                  }
+              }
+          });
+          return images;
+      },
+      extractUserUploadedFiles: (turnElement) => {
+          const files = [];
+          // Look for file containers directly (role is already verified by caller)
+          const fileContainers = turnElement.querySelectorAll('div[class*="group text-token-text-primary"]');
+          fileContainers.forEach(container => {
+              const nameElement = container.querySelector('div.truncate.font-semibold');
+              const typeElement = container.querySelector('div.text-token-text-secondary.truncate');
+              const fileName = nameElement ? nameElement.textContent?.trim() : null;
+              let fileType = typeElement ? typeElement.textContent?.trim() : 'File';
+              if (fileType && fileType.includes(' ') && !['kB', 'MB', 'GB'].some(unit => fileType.endsWith(unit))) {
+                  fileType = fileType.split(' ')[0];
+              } else if (fileType && ['kB', 'MB', 'GB'].some(unit => fileType.endsWith(unit))) {
+                  fileType = 'File';
+              }
+              if (fileName) {
+                  const previewContent = null;
+                  files.push({ type: 'file', fileName: fileName, fileType: fileType, isPreviewOnly: !previewContent, extractedContent: previewContent });
+              }
+          });
+          return files;
+      },
 
       /**
        * v24: Uses the updated extractAssistantContent structure which relies on refactored processors.
@@ -930,6 +996,6 @@
 
     // Assign the config object to the window
     window.chatgptConfig = chatgptConfig;
-    // console.log("chatgptConfig initialized (v29 - Fixed LaTeX duplication in headings by processing KaTeX before headings)");
+    // console.log("chatgptConfig initialized (v30 - Fixed role detection for edge cases)");
 
 })();
