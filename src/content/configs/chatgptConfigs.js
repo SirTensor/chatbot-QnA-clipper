@@ -893,61 +893,69 @@
           const textElement = turnElement.querySelector('.whitespace-pre-wrap');
           if (!textElement) return null;
 
-          // Process user content similar to assistant content to handle code blocks
-          const contentItems = [];
-          
-          // Clone the element to avoid modifying the original
-          const clone = textElement.cloneNode(true);
-          
-          // Process code blocks first
-          const codeBlocks = Array.from(clone.querySelectorAll('pre'));
-          codeBlocks.forEach(preElement => {
-              const codeElement = preElement.querySelector('code');
-              if (codeElement) {
-                  let codeContent = codeElement.textContent.trim();
-                  let language = null;
-                  
-                  // Extract language from the first line if it looks like a language identifier
-                  const lines = codeContent.split('\n');
-                  if (lines.length > 1 && lines[0].trim().match(/^[a-zA-Z]+$/)) {
-                      language = lines[0].trim();
-                      codeContent = lines.slice(1).join('\n').trim();
+          // Process user content preserving DOM order (text and code blocks)
+          const contentParts = [];
+
+          // Walk through child nodes in order to preserve structure
+          function processNode(node) {
+              if (node.nodeType === Node.TEXT_NODE) {
+                  const text = node.textContent;
+                  if (text && text.trim()) {
+                      contentParts.push({ type: 'text', content: text });
                   }
-                  
-                  // Add code block to content items
-                  const codeMarkdown = language ? `\`\`\`${language}\n${codeContent}\n\`\`\`` : `\`\`\`\n${codeContent}\n\`\`\``;
-                  QAClipper.Utils.addTextItem(contentItems, codeMarkdown);
-                  
-                  // Remove the processed pre element from the clone
-                  preElement.remove();
-              }
-          });
-          
-          // For elements with whitespace-pre-wrap, preserve the original text content with line breaks
-          if (textElement.classList.contains('whitespace-pre-wrap') || 
-              getComputedStyle(textElement).whiteSpace === 'pre-wrap' ||
-              getComputedStyle(textElement).whiteSpace === 'pre-line') {
-              
-              // Get the raw text content which preserves line breaks
-              const rawText = clone.textContent || clone.innerText || '';
-              const trimmedText = rawText.trim();
-              
-              if (trimmedText) {
-                  QAClipper.Utils.addTextItem(contentItems, trimmedText);
-              }
-          } else {
-              // Process remaining text content normally (after removing code blocks)
-              const remainingText = QAClipper.Utils.htmlToMarkdown(clone, { 
-                  skipElementCheck: shouldSkipElement 
-              }).trim();
-              
-              if (remainingText) {
-                  QAClipper.Utils.addTextItem(contentItems, remainingText);
+              } else if (node.nodeType === Node.ELEMENT_NODE) {
+                  const tagName = node.tagName.toLowerCase();
+
+                  if (tagName === 'pre') {
+                      // Handle code block
+                      const codeElement = node.querySelector('code');
+                      if (codeElement) {
+                          let codeContent = codeElement.textContent.trim();
+                          let language = null;
+
+                          // Extract language from the first line if it looks like a language identifier
+                          const lines = codeContent.split('\n');
+                          if (lines.length > 1 && lines[0].trim().match(/^[a-zA-Z]+$/)) {
+                              language = lines[0].trim();
+                              codeContent = lines.slice(1).join('\n').trim();
+                          }
+
+                          contentParts.push({
+                              type: 'code',
+                              content: codeContent,
+                              language: language
+                          });
+                      }
+                  } else {
+                      // Recursively process child nodes
+                      node.childNodes.forEach(child => processNode(child));
+                  }
               }
           }
-          
-          // Combine all content items into a single text
-          return contentItems.length > 0 ? contentItems.map(item => item.content).join('\n\n') : null;
+
+          textElement.childNodes.forEach(node => processNode(node));
+
+          // Build final text maintaining order
+          let finalText = '';
+          contentParts.forEach((part, index) => {
+              if (part.type === 'text') {
+                  finalText += part.content;
+              } else if (part.type === 'code') {
+                  // Add newlines before and after code blocks for proper spacing
+                  if (index > 0 && !finalText.endsWith('\n')) {
+                      finalText += '\n';
+                  }
+                  const codeMarkdown = part.language
+                      ? `\`\`\`${part.language}\n${part.content}\n\`\`\``
+                      : `\`\`\`\n${part.content}\n\`\`\``;
+                  finalText += codeMarkdown;
+                  if (index < contentParts.length - 1) {
+                      finalText += '\n';
+                  }
+              }
+          });
+
+          return finalText.trim() || null;
       },
       extractUserUploadedImages: (turnElement) => {
           const images = [];
