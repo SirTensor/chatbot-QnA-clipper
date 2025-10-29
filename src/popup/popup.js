@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('numberFormat').value = data.formatSettings.numberFormat || 'space';
 
       document.getElementById('includePlatform').checked = data.formatSettings.includePlatform || false;
-      document.getElementById('excludeFileCitations').checked = data.formatSettings.excludeFileCitations || false;
+      document.getElementById('excludeFileCitations').checked = data.formatSettings.excludeFileCitations !== undefined ? data.formatSettings.excludeFileCitations : true;
 
       // Set image format options if they exist
       if (data.formatSettings.imageFormat) {
@@ -64,6 +64,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (data.formatSettings.imageLabel) {
         document.getElementById('imageLabel').value = data.formatSettings.imageLabel;
       }
+    } else {
+      // No saved settings - set defaults including excludeFileCitations checked
+      document.getElementById('excludeFileCitations').checked = true;
     }
   });
   
