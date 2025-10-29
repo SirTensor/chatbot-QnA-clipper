@@ -170,4 +170,47 @@ hr {
 
 .help-icon:hover {
   background-color: #3367d6;
+}
+
+/* Custom tooltip */
+.help-icon::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  right: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 8px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: normal;
+  white-space: normal;
+  width: 175px;
+  text-align: left;
+  line-height: 1.4;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0s;
+  z-index: 1000;
+}
+
+/* Tooltip arrow */
+.help-icon::before {
+  content: '';
+  position: absolute;
+  right: calc(100% + 3px);
+  top: 50%;
+  transform: translateY(-50%);
+  border: 5px solid transparent;
+  border-left-color: rgba(0, 0, 0, 0.9);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0s;
+  z-index: 1000;
+}
+
+.help-icon:hover::after,
+.help-icon:hover::before {
+  opacity: 1;
 } 
