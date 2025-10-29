@@ -314,8 +314,15 @@
                              const isChecked = checkbox.checked;
                              const checkboxMd = isChecked ? '[x]' : '[ ]';
                              
-                             // Get text content after the checkbox
-                             const textContent = node.textContent.trim();
+                             // Clone the paragraph to remove checkbox without modifying original
+                             const clonedPara = node.cloneNode(true);
+                             const clonedCheckbox = clonedPara.querySelector('input[type="checkbox"]');
+                             if (clonedCheckbox && clonedCheckbox.parentNode) {
+                                 clonedCheckbox.parentNode.removeChild(clonedCheckbox);
+                             }
+
+                             // Convert remaining content to markdown (preserving inline code, emphasis, etc.)
+                             const textContent = enhancedHtmlToMarkdown(clonedPara, { skipElementCheck: shouldSkipElement }).trim();
                              
                              if (!hasAddedContent) {
                                  // First content gets the list marker with checkbox
