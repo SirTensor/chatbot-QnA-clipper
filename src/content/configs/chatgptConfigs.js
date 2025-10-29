@@ -28,7 +28,18 @@
     function enhancedHtmlToMarkdown(element, options = {}) {
         // Clone the element to avoid modifying the original
         const clone = element.cloneNode(true);
-        
+
+        // Remove file citation elements if setting is enabled
+        const config = window.chatgptConfig;
+        if (config && config.settings && config.settings.excludeFileCitations) {
+            const citationElements = clone.querySelectorAll('span.text-token-text-secondary');
+            citationElements.forEach(citation => {
+                if (citation.parentNode) {
+                    citation.parentNode.removeChild(citation);
+                }
+            });
+        }
+
         // Fix BR tags to prevent unwanted spaces after line breaks
         const brTags = clone.querySelectorAll('br');
         brTags.forEach(br => {

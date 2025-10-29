@@ -603,7 +603,10 @@ async function extractQA() {
     try {
         // Create our own timeout promise instead of using the unsupported timeout parameter
         const extractionPromise = new Promise((resolve, reject) => {
-            chrome.tabs.sendMessage(currentTabId, { action: 'extractRawData' }, (result) => {
+            chrome.tabs.sendMessage(currentTabId, {
+              action: 'extractRawData',
+              settings: formatSettings // Pass settings to content script
+            }, (result) => {
                 if (chrome.runtime.lastError) {
                     reject(chrome.runtime.lastError);
                 } else {

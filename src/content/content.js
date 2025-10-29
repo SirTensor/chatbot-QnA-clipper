@@ -91,7 +91,9 @@
       }, 25000);
 
       // Call the globally exposed extractConversation function
-      window.extractConversation()
+      // Pass settings from the request
+      const settings = request.settings || {};
+      window.extractConversation(settings)
         .then(extractedData => {
           clearTimeout(extractionTimeout); // Clear the timeout
           // console.log("Extraction result:", extractedData);

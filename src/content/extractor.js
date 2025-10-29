@@ -70,9 +70,10 @@
 
   /**
    * Main function to orchestrate the extraction process.
+   * @param {object} settings - User settings passed from the extension (optional)
    * @returns {Promise<object|null>} A promise that resolves with the extracted conversation object or null if failed.
    */
-  async function extractConversation() {
+  async function extractConversation(settings = {}) {
     // Add timeout protection
     let extractionTimeout;
     const timeoutPromise = new Promise((_, reject) => {
@@ -116,6 +117,9 @@
         console.error(`Chatbot Clipper: No configuration found for platform: ${platform}`);
         throw new Error(`Configuration for ${platform} not found after loading`);
       }
+
+      // Store settings on config so extraction functions can access them
+      config.settings = settings;
 
       // console.log(`Chatbot Clipper: Starting extraction for ${platform}...`);
 
