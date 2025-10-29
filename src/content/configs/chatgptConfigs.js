@@ -76,13 +76,26 @@
         headings.forEach(heading => {
             const level = parseInt(heading.tagName.substring(1));
             const hashes = '#'.repeat(level);
-            const text = heading.textContent.trim();
-            
+
+            // Clone the heading to process inline elements (like <code>) without affecting original
+            const headingClone = heading.cloneNode(true);
+
+            // Process <code> tags inside heading to convert to backticks
+            const codeElements = headingClone.querySelectorAll('code');
+            codeElements.forEach(code => {
+                const codeText = code.textContent;
+                const backtickText = document.createTextNode(`\`${codeText}\``);
+                code.parentNode.replaceChild(backtickText, code);
+            });
+
+            // Get the processed text (now with backticks instead of <code> tags)
+            const text = headingClone.textContent.trim();
+
             // Create a replacement element
             const replacementText = document.createTextNode(`${hashes} ${text}`);
             const replacementParagraph = document.createElement('p');
             replacementParagraph.appendChild(replacementText);
-            
+
             // Replace the heading with our markdown-style paragraph
             heading.parentNode.replaceChild(replacementParagraph, heading);
         });
