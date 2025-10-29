@@ -465,19 +465,21 @@
         return { type: 'code_block', language: language, content: code };
     }
 
-    function processAssistantImage(el) { // Unchanged
+    function processAssistantImage(el) {
          const selectors = window.chatgptConfig.selectors;
-         const targetImgElement = el.querySelector(selectors.imageElementAssistant);
+         let targetImgElement = el.querySelector(selectors.imageElementAssistant);
          if (!targetImgElement) {
-             console.error("[Extractor v20] Image element not found using selector:", selectors.imageElementAssistant, "in container:", el);
-             const anyImg = el.querySelector('img[src*="oaiusercontent"]');
-             if (!anyImg) return null;
-             console.warn("[Extractor v20] Using broader fallback image search.");
-             targetImgElement = anyImg;
+             // Try broader fallback: any img with chatgpt.com or oaiusercontent in src
+             targetImgElement = el.querySelector('img[src*="chatgpt.com"], img[src*="oaiusercontent"]');
+             if (!targetImgElement) {
+                 console.error("[Extractor v30] Image element not found using selector:", selectors.imageElementAssistant, "in container:", el);
+                 return null;
+             }
+             console.warn("[Extractor v30] Using broader fallback image search.");
          }
          const src = targetImgElement.getAttribute('src');
          if (!src || src.startsWith('data:') || src.startsWith('blob:')) {
-             console.error("[Extractor v20] Selected image has invalid src:", src);
+             console.error("[Extractor v30] Selected image has invalid src:", src);
              return null;
          }
          let altText = targetImgElement.getAttribute('alt')?.trim();
@@ -487,7 +489,7 @@
              return { type: 'image', src: absoluteSrc, alt: altText || "Generated Image", extractedContent: extractedContent };
          }
          catch (e) {
-             console.error("[Extractor v20] Error parsing assistant image URL:", e, src);
+             console.error("[Extractor v30] Error parsing assistant image URL:", e, src);
              return null;
          }
      }
@@ -522,7 +524,7 @@
         if (title || code) {
             return { type: 'interactive_block', title: title || '[Interactive Block]', code: code, language: language };
         } else {
-            console.error("[Extractor v20] Failed to extract title or code from interactive block:", el);
+            console.error("[Extractor v30] Failed to extract title or code from interactive block:", el);
             return null;
         }
      }
@@ -552,7 +554,7 @@
         }
 
         if (columnCount === 0) { // Abort if no header found
-            console.warn("[Extractor v20] Table has no header (thead > tr > th). Cannot generate Markdown.", tableElement);
+            console.warn("[Extractor v30] Table has no header (thead > tr > th). Cannot generate Markdown.", tableElement);
             return null;
         }
 
@@ -567,7 +569,7 @@
                     const cellContent = cells.map(td => QAClipper.Utils.htmlToMarkdown(td, { skipElementCheck: shouldSkipElement, ignoreTags: ['table', 'tr', 'th', 'td'] }).trim().replace(/\|/g, '\\|').replace(/\n+/g, ' ')); // Escape pipes and replace newlines in cells
                     markdownRows.push(`| ${cellContent.join(' | ')} |`);
                 } else {
-                    console.warn("[Extractor v20] Table row skipped due to column count mismatch.", row);
+                    console.warn("[Extractor v30] Table row skipped due to column count mismatch.", row);
                 }
             });
         }
@@ -858,7 +860,7 @@
         codeBlockContent: 'code',
         codeBlockLangIndicatorContainer: ':scope > div.contain-inline-size > div:first-child, :scope > div:first-child[class*="flex items-center"]',
         imageContainerAssistant: 'div.group\\/imagegen-image',
-        imageElementAssistant: 'img[alt="생성된 이미지"][src*="oaiusercontent"]',
+        imageElementAssistant: 'img[alt="생성된 이미지"]',
         imageCaption: null,
         interactiveBlockContainer: 'div[id^="textdoc-message-"]',
         interactiveBlockTitle: 'span.min-w-0.truncate',
