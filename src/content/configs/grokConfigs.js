@@ -1,12 +1,12 @@
-// --- Updated grokConfigs.js (v16 - Fixed Table Extraction in div.relative) ---
+// --- Updated grokConfigs.js (v17 - Fixed Code Block Extraction in Nested Lists) ---
 
 /**
  * Configuration for extracting Q&A data from Grok (grok.com)
- * Version: 16 (Fixed table extraction when wrapped in div.relative container)
+ * Version: 17 (Fixed code block extraction for new @container/code-block structure)
  */
 (function() {
   // Initialization check
-  if (window.grokConfig && window.grokConfig.version >= 16) { // Updated version check
+  if (window.grokConfig && window.grokConfig.version >= 17) { // Updated version check
     // console.log("Grok config already initialized (v" + window.grokConfig.version + "), skipping.");
     return;
   }
@@ -313,13 +313,29 @@
   /**
    * Processes the inner code block container (`div.relative` inside `div.not-prose`).
    * Extracts language and code content.
+   * Handles multiple code block structures:
+   * 1. Original: div.relative > div.flex > span.font-mono + div[style] > code
+   * 2. New (@container/code-block): div.relative > div.border > div.flex > span.font-mono + div.shiki > pre > code
    * @param {HTMLElement} innerEl - The inner container element (`div.relative`).
    * @returns {object|null} - A structured code_block object { type: 'code_block', ... } or null.
    */
   function processCodeBlock(innerEl) {
     const selectors = window.grokConfig.selectors;
-    const langElement = innerEl.querySelector(selectors.assistantCodeBlockLang);
-    const codeElement = innerEl.querySelector(selectors.assistantCodeBlockContent);
+    
+    // Try original selectors first
+    let langElement = innerEl.querySelector(selectors.assistantCodeBlockLang);
+    let codeElement = innerEl.querySelector(selectors.assistantCodeBlockContent);
+    
+    // If not found, try alternative selectors for new structure (@container/code-block)
+    if (!codeElement) {
+      // New structure: div.border > div.shiki > pre > code
+      codeElement = innerEl.querySelector('pre > code') || innerEl.querySelector('code');
+    }
+    
+    if (!langElement) {
+      // New structure: div.border > div.flex > span.font-mono.text-xs
+      langElement = innerEl.querySelector('span.font-mono.text-xs');
+    }
 
     const language = langElement ? langElement.textContent?.trim().toLowerCase() : null;
     const code = codeElement ? codeElement.textContent : ''; // Preserve whitespace
@@ -1105,7 +1121,7 @@
   // --- Main Configuration Object ---
   const grokConfig = {
     platformName: 'Grok',
-    version: 16, // Updated config version - Fixed table extraction when wrapped in div.relative
+    version: 17, // Updated config version - Fixed code block extraction for new structure
     selectors: {
       turnContainer: 'div.relative.group.flex.flex-col.justify-center[class*="items-"]',
       userMessageIndicator: '.items-end',
@@ -1122,7 +1138,7 @@
       assistantRelevantBlocks: ':scope > :is(p.break-words, h1, h2, h3, h4, h5, h6, ol, ul, div.not-prose, div.grid, div.table-container, div.py-2, blockquote, hr, span.katex-display, div.relative:has(div.table-container))',
       listItem: 'li',
       assistantCodeBlockOuterContainer: 'div.not-prose',
-      assistantCodeBlockInnerContainer: 'div.not-prose > div.relative',
+      assistantCodeBlockInnerContainer: ':scope > div.relative, div.not-prose > div.relative',
       assistantCodeBlockLang: ':scope > div.flex > span.font-mono.text-xs',
       assistantCodeBlockContent: ':scope > div[style*="display: block"] > code[style*="white-space: pre"]',
       assistantImageGrid: 'div.grid',
@@ -1503,4 +1519,4 @@
   // console.log("grokConfig.js initialized (v" + grokConfig.version + ")");
 
 })(); // End of IIFE
-// --- END OF UPDATED FILE grokConfigs.js (v16) ---
+// --- END OF UPDATED FILE grokConfigs.js (v17) ---
