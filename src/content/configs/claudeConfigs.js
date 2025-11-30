@@ -1,8 +1,8 @@
-// claudeConfig.js (v9 - Added KaTeX/LaTeX math expression support)
+// claudeConfig.js (v10 - Fixed strong/em/code tags in paragraphs with KaTeX)
 
 (function() {
   // Initialization check to prevent re-running the script if already loaded
-  if (window.claudeConfig && window.claudeConfig.version >= 9) {
+  if (window.claudeConfig && window.claudeConfig.version >= 10) {
     // console.log("Claude config already initialized (v" + window.claudeConfig.version + "), skipping.");
     return;
   }
@@ -737,10 +737,26 @@
                                   processedText += katexMath;
                               }
                           } else {
-                              // For non-KaTeX elements, convert to markdown normally
-                              const nodeMarkdown = QAClipper.Utils.htmlToMarkdown(node, { skipElementCheck: shouldSkipElement }).trim();
-                              if (nodeMarkdown) {
-                                  processedText += nodeMarkdown;
+                              // For non-KaTeX elements, handle inline markdown formatting
+                              // htmlToMarkdown only processes children, not the element itself
+                              const tagName = node.tagName.toLowerCase();
+                              const innerContent = QAClipper.Utils.htmlToMarkdown(node, { skipElementCheck: shouldSkipElement }).trim();
+                              
+                              if (tagName === 'strong' || tagName === 'b') {
+                                  processedText += `**${innerContent}**`;
+                              } else if (tagName === 'em' || tagName === 'i') {
+                                  processedText += `*${innerContent}*`;
+                              } else if (tagName === 'code') {
+                                  processedText += `\`${innerContent}\``;
+                              } else if (tagName === 'a') {
+                                  const href = node.getAttribute('href');
+                                  if (href) {
+                                      processedText += `[${innerContent}](${href})`;
+                                  } else {
+                                      processedText += innerContent;
+                                  }
+                              } else if (innerContent) {
+                                  processedText += innerContent;
                               }
                           }
                       }
@@ -832,7 +848,7 @@
   // --- Main Configuration Object ---
   const claudeConfig = {
     platformName: 'Claude',
-    version: 9, // Update config version identifier for KaTeX support
+    version: 10, // Fixed strong/em/code tags in paragraphs with KaTeX
     selectors: {
       // Container for a single turn (user or assistant)
       turnContainer: 'div[data-test-render-count]',
@@ -1080,6 +1096,6 @@
 
   // Assign to window object
   window.claudeConfig = claudeConfig;
-  console.log("claudeConfig.js initialized (v" + claudeConfig.version + ") with KaTeX support");
+  console.log("claudeConfig.js initialized (v" + claudeConfig.version + ") with fixed inline formatting in KaTeX paragraphs");
 
 })(); // End of IIFE
