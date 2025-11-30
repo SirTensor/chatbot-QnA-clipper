@@ -1,12 +1,12 @@
-// --- Updated grokConfigs.js (v14 - Fixed User Uploaded Image Extraction) ---
+// --- Updated grokConfigs.js (v15 - Fixed Nested List Indentation) ---
 
 /**
  * Configuration for extracting Q&A data from Grok (grok.com)
- * Version: 14 (Fixed user uploaded image extraction for new figure>img HTML structure)
+ * Version: 15 (Fixed nested list indentation, strikethrough support, multi-line list item content)
  */
 (function() {
   // Initialization check
-  if (window.grokConfig && window.grokConfig.version >= 14) { // Updated version check
+  if (window.grokConfig && window.grokConfig.version >= 15) { // Updated version check
     // console.log("Grok config already initialized (v" + window.grokConfig.version + "), skipping.");
     return;
   }
@@ -111,7 +111,8 @@
       }
     } else {
       // Normal list indentation when not in blockquote
-      indent = '   '.repeat(level);
+      // Use 2 spaces per level to match standard markdown conventions
+      indent = '  '.repeat(level);
     }
 
     el.querySelectorAll(':scope > li').forEach(li => {
@@ -175,11 +176,25 @@
           marker = `${startNum + itemIndex}.`;
         }
         
-        // 9. Assemble the line with blockquote prefix if needed
-        let line = `${bqPrefix}${indent}${marker} ${trimmedItemMarkdown}`;
-
-        // 10. Add the assembled line to our results
+        // 9. Handle multi-line content within list items
+        // Split content by newlines to handle continuation lines with proper indentation
+        const contentLines = trimmedItemMarkdown.split('\n');
+        const markerLength = marker.length + 1; // +1 for the space after marker
+        const continuationIndent = ' '.repeat(markerLength); // Indent for continuation lines
+        
+        // First line goes with the marker
+        const firstLine = contentLines[0] || '';
+        let line = `${bqPrefix}${indent}${marker} ${firstLine}`;
         processedItems.push(line);
+        
+        // Subsequent lines get continuation indentation
+        for (let i = 1; i < contentLines.length; i++) {
+          const contLine = contentLines[i];
+          if (contLine.trim()) {
+            // Preserve original indentation from the content, add list continuation indent
+            processedItems.push(`${bqPrefix}${indent}${continuationIndent}${contLine}`);
+          }
+        }
         
         // 11. Process nested lists recursively
         nestedListElements.forEach(nestedList => {
@@ -826,24 +841,22 @@
     if (node.nodeType === Node.TEXT_NODE) {
       const textContent = node.textContent || '';
       
-      // Check if this text node should preserve line breaks
-      // Look for parent elements with white-space: pre-wrap or break-words class
-      let shouldPreserveLineBreaks = false;
+      // Check if this text node should preserve line breaks and indentation
+      // Look for parent elements with white-space: pre-wrap or whitespace-pre-wrap class
+      let shouldPreserveFormatting = false;
       let parent = node.parentElement;
       
-      while (parent && !shouldPreserveLineBreaks) {
-        const computedStyle = window.getComputedStyle(parent);
-        if (computedStyle.whiteSpace === 'pre-wrap' || 
-            computedStyle.whiteSpace === 'pre-line' ||
+      while (parent && !shouldPreserveFormatting) {
+        if (parent.classList.contains('whitespace-pre-wrap') ||
             parent.classList.contains('break-words')) {
-          shouldPreserveLineBreaks = true;
+          shouldPreserveFormatting = true;
         }
         parent = parent.parentElement;
       }
       
-      if (shouldPreserveLineBreaks) {
-        // Preserve line breaks, but still collapse tabs and multiple spaces
-        return textContent.replace(/\t+/g, ' ').replace(/ {2,}/g, ' ');
+      if (shouldPreserveFormatting) {
+        // Preserve line breaks and indentation - only convert tabs to spaces
+        return textContent.replace(/\t/g, '  ');
       } else {
         // Replace tabs/newlines with a single space, collapse multiple spaces to one
         return textContent.replace(/[\t\n\r]+/g, ' ').replace(/ {2,}/g, ' ');
@@ -964,6 +977,7 @@
 
         if (tagName === 'strong' || tagName === 'b') { return `**${content}**`; }
         if (tagName === 'em' || tagName === 'i') { return `*${content}*`; }
+        if (tagName === 'del' || tagName === 's' || tagName === 'strike') { return `~~${content}~~`; } // Handle strikethrough
         if (tagName === 'a') { const href = node.getAttribute('href'); return href ? `[${content}](${href})` : content; }
         if (tagName === 'br') { return '\n'; } // Handle line breaks
         if (node.matches(selectors.inlineCodeSpan)) { return `\`${node.textContent?.trim()}\``; } // Handle inline code spans
@@ -1091,7 +1105,7 @@
   // --- Main Configuration Object ---
   const grokConfig = {
     platformName: 'Grok',
-    version: 14, // Updated config version - Fixed user uploaded image extraction for new figure>img HTML structure
+    version: 15, // Updated config version - Fixed nested list indentation, strikethrough, multi-line list items
     selectors: {
       turnContainer: 'div.relative.group.flex.flex-col.justify-center[class*="items-"]',
       userMessageIndicator: '.items-end',
@@ -1468,4 +1482,4 @@
   // console.log("grokConfig.js initialized (v" + grokConfig.version + ")");
 
 })(); // End of IIFE
-// --- END OF UPDATED FILE grokConfigs.js (v14) ---
+// --- END OF UPDATED FILE grokConfigs.js (v15) ---
