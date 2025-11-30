@@ -1,12 +1,12 @@
-// --- Updated grokConfigs.js (v15 - Fixed Nested List Indentation) ---
+// --- Updated grokConfigs.js (v16 - Fixed Table Extraction in div.relative) ---
 
 /**
  * Configuration for extracting Q&A data from Grok (grok.com)
- * Version: 15 (Fixed nested list indentation, strikethrough support, multi-line list item content)
+ * Version: 16 (Fixed table extraction when wrapped in div.relative container)
  */
 (function() {
   // Initialization check
-  if (window.grokConfig && window.grokConfig.version >= 15) { // Updated version check
+  if (window.grokConfig && window.grokConfig.version >= 16) { // Updated version check
     // console.log("Grok config already initialized (v" + window.grokConfig.version + "), skipping.");
     return;
   }
@@ -1105,7 +1105,7 @@
   // --- Main Configuration Object ---
   const grokConfig = {
     platformName: 'Grok',
-    version: 15, // Updated config version - Fixed nested list indentation, strikethrough, multi-line list items
+    version: 16, // Updated config version - Fixed table extraction when wrapped in div.relative
     selectors: {
       turnContainer: 'div.relative.group.flex.flex-col.justify-center[class*="items-"]',
       userMessageIndicator: '.items-end',
@@ -1119,7 +1119,7 @@
       userAttachmentImageElement: 'figure img',
       userAttachmentFileIcon: 'svg[aria-label="Text File"]',
       assistantContentContainer: 'div.response-content-markdown',
-      assistantRelevantBlocks: ':scope > :is(p.break-words, h1, h2, h3, h4, h5, h6, ol, ul, div.not-prose, div.grid, div.table-container, div.py-2, blockquote, hr, span.katex-display)',
+      assistantRelevantBlocks: ':scope > :is(p.break-words, h1, h2, h3, h4, h5, h6, ol, ul, div.not-prose, div.grid, div.table-container, div.py-2, blockquote, hr, span.katex-display, div.relative:has(div.table-container))',
       listItem: 'li',
       assistantCodeBlockOuterContainer: 'div.not-prose',
       assistantCodeBlockInnerContainer: 'div.not-prose > div.relative',
@@ -1384,6 +1384,27 @@
                   // console.log("  -> div.table-container found, but no table inside. Skipping.");
               }
           }
+          // Handle div.relative wrapping table-container (added in v16)
+          else if (tagNameLower === 'div' && block.classList.contains('relative')) {
+              // Check if there's a table-container inside
+              const tableContainer = block.querySelector('div.table-container');
+              if (tableContainer) {
+                  const tableElement = tableContainer.querySelector('table');
+                  if (tableElement) {
+                      // Process the table to markdown
+                      const tableMarkdown = processTableToMarkdown(tableContainer);
+                      if (tableMarkdown) {
+                          QAClipper.Utils.addTextItem(contentItems, tableMarkdown);
+                      } else {
+                          console.warn("  -> Failed to convert table to markdown:", tableElement);
+                      }
+                      processedElements.add(block);
+                      processedElements.add(tableContainer);
+                      processedElements.add(tableElement);
+                      tableElement.querySelectorAll('*').forEach(child => processedElements.add(child));
+                  }
+              }
+          }
           // Handle Lists (using processList which uses processChildNodes -> processNode that now handles nested blocks)
           else if (tagNameLower === 'ul' || tagNameLower === 'ol') {
               // console.log(`  -> Handling as ${tagNameLower.toUpperCase()} List`);
@@ -1482,4 +1503,4 @@
   // console.log("grokConfig.js initialized (v" + grokConfig.version + ")");
 
 })(); // End of IIFE
-// --- END OF UPDATED FILE grokConfigs.js (v15) ---
+// --- END OF UPDATED FILE grokConfigs.js (v16) ---
