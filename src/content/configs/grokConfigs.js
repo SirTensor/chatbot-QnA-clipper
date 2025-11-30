@@ -1,12 +1,12 @@
-// --- Updated grokConfigs.js (v13 - Fixed Assistant Content Extraction) ---
+// --- Updated grokConfigs.js (v14 - Fixed User Uploaded Image Extraction) ---
 
 /**
  * Configuration for extracting Q&A data from Grok (grok.com)
- * Version: 13 (Fixed assistant content extraction by handling nested DOM structure)
+ * Version: 14 (Fixed user uploaded image extraction for new figure>img HTML structure)
  */
 (function() {
   // Initialization check
-  if (window.grokConfig && window.grokConfig.version >= 13) { // Updated version check
+  if (window.grokConfig && window.grokConfig.version >= 14) { // Updated version check
     // console.log("Grok config already initialized (v" + window.grokConfig.version + "), skipping.");
     return;
   }
@@ -1091,7 +1091,7 @@
   // --- Main Configuration Object ---
   const grokConfig = {
     platformName: 'Grok',
-    version: 13, // Updated config version - Fixed assistant content extraction by handling nested DOM structure
+    version: 14, // Updated config version - Fixed user uploaded image extraction for new figure>img HTML structure
     selectors: {
       turnContainer: 'div.relative.group.flex.flex-col.justify-center[class*="items-"]',
       userMessageIndicator: '.items-end',
@@ -1101,6 +1101,8 @@
       userAttachmentChip: 'div.flex.flex-row.items-center.rounded-xl.bg-chip',
       userAttachmentFilename: 'span.truncate',
       userAttachmentImagePreviewDiv: 'div[style*="background-image"]',
+      userAttachmentImageFigure: 'figure',
+      userAttachmentImageElement: 'figure img',
       userAttachmentFileIcon: 'svg[aria-label="Text File"]',
       assistantContentContainer: 'div.response-content-markdown',
       assistantRelevantBlocks: ':scope > :is(p.break-words, h1, h2, h3, h4, h5, h6, ol, ul, div.not-prose, div.grid, div.table-container, div.py-2, blockquote, hr, span.katex-display)',
@@ -1154,7 +1156,61 @@
       // console.log("[Grok Extractor] Extracted user text (processed container):", fullText || "null");
       return fullText || null; // Return null if the result is an empty string
     },
-    extractUserUploadedImages: (turnElement) => { /* ... unchanged ... */ const images = []; const selectors = grokConfig.selectors; turnElement.querySelectorAll(selectors.userAttachmentChip).forEach(chip => { const imgPreviewDiv = chip.querySelector(selectors.userAttachmentImagePreviewDiv); const filenameElement = chip.querySelector(selectors.userAttachmentFilename); if (imgPreviewDiv && filenameElement) { const filename = filenameElement.textContent?.trim(); const style = imgPreviewDiv.getAttribute('style'); const match = style?.match(/url\\("?([^")]+)"?\\)/); const previewUrl = match ? match[1] : null; if (filename && previewUrl) { const fullUrl = getFullImageUrlFromPreview(previewUrl); if (fullUrl) { images.push({ type: 'image', sourceUrl: fullUrl, isPreviewOnly: true, extractedContent: filename }); } } } }); return images; },
+    /**
+     * Extracts user uploaded images from attachment chips in a user turn.
+     * Handles two different HTML structures:
+     * 1. Legacy: div[style*="background-image"] with span.truncate for filename
+     * 2. New: figure > img with src attribute
+     * @param {HTMLElement} turnElement - The user turn container element.
+     * @returns {Array<object>} - An array of image objects.
+     */
+    extractUserUploadedImages: (turnElement) => {
+      const images = [];
+      const selectors = grokConfig.selectors;
+      
+      turnElement.querySelectorAll(selectors.userAttachmentChip).forEach(chip => {
+        // Try new structure first: figure > img
+        const imgElement = chip.querySelector(selectors.userAttachmentImageElement);
+        if (imgElement) {
+          const src = imgElement.getAttribute('src');
+          if (src && src.includes('assets.grok.com')) {
+            const fullUrl = getFullImageUrlFromPreview(src);
+            if (fullUrl) {
+              images.push({
+                type: 'image',
+                sourceUrl: fullUrl,
+                isPreviewOnly: true,
+                extractedContent: 'User Uploaded Image'
+              });
+            }
+          }
+          return; // Skip legacy check if figure/img found
+        }
+        
+        // Fallback to legacy structure: div[style*="background-image"]
+        const imgPreviewDiv = chip.querySelector(selectors.userAttachmentImagePreviewDiv);
+        const filenameElement = chip.querySelector(selectors.userAttachmentFilename);
+        if (imgPreviewDiv && filenameElement) {
+          const filename = filenameElement.textContent?.trim();
+          const style = imgPreviewDiv.getAttribute('style');
+          const match = style?.match(/url\("?([^")]+)"?\)/);
+          const previewUrl = match ? match[1] : null;
+          if (filename && previewUrl) {
+            const fullUrl = getFullImageUrlFromPreview(previewUrl);
+            if (fullUrl) {
+              images.push({
+                type: 'image',
+                sourceUrl: fullUrl,
+                isPreviewOnly: true,
+                extractedContent: filename
+              });
+            }
+          }
+        }
+      });
+      
+      return images;
+    },
     extractUserUploadedFiles: (turnElement) => { /* ... unchanged ... */ const files = []; const selectors = grokConfig.selectors; turnElement.querySelectorAll(selectors.userAttachmentChip).forEach(chip => { const fileIcon = chip.querySelector(selectors.userAttachmentFileIcon); const filenameElement = chip.querySelector(selectors.userAttachmentFilename); if (fileIcon && filenameElement && !chip.querySelector(selectors.userAttachmentImagePreviewDiv)) { const fileName = filenameElement.textContent?.trim(); if (fileName) { files.push({ type: 'file', fileName: fileName, fileType: 'File', isPreviewOnly: true, extractedContent: null }); } } }); return files; },
 
           /**
@@ -1412,4 +1468,4 @@
   // console.log("grokConfig.js initialized (v" + grokConfig.version + ")");
 
 })(); // End of IIFE
-// --- END OF UPDATED FILE grokConfigs.js (v13) ---
+// --- END OF UPDATED FILE grokConfigs.js (v14) ---
