@@ -378,7 +378,7 @@
             return QAClipper.Utils.htmlToMarkdown(td, {
               skipElementCheck: shouldSkipElement,
               ignoreTags: ['table', 'tr', 'th', 'td']
-            }).trim().replace(/\|/g, '\\|').replace(/\n+/g, ' '); // Escape pipes and handle line breaks
+            }).trim().replace(/\|/g, '\\|').replace(/\n+/g, '<br>'); // Escape pipes and convert line breaks to <br> for markdown table cells
           });
           markdownRows.push(`| ${cellContent.join(' | ')} |`);
         } else {
