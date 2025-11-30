@@ -2292,13 +2292,14 @@
       },
       extractUserUploadedImages: (turnElement) => {
           const images = [];
-          const containerSelector = geminiConfig.selectors.userImageContainer;
+          const imageTypes = ['IMAGE', 'JPG', 'JPEG', 'PNG', 'GIF', 'WEBP', 'BMP', 'SVG', 'TIFF', 'ICO'];
+          const containerSelector = geminiConfig.selectors.userImageContainer; // 'user-query-file-preview'
           const linkSelector = geminiConfig.selectors.userImageLink;
-          const imgSelector = 'img';
+          
           turnElement.querySelectorAll(`:scope ${containerSelector}`).forEach(container => {
+              // Method 1: Extract via Google Lens link
               const linkElement = container.querySelector(linkSelector);
-              const imgElement = container.querySelector(imgSelector);
-              if (linkElement && imgElement) {
+              if (linkElement) {
                   const href = linkElement.getAttribute('href');
                   if (href) {
                       try {
@@ -2306,17 +2307,134 @@
                           const encodedUrl = urlParams.get('url');
                           if (encodedUrl) {
                               const decodedUrl = decodeURIComponent(encodedUrl);
-                              let altText = imgElement.getAttribute('alt')?.trim();
+                              const imgElement = container.querySelector('img');
+                              let altText = imgElement?.getAttribute('alt')?.trim();
                               const extractedContent = altText || "User Uploaded Image";
                               images.push({ type: 'image', sourceUrl: decodedUrl, isPreviewOnly: false, extractedContent: extractedContent });
+                              return; // This container is processed
                           }
-                      } catch (e) { console.error("[Extractor v31] Error parsing user image URL:", e, href); }
+                      } catch (e) { 
+                          console.error("[Extractor] Error parsing user image URL:", e, href); 
+                      }
+                  }
+              }
+              
+              // Method 2: Check file type for image files
+              const fileTypeElement = container.querySelector('.new-file-type');
+              const fileType = fileTypeElement?.textContent?.trim().toUpperCase();
+              
+              if (fileType && imageTypes.includes(fileType)) {
+                  // Get file name from aria-label or .new-file-name
+                  const buttonElement = container.querySelector('button[aria-label]');
+                  const fileNameElement = container.querySelector('.new-file-name');
+                  const fullFileName = buttonElement?.getAttribute('aria-label') || 
+                                       fileNameElement?.textContent?.trim() || 
+                                       'User Uploaded Image';
+                  
+                  // Try to find image URL from preview
+                  let imageUrl = null;
+                  
+                  // Look for image preview (not the file type icon)
+                  const previewImg = container.querySelector('img:not(.new-file-icon)');
+                  if (previewImg) {
+                      const src = previewImg.getAttribute('src');
+                      if (src && !src.startsWith('blob:') && !src.startsWith('data:') && 
+                          !src.includes('drive-thirdparty.googleusercontent.com')) {
+                          imageUrl = src;
+                      }
+                  }
+                  
+                  // Also check for image in link elements
+                  if (!imageUrl) {
+                      const imgLink = container.querySelector('a[href] img');
+                      if (imgLink) {
+                          const parentLink = imgLink.closest('a');
+                          const linkHref = parentLink?.getAttribute('href');
+                          if (linkHref && !linkHref.startsWith('blob:') && !linkHref.startsWith('data:')) {
+                              imageUrl = linkHref;
+                          }
+                      }
+                  }
+                  
+                  images.push({ 
+                      type: 'image', 
+                      sourceUrl: imageUrl,
+                      isPreviewOnly: !imageUrl,
+                      extractedContent: fullFileName 
+                  });
+              }
+              
+              // Method 3: Check for uploaded image preview (data-test-id="uploaded-img" or class="preview-image")
+              const imagePreview = container.querySelector('img[data-test-id="uploaded-img"], img.preview-image');
+              if (imagePreview) {
+                  const src = imagePreview.getAttribute('src');
+                  if (src && !src.startsWith('blob:') && !src.startsWith('data:')) {
+                      // Check if this image URL was already added
+                      if (!images.some(img => img.sourceUrl === src)) {
+                          const altText = imagePreview.getAttribute('alt')?.trim() || 'User Uploaded Image';
+                          images.push({ 
+                              type: 'image', 
+                              sourceUrl: src, 
+                              isPreviewOnly: false, 
+                              extractedContent: altText 
+                          });
+                      }
                   }
               }
           });
+          
           return images;
       },
-      extractUserUploadedFiles: (turnElement) => { const f=[]; turnElement.querySelectorAll(':scope '+geminiConfig.selectors.userFileContainer).forEach(c=>{const nE=c.querySelector(geminiConfig.selectors.userFileName),tE=c.querySelector(geminiConfig.selectors.userFileType); if(nE){const n=nE.textContent?.trim(),t=tE?.textContent?.trim()||'U';let eC=null;const p=c.querySelector('.file-preview-content,.text-preview,pre');if(p)eC=p.textContent?.trim()||null; if(n)f.push({type:'file',fileName:n,fileType:t,isPreviewOnly:!eC,extractedContent:eC});}}); return f; },
+      extractUserUploadedFiles: (turnElement) => { 
+          const files = [];
+          const imageTypes = ['IMAGE', 'JPG', 'JPEG', 'PNG', 'GIF', 'WEBP', 'BMP', 'SVG', 'TIFF', 'ICO'];
+          
+          // Iterate over each file preview container instead of the wrapper
+          const filePreviewSelector = geminiConfig.selectors.userImageContainer; // 'user-query-file-preview'
+          
+          turnElement.querySelectorAll(`:scope ${filePreviewSelector}`).forEach(container => {
+              // Skip if this container has an uploaded image - handled by extractUserUploadedImages
+              const uploadedImage = container.querySelector('img[data-test-id="uploaded-img"], img.preview-image');
+              if (uploadedImage) {
+                  return;
+              }
+              
+              const fileTypeElement = container.querySelector(geminiConfig.selectors.userFileType);
+              const fileType = fileTypeElement?.textContent?.trim();
+              
+              // Skip image type files - they are handled by extractUserUploadedImages
+              if (fileType && imageTypes.includes(fileType.toUpperCase())) {
+                  return;
+              }
+              
+              const fileNameElement = container.querySelector(geminiConfig.selectors.userFileName);
+              // Also try to get full file name from button aria-label
+              const buttonElement = container.querySelector('button[aria-label]');
+              const fullFileName = buttonElement?.getAttribute('aria-label');
+              
+              if (fileNameElement || fullFileName) {
+                  const displayName = fileNameElement?.textContent?.trim();
+                  const fileName = fullFileName || displayName || 'Unknown File';
+                  const type = fileType || 'Unknown';
+                  
+                  let extractedContent = null;
+                  const previewElement = container.querySelector('.file-preview-content,.text-preview,pre');
+                  if (previewElement) {
+                      extractedContent = previewElement.textContent?.trim() || null;
+                  }
+                  
+                  files.push({
+                      type: 'file',
+                      fileName: fileName,
+                      fileType: type,
+                      isPreviewOnly: !extractedContent,
+                      extractedContent: extractedContent
+                  });
+              }
+          });
+          
+          return files; 
+      },
       extractSideContainerCode: () => { return null; },
 
       /**
