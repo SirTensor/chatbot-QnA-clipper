@@ -1,9 +1,9 @@
-// chatgptConfigs.js (v30 - Fixed role detection for edge cases)
+// chatgptConfigs.js (v31 - Extract CSS ::before/::after pseudo-element content)
 
 (function() {
     // Initialization check
-    // v30: Fixed getRole and extraction functions to handle turnElement that is already a message div
-    if (window.chatgptConfig && window.chatgptConfig.version === 30) { return; }
+    // v31: Extract CSS ::before/::after content using getComputedStyle for blockquote list items
+    if (window.chatgptConfig && window.chatgptConfig.version === 31) { return; }
 
     // --- Helper Functions ---
 
@@ -17,6 +17,94 @@
              (element.matches(selectors.interactiveBlockContainer)) ||
              (element.closest(selectors.interactiveBlockContainer)) ||
              (element.closest(selectors.userMessageContainer) && element.matches('span.hint-pill'));
+    }
+
+    /**
+     * Extracts CSS ::before and ::after pseudo-element content from an element.
+     * Uses getComputedStyle to read the actual CSS content property.
+     * Handles CSS keywords like 'open-quote' and 'close-quote'.
+     * @param {HTMLElement} element - The element to check for pseudo-element content
+     * @returns {object} - { before: string|null, after: string|null }
+     */
+    function getPseudoElementContent(element) {
+        if (!element || element.nodeType !== Node.ELEMENT_NODE) {
+            return { before: null, after: null };
+        }
+        
+        let beforeContent = null;
+        let afterContent = null;
+        
+        try {
+            const beforeStyle = window.getComputedStyle(element, '::before');
+            const afterStyle = window.getComputedStyle(element, '::after');
+            
+            // CSS content property returns 'none' if not set, or a quoted string like '"text"'
+            // It can also return CSS keywords like 'open-quote', 'close-quote'
+            const rawBefore = beforeStyle.content;
+            const rawAfter = afterStyle.content;
+            
+            /**
+             * Parse CSS content value and convert to actual character
+             * @param {string} raw - Raw CSS content value
+             * @param {string} quoteType - 'open' or 'close' for quote keyword handling
+             * @returns {string|null}
+             */
+            const parseContent = (raw, quoteType) => {
+                if (!raw || raw === 'none' || raw === 'normal') {
+                    return null;
+                }
+                
+                // Handle CSS quote keywords - convert to actual quotation mark
+                if (raw === 'open-quote' || raw === 'close-quote') {
+                    // Get the quotes property from the element to find actual quote characters
+                    const quotesStyle = window.getComputedStyle(element).quotes;
+                    if (quotesStyle && quotesStyle !== 'none' && quotesStyle !== 'auto') {
+                        // quotes property format: '"«" "»" "‹" "›"' or '""" """ "'" "'"'
+                        // First pair is for first level quotes
+                        const quoteMatches = quotesStyle.match(/"([^"]*)"/g);
+                        if (quoteMatches && quoteMatches.length >= 2) {
+                            const openQuote = quoteMatches[0].replace(/"/g, '');
+                            const closeQuote = quoteMatches[1].replace(/"/g, '');
+                            return raw === 'open-quote' ? openQuote : closeQuote;
+                        }
+                    }
+                    // Fallback to standard quotation mark
+                    return '"';
+                }
+                
+                // CSS content is returned as a quoted string, e.g., '"' or '"text"'
+                // Remove the outer quotes
+                return raw.replace(/^["']|["']$/g, '');
+            };
+            
+            beforeContent = parseContent(rawBefore, 'open');
+            afterContent = parseContent(rawAfter, 'close');
+        } catch (e) {
+            // getComputedStyle may fail in some edge cases
+            console.warn('[Extractor] Failed to get pseudo-element content:', e);
+        }
+        
+        return { before: beforeContent, after: afterContent };
+    }
+
+    /**
+     * Wraps text content with ::before and ::after pseudo-element content if present.
+     * @param {HTMLElement} element - The original element (not cloned) to check for pseudo-elements
+     * @param {string} textContent - The text content to potentially wrap
+     * @returns {string} - The text content wrapped with pseudo-element content if applicable
+     */
+    function wrapWithPseudoContent(element, textContent) {
+        const pseudo = getPseudoElementContent(element);
+        let result = textContent;
+        
+        if (pseudo.before) {
+            result = pseudo.before + result;
+        }
+        if (pseudo.after) {
+            result = result + pseudo.after;
+        }
+        
+        return result;
     }
 
     /**
@@ -292,22 +380,22 @@
              const processNodes = (nodes, isFirstLevel = true) => {
                  let textBuffer = ''; // Buffer to accumulate text content
                  
-                 const flushTextBuffer = () => {
-                     if (textBuffer.trim()) {
-                         const textLines = textBuffer.trim().split('\n');
-                         textLines.forEach((line, idx) => {
-                             if (!hasAddedContent && idx === 0) {
-                                 // First content gets the list marker
-                                 currentContentLines.push(`${bqPrefix}${indent}${marker} ${line}`);
-                                 hasAddedContent = true;
-                             } else {
-                                 // Subsequent lines need more indentation
-                                 currentContentLines.push(`${bqPrefix}${textIndent}${line}`);
-                             }
-                         });
-                         textBuffer = '';
-                     }
-                 };
+                const flushTextBuffer = () => {
+                    if (textBuffer.trim()) {
+                        const textLines = textBuffer.trim().split('\n');
+                        textLines.forEach((line, idx) => {
+                            if (!hasAddedContent && idx === 0) {
+                                // First content gets the list marker
+                                currentContentLines.push(`${bqPrefix}${indent}${marker} ${line}`);
+                                hasAddedContent = true;
+                            } else {
+                                // Subsequent lines need more indentation
+                                currentContentLines.push(`${bqPrefix}${textIndent}${line}`);
+                            }
+                        });
+                        textBuffer = '';
+                    }
+                };
 
                  Array.from(nodes).forEach(node => {
                      if (node.nodeType === Node.TEXT_NODE) {
@@ -334,17 +422,17 @@
                                  clonedCheckbox.parentNode.removeChild(clonedCheckbox);
                              }
 
-                             // Convert remaining content to markdown (preserving inline code, emphasis, etc.)
-                             const textContent = enhancedHtmlToMarkdown(clonedPara, { skipElementCheck: shouldSkipElement }).trim();
-                             
-                             if (!hasAddedContent) {
-                                 // First content gets the list marker with checkbox
-                                 currentContentLines.push(`${bqPrefix}${indent}${marker} ${checkboxMd} ${textContent}`);
-                                 hasAddedContent = true;
-                             } else {
-                                 // Subsequent lines need more indentation
-                                 currentContentLines.push(`${bqPrefix}${textIndent}${checkboxMd} ${textContent}`);
-                             }
+                            // Convert remaining content to markdown (preserving inline code, emphasis, etc.)
+                            const textContent = enhancedHtmlToMarkdown(clonedPara, { skipElementCheck: shouldSkipElement }).trim();
+                            
+                            if (!hasAddedContent) {
+                                // First content gets the list marker with checkbox
+                                currentContentLines.push(`${bqPrefix}${indent}${marker} ${checkboxMd} ${textContent}`);
+                                hasAddedContent = true;
+                            } else {
+                                // Subsequent lines need more indentation
+                                currentContentLines.push(`${bqPrefix}${textIndent}${checkboxMd} ${textContent}`);
+                            }
                          } else if (tagName === 'pre') {
                              // Flush any accumulated text before processing code block
                              flushTextBuffer();
@@ -406,15 +494,22 @@
                                  });
                                  if (bqLines.length > 0) hasAddedContent = true;
                              }
-                         } else {
-                             // For other elements, convert to markdown and add to text buffer
-                             const elementMarkdown = enhancedHtmlToMarkdown(node, {
-                                 skipElementCheck: shouldSkipElement
-                             });
-                             if (elementMarkdown.trim()) {
-                                 textBuffer += elementMarkdown;
-                             }
-                         }
+                        } else {
+                            // For other elements, convert to markdown and add to text buffer
+                            let elementMarkdown = enhancedHtmlToMarkdown(node, {
+                                skipElementCheck: shouldSkipElement
+                            });
+                            if (elementMarkdown.trim()) {
+                                // Check for CSS ::before/::after pseudo-element content (e.g., quotation marks in blockquotes)
+                                // Only check for <p> tags within blockquotes and only if setting is enabled
+                                const config = window.chatgptConfig;
+                                const includePseudoQuotes = config && config.settings && config.settings.includePseudoQuotes;
+                                if (isWithinBlockquote && tagName === 'p' && includePseudoQuotes) {
+                                    elementMarkdown = wrapWithPseudoContent(node, elementMarkdown.trim());
+                                }
+                                textBuffer += elementMarkdown;
+                            }
+                        }
                      }
                  });
                  
@@ -837,7 +932,7 @@
     // --- Main Configuration Object ---
     const chatgptConfig = {
       platformName: 'ChatGPT',
-      version: 30, // v30: Fixed getRole and extraction functions to handle edge cases where turnElement is already a message div
+      version: 31, // v31: Extract CSS ::before/::after content using getComputedStyle for blockquote list items
       selectors: { // Updated selectors for new table structure
         turnContainer: 'article[data-testid^="conversation-turn-"]',
         turnContainerFallback: 'div[data-message-author-role]', // Fallback for edge cases without article wrapper
@@ -1021,6 +1116,6 @@
 
     // Assign the config object to the window
     window.chatgptConfig = chatgptConfig;
-    // console.log("chatgptConfig initialized (v30 - Fixed role detection for edge cases)");
+    // console.log("chatgptConfig initialized (v31 - Extract CSS ::before/::after pseudo-element content)");
 
 })();

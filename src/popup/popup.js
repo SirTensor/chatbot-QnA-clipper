@@ -8,7 +8,8 @@ function saveSettings() {
     imageFormat: document.getElementById('imageFormat').value,
     imageLabel: document.getElementById('imageLabel').value,
     includePlatform: document.getElementById('includePlatform').checked,
-    excludeFileCitations: document.getElementById('excludeFileCitations').checked
+    excludeFileCitations: document.getElementById('excludeFileCitations').checked,
+    includePseudoQuotes: document.getElementById('includePseudoQuotes').checked
   };
 
   // Save to local storage
@@ -55,6 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       document.getElementById('includePlatform').checked = data.formatSettings.includePlatform || false;
       document.getElementById('excludeFileCitations').checked = data.formatSettings.excludeFileCitations !== undefined ? data.formatSettings.excludeFileCitations : true;
+      document.getElementById('includePseudoQuotes').checked = data.formatSettings.includePseudoQuotes || false;
 
       // Set image format options if they exist
       if (data.formatSettings.imageFormat) {
@@ -83,6 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('includePlatform').addEventListener('change', saveSettings);
   document.getElementById('excludeFileCitations').addEventListener('change', saveSettings);
+  document.getElementById('includePseudoQuotes').addEventListener('change', saveSettings);
   
   // Add click handler for the shortcut config link
   document.getElementById('shortcutConfigLink').addEventListener('click', (e) => {
