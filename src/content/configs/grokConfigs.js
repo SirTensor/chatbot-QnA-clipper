@@ -1,12 +1,12 @@
-// --- Updated grokConfigs.js (v17 - Fixed Code Block Extraction in Nested Lists) ---
+// --- Updated grokConfigs.js (v18 - Fixed Content After Interactive Blocks) ---
 
 /**
  * Configuration for extracting Q&A data from Grok (grok.com)
- * Version: 17 (Fixed code block extraction for new @container/code-block structure)
+ * Version: 18 (Fixed extraction of content after interactive blocks by finding all content containers)
  */
 (function() {
   // Initialization check
-  if (window.grokConfig && window.grokConfig.version >= 17) { // Updated version check
+  if (window.grokConfig && window.grokConfig.version >= 18) { // Updated version check
     // console.log("Grok config already initialized (v" + window.grokConfig.version + "), skipping.");
     return;
   }
@@ -1121,7 +1121,7 @@
   // --- Main Configuration Object ---
   const grokConfig = {
     platformName: 'Grok',
-    version: 17, // Updated config version - Fixed code block extraction for new structure
+    version: 18, // Updated config version - Fixed content after interactive blocks
     selectors: {
       turnContainer: 'div.relative.group.flex.flex-col.justify-center[class*="items-"]',
       userMessageIndicator: '.items-end',
@@ -1276,16 +1276,17 @@
             allElements.push({ element: block, type: 'content', parent: child });
           });
         }
-        // Check if this child contains a response-content-markdown container (nested structure)
+        // Check if this child contains response-content-markdown containers (nested structure)
+        // Use querySelectorAll to find ALL content containers (there may be multiple, e.g., before/after interactive blocks)
         else {
-          const contentContainer = child.querySelector(selectors.assistantContentContainer);
-          if (contentContainer) {
-            // Add all relevant blocks within the nested content container
+          const contentContainers = child.querySelectorAll(selectors.assistantContentContainer);
+          contentContainers.forEach(contentContainer => {
+            // Add all relevant blocks within each content container
             const relevantBlocks = contentContainer.querySelectorAll(selectors.assistantRelevantBlocks);
             relevantBlocks.forEach(block => {
               allElements.push({ element: block, type: 'content', parent: contentContainer });
             });
-          }
+          });
           // Check if this child contains interactive blocks (like div.py-1)
           const interactiveBlocks = child.querySelectorAll(selectors.interactiveBlockContainer);
           interactiveBlocks.forEach(block => {
@@ -1519,4 +1520,4 @@
   // console.log("grokConfig.js initialized (v" + grokConfig.version + ")");
 
 })(); // End of IIFE
-// --- END OF UPDATED FILE grokConfigs.js (v17) ---
+// --- END OF UPDATED FILE grokConfigs.js (v18) ---
