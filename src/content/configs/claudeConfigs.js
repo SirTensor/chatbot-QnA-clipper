@@ -1,13 +1,27 @@
-// claudeConfig.js (v10 - Fixed strong/em/code tags in paragraphs with KaTeX)
+// claudeConfig.js (v11 - Fixed strikethrough in nested list structures)
 
 (function() {
   // Initialization check to prevent re-running the script if already loaded
-  if (window.claudeConfig && window.claudeConfig.version >= 10) {
+  if (window.claudeConfig && window.claudeConfig.version >= 11) {
     // console.log("Claude config already initialized (v" + window.claudeConfig.version + "), skipping.");
     return;
   }
 
   // --- Helper Functions ---
+
+  /**
+   * Converts del (strikethrough) elements to markdown syntax within the given element
+   * Must be called on a cloned element before htmlToMarkdown processing
+   * @param {HTMLElement} element - The cloned element to process (will be modified in place)
+   */
+  function convertDelToMarkdown(element) {
+    const delElements = element.querySelectorAll('del');
+    delElements.forEach(delEl => {
+      const delText = delEl.textContent;
+      const replacement = document.createTextNode(`~~${delText}~~`);
+      delEl.parentNode.replaceChild(replacement, delEl);
+    });
+  }
 
   /**
    * Checks if an HTML element should be skipped during markdown conversion.
@@ -127,6 +141,8 @@
       );
       blockquotesInClone.forEach(bq => liClone.removeChild(bq));
 
+      // Convert del (strikethrough) elements to markdown before processing
+      convertDelToMarkdown(liClone);
 
       // Get the markdown for the li content *without* the nested lists and blockquotes
       let itemMarkdown = QAClipper.Utils.htmlToMarkdown(liClone, {
@@ -848,7 +864,7 @@
   // --- Main Configuration Object ---
   const claudeConfig = {
     platformName: 'Claude',
-    version: 10, // Fixed strong/em/code tags in paragraphs with KaTeX
+    version: 11, // Fixed strikethrough in nested list structures
     selectors: {
       // Container for a single turn (user or assistant)
       turnContainer: 'div[data-test-render-count]',
@@ -951,6 +967,9 @@
               emEl.parentNode.replaceChild(replacement, emEl);
             });
             
+            // Replace del (strikethrough) elements with markdown syntax
+            convertDelToMarkdown(clonedChild);
+            
             // Get the text content which preserves line breaks
             const textWithLineBreaks = clonedChild.textContent.trim();
             
@@ -958,8 +977,10 @@
               QAClipper.Utils.addTextItem(contentItems, textWithLineBreaks);
             }
           } else {
-            // For regular paragraphs, use the existing markdown conversion
-            const markdownText = QAClipper.Utils.htmlToMarkdown(child, { skipElementCheck: shouldSkipElement }).trim();
+            // For regular paragraphs, clone and convert del tags before markdown conversion
+            const clonedChild = child.cloneNode(true);
+            convertDelToMarkdown(clonedChild);
+            const markdownText = QAClipper.Utils.htmlToMarkdown(clonedChild, { skipElementCheck: shouldSkipElement }).trim();
             if (markdownText) QAClipper.Utils.addTextItem(contentItems, markdownText);
           }
         } else if (tagNameLower === 'ul') {
@@ -976,13 +997,17 @@
         } else if (tagNameLower.match(/^h[1-6]$/)) { // Handle headings h1-h6
             const level = parseInt(tagNameLower.substring(1), 10);
             const prefix = '#'.repeat(level);
-            const headingText = QAClipper.Utils.htmlToMarkdown(child, { skipElementCheck: shouldSkipElement }).trim();
+            const clonedChild = child.cloneNode(true);
+            convertDelToMarkdown(clonedChild);
+            const headingText = QAClipper.Utils.htmlToMarkdown(clonedChild, { skipElementCheck: shouldSkipElement }).trim();
             if (headingText) {
                 QAClipper.Utils.addTextItem(contentItems, `${prefix} ${headingText}`);
             }
         } else {
             // For other elements, try a generic conversion
-             const fallbackText = QAClipper.Utils.htmlToMarkdown(child, { skipElementCheck: shouldSkipElement }).trim();
+             const clonedChild = child.cloneNode(true);
+             convertDelToMarkdown(clonedChild);
+             const fallbackText = QAClipper.Utils.htmlToMarkdown(clonedChild, { skipElementCheck: shouldSkipElement }).trim();
              if (fallbackText) {
                  QAClipper.Utils.addTextItem(contentItems, fallbackText);
              }
@@ -1096,6 +1121,6 @@
 
   // Assign to window object
   window.claudeConfig = claudeConfig;
-  console.log("claudeConfig.js initialized (v" + claudeConfig.version + ") with fixed inline formatting in KaTeX paragraphs");
+  console.log("claudeConfig.js initialized (v" + claudeConfig.version + ") with fixed strikethrough in nested lists");
 
 })(); // End of IIFE
