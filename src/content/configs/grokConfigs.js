@@ -1,12 +1,12 @@
-// --- Updated grokConfigs.js (v23 - Fix table ordering in structured extraction) ---
+// --- Updated grokConfigs.js (v24 - Use $...$ for inline math) ---
 
 /**
  * Configuration for extracting Q&A data from Grok (grok.com)
- * Version: 22 (Handle image-only replies + localized labels & fallback viewers)
+ * Version: 24 (Use $...$ for inline math)
  */
 (function() {
   // Initialization check
-  if (window.grokConfig && window.grokConfig.version >= 23) { // Updated version check
+  if (window.grokConfig && window.grokConfig.version >= 24) { // Updated version check
     // console.log("Grok config already initialized (v" + window.grokConfig.version + "), skipping.");
     return;
   }
@@ -1011,13 +1011,13 @@
           if (latexSource) {
             // Check if this KaTeX is the only significant content in a paragraph
             // If so, treat it as display math
-            let parentP = node.closest('p');
+            const parentP = node.closest('p');
             if (parentP) {
               // Get all text content from the paragraph, excluding the KaTeX element
-              let paragraphClone = parentP.cloneNode(true);
-              let katexElements = paragraphClone.querySelectorAll('.katex');
+              const paragraphClone = parentP.cloneNode(true);
+              const katexElements = paragraphClone.querySelectorAll('.katex');
               katexElements.forEach(el => el.remove());
-              let remainingText = paragraphClone.textContent.trim();
+              const remainingText = paragraphClone.textContent.trim();
               
               // If there's no other significant text, treat as display math
               if (!remainingText) {
@@ -1026,7 +1026,7 @@
             }
             
             // Otherwise treat as inline math
-            return `\\(${latexSource}\\)`;
+            return `$${latexSource}$`;
           }
           // If we can't extract LaTeX, fall back to processing children
           return processChildNodes(node);
@@ -1164,7 +1164,7 @@
   // --- Main Configuration Object ---
   const grokConfig = {
     platformName: 'Grok',
-    version: 23, // Updated config version - Fix table ordering in structured extraction
+    version: 24, // Updated config version - Use $...$ for inline math
     selectors: {
       turnContainer: 'div.relative.group.flex.flex-col.justify-center[class*="items-"]',
       userMessageIndicator: '.items-end',
@@ -1591,4 +1591,4 @@
   // console.log("grokConfig.js initialized (v" + grokConfig.version + ")");
 
 })(); // End of IIFE
-// --- END OF UPDATED FILE grokConfigs.js (v23) ---
+// --- END OF UPDATED FILE grokConfigs.js (v24) ---
