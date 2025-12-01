@@ -172,45 +172,25 @@ hr {
   background-color: #3367d6;
 }
 
-/* Custom tooltip */
-.help-icon::after {
-  content: attr(data-tooltip);
-  position: absolute;
-  right: calc(100% + 8px);
-  top: 50%;
-  transform: translateY(-50%);
+.help-tooltip {
+  position: fixed;
+  z-index: 2000;
   background-color: rgba(0, 0, 0, 0.9);
   color: white;
   padding: 8px 10px;
   border-radius: 4px;
   font-size: 11px;
+  line-height: 1.4;
   font-weight: normal;
   white-space: normal;
-  width: 175px;
+  max-width: min(240px, calc(100vw - 24px));
   text-align: left;
-  line-height: 1.4;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0s;
-  z-index: 1000;
+  transition: opacity 0.08s ease-in-out;
 }
 
-/* Tooltip arrow */
-.help-icon::before {
-  content: '';
-  position: absolute;
-  right: calc(100% + 3px);
-  top: 50%;
-  transform: translateY(-50%);
-  border: 5px solid transparent;
-  border-left-color: rgba(0, 0, 0, 0.9);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0s;
-  z-index: 1000;
-}
-
-.help-icon:hover::after,
-.help-icon:hover::before {
+.help-tooltip.visible {
   opacity: 1;
-} 
+}

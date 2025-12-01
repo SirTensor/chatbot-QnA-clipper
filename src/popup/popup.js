@@ -64,6 +64,60 @@ function applyI18n() {
   });
 }
 
+/**
+ * Creates a single tooltip element and positions it so it never overflows the popup
+ */
+function setupHelpTooltips() {
+  const icons = Array.from(document.querySelectorAll('.help-icon'));
+  if (!icons.length) return;
+
+  const tooltip = document.createElement('div');
+  tooltip.className = 'help-tooltip';
+  document.body.appendChild(tooltip);
+
+  const margin = 8;
+
+  const hideTooltip = () => {
+    tooltip.classList.remove('visible');
+  };
+
+  const positionTooltip = (target) => {
+    const iconRect = target.getBoundingClientRect();
+    const tooltipRect = tooltip.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    let left = iconRect.left + (iconRect.width / 2) - (tooltipRect.width / 2);
+    left = Math.max(margin, Math.min(viewportWidth - tooltipRect.width - margin, left));
+
+    let top = iconRect.bottom + margin;
+    if (top + tooltipRect.height + margin > viewportHeight) {
+      top = iconRect.top - tooltipRect.height - margin;
+    }
+    top = Math.max(margin, Math.min(viewportHeight - tooltipRect.height - margin, top));
+
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${top}px`;
+  };
+
+  const showTooltip = (event) => {
+    const icon = event.currentTarget;
+    const text = icon.getAttribute('data-tooltip');
+    if (!text) return;
+    tooltip.textContent = text;
+    positionTooltip(icon);
+    tooltip.classList.add('visible');
+  };
+
+  icons.forEach(icon => {
+    icon.setAttribute('tabindex', '0');
+    icon.addEventListener('mouseenter', showTooltip);
+    icon.addEventListener('mouseleave', hideTooltip);
+    icon.addEventListener('focus', showTooltip);
+    icon.addEventListener('blur', hideTooltip);
+  });
+}
+
 // --- Settings Management Functions ---
 
 /**
@@ -136,6 +190,7 @@ function updateStatus(message) {
 document.addEventListener('DOMContentLoaded', () => {
   // Apply i18n translations first
   applyI18n();
+  setupHelpTooltips();
 
   // Load settings
   chrome.storage.local.get('formatSettings', (data) => {
