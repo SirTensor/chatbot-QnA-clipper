@@ -2241,6 +2241,68 @@
         });
     }
 
+    // Locale-agnostic image detection helpers for Gemini attachments
+    const IMAGE_FILE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'tiff', 'tif', 'ico', 'heic', 'avif'];
+
+    function hasImageFileExtension(value) {
+        if (!value) return false;
+        const lowerValue = value.toLowerCase().trim();
+        const extMatch = lowerValue.match(/\.([a-z0-9]+)(?:$|\?)/);
+        if (extMatch && IMAGE_FILE_EXTENSIONS.includes(extMatch[1])) {
+            return true;
+        }
+        const trimmed = lowerValue.replace(/^[.\s]+/, '');
+        return IMAGE_FILE_EXTENSIONS.includes(trimmed);
+    }
+
+    /**
+     * Determines if a Gemini file preview container represents an image without relying on localized labels.
+     * Uses stable DOM cues plus MIME/extension hints so extraction works across locales.
+     * @param {HTMLElement} container - The preview container element.
+     * @param {string} fileTypeText - The visible file type text (may be localized).
+     * @param {string} fileNameText - The file name/aria-label text.
+     * @returns {boolean} - True if the attachment should be treated as an image.
+     */
+    function isGeminiImageAttachment(container, fileTypeText, fileNameText) {
+        if (!container) return false;
+
+        // Stable structural hints
+        const previewButton = container.querySelector('.preview-image-button');
+        const previewImage = container.querySelector('img[data-test-id="uploaded-img"], img.preview-image');
+        if (previewButton || previewImage) {
+            return true;
+        }
+
+        const lensLink = container.querySelector('a[href^="https://lens.google.com/uploadbyurl?url="]');
+        if (lensLink) {
+            return true;
+        }
+
+        // Generic thumbnail (exclude the generic file-type icon)
+        const nonIconImage = container.querySelector('img:not(.new-file-icon)');
+        if (nonIconImage) {
+            const src = nonIconImage.getAttribute('src') || '';
+            if (src) {
+                return true;
+            }
+        }
+
+        const lowerType = (fileTypeText || '').trim().toLowerCase();
+        const lowerName = (fileNameText || '').trim().toLowerCase();
+
+        // MIME-style labels (image/png)
+        if (lowerType.startsWith('image/')) {
+            return true;
+        }
+
+        // Extension-based checks for both the type label and the file name
+        if (hasImageFileExtension(lowerType) || hasImageFileExtension(lowerName)) {
+            return true;
+        }
+
+        return false;
+    }
+
     // --- Main Configuration Object ---
           const geminiConfig = {
         platformName: 'Gemini',
@@ -2292,7 +2354,6 @@
       },
       extractUserUploadedImages: (turnElement) => {
           const images = [];
-          const imageTypes = ['IMAGE', 'JPG', 'JPEG', 'PNG', 'GIF', 'WEBP', 'BMP', 'SVG', 'TIFF', 'ICO'];
           const containerSelector = geminiConfig.selectors.userImageContainer; // 'user-query-file-preview'
           const linkSelector = geminiConfig.selectors.userImageLink;
           
@@ -2319,75 +2380,58 @@
                   }
               }
               
-              // Method 2: Check file type for image files
+              // Gather shared metadata for the remaining checks
               const fileTypeElement = container.querySelector('.new-file-type');
-              const fileType = fileTypeElement?.textContent?.trim().toUpperCase();
+              const fileType = fileTypeElement?.textContent?.trim();
+              const buttonElement = container.querySelector('button[aria-label]');
+              const fileNameElement = container.querySelector('.new-file-name');
+              const fullFileName = buttonElement?.getAttribute('aria-label') || 
+                                   fileNameElement?.textContent?.trim() || 
+                                   'User Uploaded Image';
+              const previewImage = container.querySelector('img[data-test-id="uploaded-img"], img.preview-image');
               
-              if (fileType && imageTypes.includes(fileType)) {
-                  // Get file name from aria-label or .new-file-name
-                  const buttonElement = container.querySelector('button[aria-label]');
-                  const fileNameElement = container.querySelector('.new-file-name');
-                  const fullFileName = buttonElement?.getAttribute('aria-label') || 
-                                       fileNameElement?.textContent?.trim() || 
-                                       'User Uploaded Image';
-                  
-                  // Try to find image URL from preview
-                  let imageUrl = null;
-                  
-                  // Look for image preview (not the file type icon)
-                  const previewImg = container.querySelector('img:not(.new-file-icon)');
-                  if (previewImg) {
-                      const src = previewImg.getAttribute('src');
-                      if (src && !src.startsWith('blob:') && !src.startsWith('data:') && 
-                          !src.includes('drive-thirdparty.googleusercontent.com')) {
-                          imageUrl = src;
-                      }
-                  }
-                  
-                  // Also check for image in link elements
-                  if (!imageUrl) {
-                      const imgLink = container.querySelector('a[href] img');
-                      if (imgLink) {
-                          const parentLink = imgLink.closest('a');
-                          const linkHref = parentLink?.getAttribute('href');
-                          if (linkHref && !linkHref.startsWith('blob:') && !linkHref.startsWith('data:')) {
-                              imageUrl = linkHref;
-                          }
-                      }
-                  }
-                  
-                  images.push({ 
-                      type: 'image', 
-                      sourceUrl: imageUrl,
-                      isPreviewOnly: !imageUrl,
-                      extractedContent: fullFileName 
-                  });
+              // Skip non-image attachments; detection relies on structural cues instead of localized text
+              if (!isGeminiImageAttachment(container, fileType, fullFileName)) {
+                  return;
               }
               
-              // Method 3: Check for uploaded image preview (data-test-id="uploaded-img" or class="preview-image")
-              const imagePreview = container.querySelector('img[data-test-id="uploaded-img"], img.preview-image');
-              if (imagePreview) {
-                  const src = imagePreview.getAttribute('src');
-                  if (src && !src.startsWith('blob:') && !src.startsWith('data:')) {
-                      // Check if this image URL was already added
-                      if (!images.some(img => img.sourceUrl === src)) {
-                          const altText = imagePreview.getAttribute('alt')?.trim() || 'User Uploaded Image';
-                          images.push({ 
-                              type: 'image', 
-                              sourceUrl: src, 
-                              isPreviewOnly: false, 
-                              extractedContent: altText 
-                          });
+              let imageUrl = null;
+              
+              // Prefer an actual preview image source (ignoring icons and blob/data URLs)
+              const previewCandidates = previewImage ? [previewImage] : Array.from(container.querySelectorAll('img:not(.new-file-icon)'));
+              for (const imgEl of previewCandidates) {
+                  const src = imgEl?.getAttribute('src');
+                  if (src && !src.startsWith('blob:') && !src.startsWith('data:') && 
+                      !src.includes('drive-thirdparty.googleusercontent.com')) {
+                      imageUrl = src;
+                      break;
+                  }
+              }
+              
+              // Also check for image in link elements
+              if (!imageUrl) {
+                  const imgLink = container.querySelector('a[href] img');
+                  if (imgLink) {
+                      const parentLink = imgLink.closest('a');
+                      const linkHref = parentLink?.getAttribute('href');
+                      if (linkHref && !linkHref.startsWith('blob:') && !linkHref.startsWith('data:')) {
+                          imageUrl = linkHref;
                       }
                   }
               }
+              
+              images.push({ 
+                  type: 'image', 
+                  sourceUrl: imageUrl,
+                  isPreviewOnly: !imageUrl,
+                  extractedContent: previewImage?.getAttribute('alt')?.trim() || fullFileName 
+              });
           });
           
           return images;
       },
       extractUserUploadedFiles: (turnElement) => { 
           const files = [];
-          const imageTypes = ['IMAGE', 'JPG', 'JPEG', 'PNG', 'GIF', 'WEBP', 'BMP', 'SVG', 'TIFF', 'ICO'];
           
           // Iterate over each file preview container instead of the wrapper
           const filePreviewSelector = geminiConfig.selectors.userImageContainer; // 'user-query-file-preview'
@@ -2395,22 +2439,17 @@
           turnElement.querySelectorAll(`:scope ${filePreviewSelector}`).forEach(container => {
               // Skip if this container has an uploaded image - handled by extractUserUploadedImages
               const uploadedImage = container.querySelector('img[data-test-id="uploaded-img"], img.preview-image');
-              if (uploadedImage) {
-                  return;
-              }
-              
               const fileTypeElement = container.querySelector(geminiConfig.selectors.userFileType);
               const fileType = fileTypeElement?.textContent?.trim();
-              
-              // Skip image type files - they are handled by extractUserUploadedImages
-              if (fileType && imageTypes.includes(fileType.toUpperCase())) {
-                  return;
-              }
-              
               const fileNameElement = container.querySelector(geminiConfig.selectors.userFileName);
               // Also try to get full file name from button aria-label
               const buttonElement = container.querySelector('button[aria-label]');
-              const fullFileName = buttonElement?.getAttribute('aria-label');
+              const fullFileName = buttonElement?.getAttribute('aria-label') || fileNameElement?.textContent?.trim() || '';
+              
+              // Skip image type files - they are handled by extractUserUploadedImages
+              if (uploadedImage || isGeminiImageAttachment(container, fileType, fullFileName)) {
+                  return;
+              }
               
               if (fileNameElement || fullFileName) {
                   const displayName = fileNameElement?.textContent?.trim();
