@@ -1,4 +1,4 @@
-// --- Updated grokConfigs.js (v22 - Handle image-only replies + localized labels & fallback viewers) ---
+// --- Updated grokConfigs.js (v23 - Fix table ordering in structured extraction) ---
 
 /**
  * Configuration for extracting Q&A data from Grok (grok.com)
@@ -6,7 +6,7 @@
  */
 (function() {
   // Initialization check
-  if (window.grokConfig && window.grokConfig.version >= 22) { // Updated version check
+  if (window.grokConfig && window.grokConfig.version >= 23) { // Updated version check
     // console.log("Grok config already initialized (v" + window.grokConfig.version + "), skipping.");
     return;
   }
@@ -1164,7 +1164,7 @@
   // --- Main Configuration Object ---
   const grokConfig = {
     platformName: 'Grok',
-    version: 22, // Updated config version - Handle image-only replies + localized labels & fallback viewers
+    version: 23, // Updated config version - Fix table ordering in structured extraction
     selectors: {
       turnContainer: 'div.relative.group.flex.flex-col.justify-center[class*="items-"]',
       userMessageIndicator: '.items-end',
@@ -1308,6 +1308,7 @@
       // Process ALL direct children of the message bubble in DOM order
       // This includes both response-content-markdown containers AND interactive block containers
       // Updated to handle the nested structure: message-bubble > div.relative > response-content-markdown
+      const hasContentContainer = !!messageBubble.querySelector(selectors.assistantContentContainer);
       const directChildren = Array.from(messageBubble.children);
       const allElements = [];
       const addedElements = new Set();
@@ -1347,14 +1348,18 @@
         }
       });
 
-      // Fallback: capture content blocks that live directly under the bubble (e.g., image-only replies without markdown container)
-      const fallbackBlocks = new Set([
-        ...messageBubble.querySelectorAll(relevantSelector),
-        ...messageBubble.querySelectorAll(nestedRelevantSelector)
-      ]);
-      fallbackBlocks.forEach(block => addElement(block, 'content', messageBubble));
-      const fallbackInteractiveBlocks = messageBubble.querySelectorAll(selectors.interactiveBlockContainer);
-      fallbackInteractiveBlocks.forEach(block => addElement(block, 'interactive', messageBubble));
+      // Fallback: capture content blocks directly under the bubble (only when no markdown container was found)
+      // Prevents tables nested inside lists from being extracted twice/out of order when a container exists.
+      if (!hasContentContainer || allElements.length === 0) {
+        const fallbackBlocks = new Set([
+          ...messageBubble.querySelectorAll(relevantSelector),
+          ...messageBubble.querySelectorAll(nestedRelevantSelector)
+        ]);
+        fallbackBlocks.forEach(block => addElement(block, 'content', messageBubble));
+
+        const fallbackInteractiveBlocks = messageBubble.querySelectorAll(selectors.interactiveBlockContainer);
+        fallbackInteractiveBlocks.forEach(block => addElement(block, 'interactive', messageBubble));
+      }
       // Capture standalone image viewers that may sit outside markdown containers
       const imageViewers = messageBubble.querySelectorAll(selectors.assistantImageViewer);
       imageViewers.forEach(viewer => {
@@ -1586,4 +1591,4 @@
   // console.log("grokConfig.js initialized (v" + grokConfig.version + ")");
 
 })(); // End of IIFE
-// --- END OF UPDATED FILE grokConfigs.js (v22) ---
+// --- END OF UPDATED FILE grokConfigs.js (v23) ---
