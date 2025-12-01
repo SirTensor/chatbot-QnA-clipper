@@ -1,12 +1,12 @@
-// --- Updated grokConfigs.js (v18 - Fixed Content After Interactive Blocks) ---
+// --- Updated grokConfigs.js (v19 - File attachment icon selector i18n-safe) ---
 
 /**
  * Configuration for extracting Q&A data from Grok (grok.com)
- * Version: 18 (Fixed extraction of content after interactive blocks by finding all content containers)
+ * Version: 19 (File attachment icon selector i18n-safe)
  */
 (function() {
   // Initialization check
-  if (window.grokConfig && window.grokConfig.version >= 18) { // Updated version check
+  if (window.grokConfig && window.grokConfig.version >= 19) { // Updated version check
     // console.log("Grok config already initialized (v" + window.grokConfig.version + "), skipping.");
     return;
   }
@@ -1121,7 +1121,7 @@
   // --- Main Configuration Object ---
   const grokConfig = {
     platformName: 'Grok',
-    version: 18, // Updated config version - Fixed content after interactive blocks
+    version: 19, // Updated config version - File attachment icon selector i18n-safe
     selectors: {
       turnContainer: 'div.relative.group.flex.flex-col.justify-center[class*="items-"]',
       userMessageIndicator: '.items-end',
@@ -1133,7 +1133,7 @@
       userAttachmentImagePreviewDiv: 'div[style*="background-image"]',
       userAttachmentImageFigure: 'figure',
       userAttachmentImageElement: 'figure img',
-      userAttachmentFileIcon: 'svg[aria-label="Text File"]',
+      userAttachmentFileIcon: 'figure svg.lucide[role="img"]',
       assistantContentContainer: 'div.response-content-markdown',
       assistantRelevantBlocks: ':scope > :is(p.break-words, h1, h2, h3, h4, h5, h6, ol, ul, div.not-prose, div.grid, div.table-container, div.py-2, blockquote, hr, span.katex-display, div.relative:has(div.table-container))',
       listItem: 'li',
