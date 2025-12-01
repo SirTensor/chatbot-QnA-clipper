@@ -1,5 +1,52 @@
-// Add a cleanup for unused variables at the beginning of the file
-// Save format settings to storage whenever they change
+// --- Internationalization (i18n) Helper Functions ---
+
+/**
+ * Gets a localized message from the _locales directory
+ * @param {string} messageName - The message key from messages.json
+ * @param {string|string[]} [substitutions] - Optional substitution strings
+ * @returns {string} The localized message
+ */
+function getMessage(messageName, substitutions) {
+  return chrome.i18n.getMessage(messageName, substitutions) || messageName;
+}
+
+/**
+ * Applies i18n translations to all elements with data-i18n attributes
+ */
+function applyI18n() {
+  // Translate text content
+  document.querySelectorAll('[data-i18n]').forEach(element => {
+    const messageName = element.getAttribute('data-i18n');
+    const message = getMessage(messageName);
+    if (message) {
+      element.textContent = message;
+    }
+  });
+
+  // Translate placeholders
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(element => {
+    const messageName = element.getAttribute('data-i18n-placeholder');
+    const message = getMessage(messageName);
+    if (message) {
+      element.placeholder = message;
+    }
+  });
+
+  // Translate tooltips (data-tooltip attributes)
+  document.querySelectorAll('[data-i18n-tooltip]').forEach(element => {
+    const messageName = element.getAttribute('data-i18n-tooltip');
+    const message = getMessage(messageName);
+    if (message) {
+      element.setAttribute('data-tooltip', message);
+    }
+  });
+}
+
+// --- Settings Management Functions ---
+
+/**
+ * Save format settings to storage whenever they change
+ */
 function saveSettings() {
   const settings = {
     headerLevel: document.getElementById('headerLevel').value,
@@ -19,7 +66,10 @@ function saveSettings() {
   return settings;
 }
 
-// Function to show manual copy UI when automatic clipboard fails
+/**
+ * Function to show manual copy UI when automatic clipboard fails
+ * @param {string} text - The text to display for manual copying
+ */
 function showManualCopyUI(text) {
   if (!text) return;
   
@@ -31,7 +81,9 @@ function showManualCopyUI(text) {
   document.getElementById('extractedTextArea').value = text;
 }
 
-// Update the displayed shortcut from Chrome's commands API
+/**
+ * Update the displayed shortcut from Chrome's commands API
+ */
 function updateShortcutDisplay() {
   chrome.commands.getAll((commands) => {
     const extractCommand = commands.find(cmd => cmd.name === 'trigger-extraction');
@@ -40,13 +92,29 @@ function updateShortcutDisplay() {
     if (extractCommand && extractCommand.shortcut) {
       shortcutElement.textContent = extractCommand.shortcut;
     } else {
-      shortcutElement.textContent = 'No shortcut set';
+      shortcutElement.textContent = getMessage('shortcutNotSet');
     }
   });
 }
 
+/**
+ * Function to update status message
+ * @param {string} message - The status message to display
+ */
+function updateStatus(message) {
+  const statusDiv = document.getElementById('status');
+  if (statusDiv) {
+    statusDiv.textContent = message;
+  }
+}
+
+// --- Initialize Popup ---
+
 // Load saved settings when popup opens
 document.addEventListener('DOMContentLoaded', () => {
+  // Apply i18n translations first
+  applyI18n();
+
   // Load settings
   chrome.storage.local.get('formatSettings', (data) => {
     if (data.formatSettings) {
@@ -96,23 +164,23 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Handle the copy button click
   document.getElementById('copyButton').addEventListener('click', () => {
-    updateStatus('Extracting Q&A...');
+    updateStatus(getMessage('statusExtracting'));
     
     // Just send a message to the background script to start extraction
     chrome.runtime.sendMessage({ action: 'start-extraction' }, (response) => {
       if (chrome.runtime.lastError) {
-        updateStatus('Error: ' + chrome.runtime.lastError.message);
+        updateStatus(getMessage('statusError', chrome.runtime.lastError.message));
         return;
       }
       
       // Don't update status here - wait for extraction-complete message instead
       if (!response || !response.success) {
         if (response && response.error === 'Ignoring rapid trigger (debounce)') {
-          updateStatus('Please wait before clicking again.');
+          updateStatus(getMessage('statusWaitDebounce'));
         } else if (response && response.error) {
-          updateStatus('Error: ' + response.error);
+          updateStatus(getMessage('statusError', response.error));
         } else {
-          updateStatus('Error starting extraction');
+          updateStatus(getMessage('statusStartError'));
         }
       }
     });
@@ -123,7 +191,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const textArea = document.getElementById('extractedTextArea');
     textArea.select();
     document.execCommand('copy');
-    updateStatus('Copied to clipboard!');
+    updateStatus(getMessage('statusCopied'));
     
     // Return to normal UI after brief delay
     setTimeout(() => {
@@ -138,6 +206,8 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+// --- Runtime Message Listener ---
+
 // Listen for runtime messages from background script
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'clipboard-failed' && request.text) {
@@ -148,20 +218,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   // Handle extraction complete message
   if (request.action === 'extraction-complete') {
     if (request.success) {
-      updateStatus(request.message || 'Q&A copied to clipboard!');
+      updateStatus(request.message || getMessage('statusCopied'));
     } else {
-      updateStatus('Error: ' + (request.message || 'Extraction failed'));
+      updateStatus(getMessage('statusError', request.message || 'Extraction failed'));
     }
     sendResponse({ received: true });
   }
   
   return true;
 });
-
-// Function to update status message
-function updateStatus(message) {
-  const statusDiv = document.getElementById('status');
-  if (statusDiv) {
-    statusDiv.textContent = message;
-  }
-} 

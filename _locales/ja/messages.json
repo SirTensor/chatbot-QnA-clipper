@@ -1,0 +1,343 @@
+{
+  "extensionName": {
+    "message": "Chatbot Q&A Clipper",
+    "description": "Extension name"
+  },
+  "extensionDescription": {
+    "message": "チャットボットの会話からQ&Aを抽出し、指定した形式でクリップボードにコピーします",
+    "description": "Extension description"
+  },
+
+  "popupTitle": {
+    "message": "Chatbot Q&A Clipper",
+    "description": "Title shown in popup header"
+  },
+  "copyButton": {
+    "message": "Q&Aをクリップボードにコピー",
+    "description": "Main action button text"
+  },
+
+  "headerLevelLabel": {
+    "message": "見出しレベル:",
+    "description": "Label for header level selector"
+  },
+  "headerH1": {
+    "message": "# (H1)",
+    "description": "Header level 1 option"
+  },
+  "headerH2": {
+    "message": "## (H2)",
+    "description": "Header level 2 option"
+  },
+  "headerH3": {
+    "message": "### (H3)",
+    "description": "Header level 3 option"
+  },
+  "headerH4": {
+    "message": "#### (H4)",
+    "description": "Header level 4 option"
+  },
+  "headerH5": {
+    "message": "##### (H5)",
+    "description": "Header level 5 option"
+  },
+
+  "labelStyleLabel": {
+    "message": "ラベルスタイル:",
+    "description": "Label for Q&A label style selector"
+  },
+  "labelStyleQA": {
+    "message": "Question / Answer",
+    "description": "Q&A label style option"
+  },
+  "labelStylePrompt": {
+    "message": "Prompt / Response",
+    "description": "Prompt/Response label style option"
+  },
+  "labelStyleShort": {
+    "message": "Q / A",
+    "description": "Short Q/A label style option"
+  },
+  "labelStyleKorean": {
+    "message": "질문 / 답변",
+    "description": "Korean label style option"
+  },
+  "labelStyleChinese": {
+    "message": "问题 / 回答",
+    "description": "Chinese label style option"
+  },
+  "labelStyleJapanese": {
+    "message": "質問 / 回答",
+    "description": "Japanese label style option"
+  },
+  "labelStyleVietnamese": {
+    "message": "Câu hỏi / Trả lời",
+    "description": "Vietnamese label style option"
+  },
+  "labelStyleIndonesian": {
+    "message": "Pertanyaan / Jawaban",
+    "description": "Indonesian label style option"
+  },
+  "labelStyleHindi": {
+    "message": "प्रश्न / उत्तर",
+    "description": "Hindi label style option"
+  },
+  "labelStyleSpanish": {
+    "message": "Pregunta / Respuesta",
+    "description": "Spanish label style option"
+  },
+  "labelStylePortuguese": {
+    "message": "Pergunta / Resposta",
+    "description": "Portuguese label style option"
+  },
+  "labelStyleFrench": {
+    "message": "Question / Réponse",
+    "description": "French label style option"
+  },
+  "labelStyleGerman": {
+    "message": "Frage / Antwort",
+    "description": "German label style option"
+  },
+  "labelStyleItalian": {
+    "message": "Domanda / Risposta",
+    "description": "Italian label style option"
+  },
+  "labelStyleRussian": {
+    "message": "Вопрос / Ответ",
+    "description": "Russian label style option"
+  },
+  "labelStyleArabic": {
+    "message": "سؤال / جواب",
+    "description": "Arabic label style option"
+  },
+  "labelStyleSwahili": {
+    "message": "Swali / Jibu",
+    "description": "Swahili label style option"
+  },
+
+  "numberFormatLabel": {
+    "message": "番号の形式:",
+    "description": "Label for number format selector"
+  },
+  "numberFormatNoSpace": {
+    "message": "1 (スペースなし)",
+    "description": "Number format without space"
+  },
+  "numberFormatSpace": {
+    "message": " 1 (数字の前にスペース)",
+    "description": "Number format with space before"
+  },
+  "numberFormatDashNoSpace": {
+    "message": "-1 (ハイフン、スペースなし)",
+    "description": "Number format with dash, no space"
+  },
+  "numberFormatDash": {
+    "message": "- 1 (ハイフンとスペース)",
+    "description": "Number format with dash and space"
+  },
+  "numberFormatSpaceDashNoSpace": {
+    "message": " -1 (スペースの後にハイフン)",
+    "description": "Number format with space then dash"
+  },
+  "numberFormatSpaceDash": {
+    "message": " - 1 (スペース、ハイフン、スペース)",
+    "description": "Number format with space, dash, space"
+  },
+  "numberFormatColonNoSpace": {
+    "message": ":1 (コロン、スペースなし)",
+    "description": "Number format with colon, no space"
+  },
+  "numberFormatColon": {
+    "message": ": 1 (コロンとスペース)",
+    "description": "Number format with colon and space"
+  },
+  "numberFormatSpaceColonNoSpace": {
+    "message": " :1 (スペースの後にコロン)",
+    "description": "Number format with space then colon"
+  },
+  "numberFormatSpaceColon": {
+    "message": " : 1 (スペース、コロン、スペース)",
+    "description": "Number format with space, colon, space"
+  },
+
+  "imageFormatLabel": {
+    "message": "画像URLの形式:",
+    "description": "Label for image format selector"
+  },
+  "imageFormatBracketed": {
+    "message": "[画像URL]: https://...",
+    "description": "Bracketed image format option"
+  },
+  "imageFormatMarkdown": {
+    "message": "[画像URL](https://...)",
+    "description": "Markdown image format option"
+  },
+  "imageFormatPlain": {
+    "message": "https://... (プレーンURL)",
+    "description": "Plain URL image format option"
+  },
+
+  "imageLabelLabel": {
+    "message": "カスタム画像ラベル:",
+    "description": "Label for custom image label input"
+  },
+  "imageLabelPlaceholder": {
+    "message": "Image URL",
+    "description": "Placeholder for custom image label input"
+  },
+
+  "includePlatformLabel": {
+    "message": "プラットフォーム名を含める",
+    "description": "Label for include platform checkbox"
+  },
+
+  "excludeFileCitationsLabel": {
+    "message": "ファイル引用を除外 (ChatGPT)",
+    "description": "Label for exclude file citations checkbox"
+  },
+  "excludeFileCitationsTooltip": {
+    "message": "ChatGPTがアップロードされたファイルを引用するときに表示されるファイル参照バッジを除外します",
+    "description": "Tooltip for exclude file citations option"
+  },
+
+  "includePseudoQuotesLabel": {
+    "message": "引用符を含める (ChatGPT)",
+    "description": "Label for include quote marks checkbox"
+  },
+  "includePseudoQuotesTooltip": {
+    "message": "blockquoteリスト項目のCSS ::before/::after 擬似要素から引用符を抽出します",
+    "description": "Tooltip for include quote marks option"
+  },
+
+  "keyboardShortcutLabel": {
+    "message": "キーボードショートカット:",
+    "description": "Label for keyboard shortcut display"
+  },
+  "shortcutLoading": {
+    "message": "読み込み中...",
+    "description": "Text shown while loading shortcut"
+  },
+  "shortcutNotSet": {
+    "message": "ショートカット未設定",
+    "description": "Text shown when no shortcut is configured"
+  },
+  "shortcutConfigLink": {
+    "message": "Chromeでショートカットを設定",
+    "description": "Link text to configure shortcuts"
+  },
+
+  "commandTriggerExtraction": {
+    "message": "Q&Aをクリップボードにコピー",
+    "description": "Command description for trigger-extraction"
+  },
+
+  "manualCopyTitle": {
+    "message": "クリップボードアクセスに失敗しました",
+    "description": "Title for manual copy section"
+  },
+  "manualCopyInstructions": {
+    "message": "以下のボタンを使って抽出したテキストをコピーしてください:",
+    "description": "Instructions for manual copy"
+  },
+  "manualCopyButton": {
+    "message": "クリップボードにコピー",
+    "description": "Manual copy button text"
+  },
+  "backToSettingsButton": {
+    "message": "設定に戻る",
+    "description": "Back button text"
+  },
+
+  "statusExtracting": {
+    "message": "Q&Aを抽出中...",
+    "description": "Status message while extracting"
+  },
+  "statusError": {
+    "message": "エラー: $MESSAGE$",
+    "description": "Status message for errors",
+    "placeholders": {
+      "message": {
+        "content": "$1",
+        "example": "Connection failed"
+      }
+    }
+  },
+  "statusWaitDebounce": {
+    "message": "少し待ってから再度クリックしてください。",
+    "description": "Status message for debounce"
+  },
+  "statusStartError": {
+    "message": "抽出の開始時にエラーが発生しました",
+    "description": "Status message when extraction fails to start"
+  },
+  "statusCopied": {
+    "message": "クリップボードにコピーしました!",
+    "description": "Status message when copy succeeds"
+  },
+
+  "toastCopied": {
+    "message": "Q&Aをクリップボードにコピーしました!",
+    "description": "Toast message when Q&A copied successfully"
+  },
+  "toastUnsupportedSite": {
+    "message": "このサイトは拡張機能でサポートされていません。",
+    "description": "Toast message for unsupported websites"
+  },
+  "toastNoConversation": {
+    "message": "抽出できる会話が見つかりませんでした。",
+    "description": "Toast message when no conversation found"
+  },
+  "toastNoConversationYet": {
+    "message": "まだ抽出できる会話がありません。",
+    "description": "Toast message for empty/new chat"
+  },
+  "toastClipboardFailed": {
+    "message": "コピーできませんでした。拡張機能のポップアップで手動コピーしてください。",
+    "description": "Toast message when clipboard fails"
+  },
+  "toastScriptLoadError": {
+    "message": "エラー: 拡張機能のスクリプトを読み込めませんでした。",
+    "description": "Toast message when scripts fail to load"
+  },
+  "toastPermissionError": {
+    "message": "拡張機能の権限の確認中にエラーが発生しました。",
+    "description": "Toast message for permission check error"
+  },
+
+  "errorNoActiveTab": {
+    "message": "アクティブなタブが見つかりません。",
+    "description": "Error message when no active tab"
+  },
+  "errorMissingUrl": {
+    "message": "ページのURLがありません。",
+    "description": "Error message when URL is missing"
+  },
+  "errorUnsupportedPage": {
+    "message": "サポートされていないページです。",
+    "description": "Error message for unsupported page"
+  },
+  "errorInvalidData": {
+    "message": "エラー: ページから無効なデータを受信しました。抽出に失敗しました。",
+    "description": "Error message for invalid extraction data"
+  },
+  "errorScriptsNotLoaded": {
+    "message": "エラー: ページで必要な拡張機能スクリプトを読み込めませんでした。",
+    "description": "Error message when scripts don't load"
+  },
+  "errorCommunication": {
+    "message": "ページと通信できません。ページを再読み込みしてからもう一度お試しください。",
+    "description": "Error message for communication failure"
+  },
+  "errorConnectionLost": {
+    "message": "ページとの接続が失われました。再読み込みしてから再試行してください。",
+    "description": "Error message when connection lost"
+  },
+  "errorTimeout": {
+    "message": "抽出に時間がかかりすぎるか予期せず失敗しました。もう一度お試しください。",
+    "description": "Error message for timeout"
+  },
+  "errorClipboardManual": {
+    "message": "クリップボードにコピーできません。手動コピーオプションを使用します。",
+    "description": "Error message when clipboard fails in popup"
+  }
+}

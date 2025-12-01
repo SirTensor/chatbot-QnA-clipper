@@ -1,0 +1,343 @@
+{
+  "extensionName": {
+    "message": "Chatbot Q&A Clipper",
+    "description": "Extension name"
+  },
+  "extensionDescription": {
+    "message": "Huchota Maswali na Majibu kutoka kwa mazungumzo ya chatbot na kuyaiga kwenye ubao wa kunakili katika miundo maalum",
+    "description": "Extension description"
+  },
+
+  "popupTitle": {
+    "message": "Chatbot Q&A Clipper",
+    "description": "Title shown in popup header"
+  },
+  "copyButton": {
+    "message": "Nakili Q&A kwenye ubao wa kunakili",
+    "description": "Main action button text"
+  },
+
+  "headerLevelLabel": {
+    "message": "Kiwango cha kichwa:",
+    "description": "Label for header level selector"
+  },
+  "headerH1": {
+    "message": "# (H1)",
+    "description": "Header level 1 option"
+  },
+  "headerH2": {
+    "message": "## (H2)",
+    "description": "Header level 2 option"
+  },
+  "headerH3": {
+    "message": "### (H3)",
+    "description": "Header level 3 option"
+  },
+  "headerH4": {
+    "message": "#### (H4)",
+    "description": "Header level 4 option"
+  },
+  "headerH5": {
+    "message": "##### (H5)",
+    "description": "Header level 5 option"
+  },
+
+  "labelStyleLabel": {
+    "message": "Mtindo wa lebo:",
+    "description": "Label for Q&A label style selector"
+  },
+  "labelStyleQA": {
+    "message": "Question / Answer",
+    "description": "Q&A label style option"
+  },
+  "labelStylePrompt": {
+    "message": "Prompt / Response",
+    "description": "Prompt/Response label style option"
+  },
+  "labelStyleShort": {
+    "message": "Q / A",
+    "description": "Short Q/A label style option"
+  },
+  "labelStyleKorean": {
+    "message": "질문 / 답변",
+    "description": "Korean label style option"
+  },
+  "labelStyleChinese": {
+    "message": "问题 / 回答",
+    "description": "Chinese label style option"
+  },
+  "labelStyleJapanese": {
+    "message": "質問 / 回答",
+    "description": "Japanese label style option"
+  },
+  "labelStyleVietnamese": {
+    "message": "Câu hỏi / Trả lời",
+    "description": "Vietnamese label style option"
+  },
+  "labelStyleIndonesian": {
+    "message": "Pertanyaan / Jawaban",
+    "description": "Indonesian label style option"
+  },
+  "labelStyleHindi": {
+    "message": "प्रश्न / उत्तर",
+    "description": "Hindi label style option"
+  },
+  "labelStyleSpanish": {
+    "message": "Pregunta / Respuesta",
+    "description": "Spanish label style option"
+  },
+  "labelStylePortuguese": {
+    "message": "Pergunta / Resposta",
+    "description": "Portuguese label style option"
+  },
+  "labelStyleFrench": {
+    "message": "Question / Réponse",
+    "description": "French label style option"
+  },
+  "labelStyleGerman": {
+    "message": "Frage / Antwort",
+    "description": "German label style option"
+  },
+  "labelStyleItalian": {
+    "message": "Domanda / Risposta",
+    "description": "Italian label style option"
+  },
+  "labelStyleRussian": {
+    "message": "Вопрос / Ответ",
+    "description": "Russian label style option"
+  },
+  "labelStyleArabic": {
+    "message": "سؤال / جواب",
+    "description": "Arabic label style option"
+  },
+  "labelStyleSwahili": {
+    "message": "Swali / Jibu",
+    "description": "Swahili label style option"
+  },
+
+  "numberFormatLabel": {
+    "message": "Muundo wa nambari:",
+    "description": "Label for number format selector"
+  },
+  "numberFormatNoSpace": {
+    "message": "1 (Hakuna nafasi)",
+    "description": "Number format without space"
+  },
+  "numberFormatSpace": {
+    "message": " 1 (Nafasi kabla ya namba)",
+    "description": "Number format with space before"
+  },
+  "numberFormatDashNoSpace": {
+    "message": "-1 (Kistari, bila nafasi)",
+    "description": "Number format with dash, no space"
+  },
+  "numberFormatDash": {
+    "message": "- 1 (Kistari na nafasi)",
+    "description": "Number format with dash and space"
+  },
+  "numberFormatSpaceDashNoSpace": {
+    "message": " -1 (Nafasi kisha kistari)",
+    "description": "Number format with space then dash"
+  },
+  "numberFormatSpaceDash": {
+    "message": " - 1 (Nafasi, kistari, nafasi)",
+    "description": "Number format with space, dash, space"
+  },
+  "numberFormatColonNoSpace": {
+    "message": ":1 (Alama ya nukta mbili, bila nafasi)",
+    "description": "Number format with colon, no space"
+  },
+  "numberFormatColon": {
+    "message": ": 1 (Alama ya nukta mbili na nafasi)",
+    "description": "Number format with colon and space"
+  },
+  "numberFormatSpaceColonNoSpace": {
+    "message": " :1 (Nafasi kisha nukta mbili)",
+    "description": "Number format with space then colon"
+  },
+  "numberFormatSpaceColon": {
+    "message": " : 1 (Nafasi, nukta mbili, nafasi)",
+    "description": "Number format with space, colon, space"
+  },
+
+  "imageFormatLabel": {
+    "message": "Muundo wa URL ya picha:",
+    "description": "Label for image format selector"
+  },
+  "imageFormatBracketed": {
+    "message": "[URL ya picha]: https://...",
+    "description": "Bracketed image format option"
+  },
+  "imageFormatMarkdown": {
+    "message": "[URL ya picha](https://...)",
+    "description": "Markdown image format option"
+  },
+  "imageFormatPlain": {
+    "message": "https://... (URL ya kawaida)",
+    "description": "Plain URL image format option"
+  },
+
+  "imageLabelLabel": {
+    "message": "Lebo maalum ya picha:",
+    "description": "Label for custom image label input"
+  },
+  "imageLabelPlaceholder": {
+    "message": "URL ya picha",
+    "description": "Placeholder for custom image label input"
+  },
+
+  "includePlatformLabel": {
+    "message": "Jumuisha jina la jukwaa",
+    "description": "Label for include platform checkbox"
+  },
+
+  "excludeFileCitationsLabel": {
+    "message": "Ondoa marejeo ya faili (ChatGPT)",
+    "description": "Label for exclude file citations checkbox"
+  },
+  "excludeFileCitationsTooltip": {
+    "message": "Huondoa beji za marejeo ya faili zinazoonekana wakati ChatGPT inanukuu faili zilizo pakizwa",
+    "description": "Tooltip for exclude file citations option"
+  },
+
+  "includePseudoQuotesLabel": {
+    "message": "Jumuisha alama za nukuu (ChatGPT)",
+    "description": "Label for include quote marks checkbox"
+  },
+  "includePseudoQuotesTooltip": {
+    "message": "Hutoa alama za nukuu kutoka kwenye vipengee bubu vya CSS ::before/::after ndani ya vipengee vya orodha vya blockquote",
+    "description": "Tooltip for include quote marks option"
+  },
+
+  "keyboardShortcutLabel": {
+    "message": "Kifupisho cha kibodi:",
+    "description": "Label for keyboard shortcut display"
+  },
+  "shortcutLoading": {
+    "message": "Inapakia...",
+    "description": "Text shown while loading shortcut"
+  },
+  "shortcutNotSet": {
+    "message": "Hakuna kifupisho kimewekwa",
+    "description": "Text shown when no shortcut is configured"
+  },
+  "shortcutConfigLink": {
+    "message": "Sanidi kifupisho kwenye Chrome",
+    "description": "Link text to configure shortcuts"
+  },
+
+  "commandTriggerExtraction": {
+    "message": "Nakili Q&A kwenye ubao wa kunakili",
+    "description": "Command description for trigger-extraction"
+  },
+
+  "manualCopyTitle": {
+    "message": "Ufikiaji wa ubao wa kunakili umefeli",
+    "description": "Title for manual copy section"
+  },
+  "manualCopyInstructions": {
+    "message": "Tumia kitufe kilicho chini kunakili maandishi yaliyotolewa:",
+    "description": "Instructions for manual copy"
+  },
+  "manualCopyButton": {
+    "message": "Nakili kwenye ubao wa kunakili",
+    "description": "Manual copy button text"
+  },
+  "backToSettingsButton": {
+    "message": "Rudi kwa Mipangilio",
+    "description": "Back button text"
+  },
+
+  "statusExtracting": {
+    "message": "Inatoa Q&A...",
+    "description": "Status message while extracting"
+  },
+  "statusError": {
+    "message": "Hitilafu: $MESSAGE$",
+    "description": "Status message for errors",
+    "placeholders": {
+      "message": {
+        "content": "$1",
+        "example": "Connection failed"
+      }
+    }
+  },
+  "statusWaitDebounce": {
+    "message": "Tafadhali subiri kabla ya kubofya tena.",
+    "description": "Status message for debounce"
+  },
+  "statusStartError": {
+    "message": "Hitilafu kuanzisha utoaji",
+    "description": "Status message when extraction fails to start"
+  },
+  "statusCopied": {
+    "message": "Imenakiliwa kwenye ubao wa kunakili!",
+    "description": "Status message when copy succeeds"
+  },
+
+  "toastCopied": {
+    "message": "Q&A imenakiliwa kwenye ubao wa kunakili!",
+    "description": "Toast message when Q&A copied successfully"
+  },
+  "toastUnsupportedSite": {
+    "message": "Tovuti hii haiungwi mkono na programu-jalizi.",
+    "description": "Toast message for unsupported websites"
+  },
+  "toastNoConversation": {
+    "message": "Hakuna mazungumzo yaliyopatikana ya kutoa.",
+    "description": "Toast message when no conversation found"
+  },
+  "toastNoConversationYet": {
+    "message": "Bado hakuna mazungumzo ya kutoa.",
+    "description": "Toast message for empty/new chat"
+  },
+  "toastClipboardFailed": {
+    "message": "Imeshindwa kunakili. Fungua kichupo cha programu-jalizi kunakili kwa mkono.",
+    "description": "Toast message when clipboard fails"
+  },
+  "toastScriptLoadError": {
+    "message": "Hitilafu: Haiwezi kupakia maandishi ya programu-jalizi.",
+    "description": "Toast message when scripts fail to load"
+  },
+  "toastPermissionError": {
+    "message": "Hitilafu kukagua ruhusa za programu-jalizi.",
+    "description": "Toast message for permission check error"
+  },
+
+  "errorNoActiveTab": {
+    "message": "Hakuna kichupo kinachotumika kilichopatikana.",
+    "description": "Error message when no active tab"
+  },
+  "errorMissingUrl": {
+    "message": "URL ya ukurasa haipo.",
+    "description": "Error message when URL is missing"
+  },
+  "errorUnsupportedPage": {
+    "message": "Ukurasa hauungwa mkono.",
+    "description": "Error message for unsupported page"
+  },
+  "errorInvalidData": {
+    "message": "Hitilafu: Taarifa batili zimepokelewa kutoka kwa ukurasa. Utoaji umeshindikana.",
+    "description": "Error message for invalid extraction data"
+  },
+  "errorScriptsNotLoaded": {
+    "message": "Hitilafu: Imeshindwa kupakia maandishi muhimu ya programu-jalizi kwenye ukurasa.",
+    "description": "Error message when scripts don't load"
+  },
+  "errorCommunication": {
+    "message": "Imeshindwa kuwasiliana na ukurasa. Tafadhali pakia upya na ujaribu tena.",
+    "description": "Error message for communication failure"
+  },
+  "errorConnectionLost": {
+    "message": "Muunganisho na ukurasa umepotea. Pakia upya na ujaribu tena.",
+    "description": "Error message when connection lost"
+  },
+  "errorTimeout": {
+    "message": "Utoaji umechukua muda mrefu au umeshindikana ghafla. Tafadhali jaribu tena.",
+    "description": "Error message for timeout"
+  },
+  "errorClipboardManual": {
+    "message": "Imeshindwa kunakili kwenye ubao wa kunakili. Inatumia chaguo la kunakili kwa mkono.",
+    "description": "Error message when clipboard fails in popup"
+  }
+}

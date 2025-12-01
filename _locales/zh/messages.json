@@ -1,0 +1,343 @@
+{
+  "extensionName": {
+    "message": "Chatbot Q&A Clipper",
+    "description": "Extension name"
+  },
+  "extensionDescription": {
+    "message": "从聊天机器人对话中提取问答，并按特定格式复制到剪贴板",
+    "description": "Extension description"
+  },
+
+  "popupTitle": {
+    "message": "Chatbot Q&A Clipper",
+    "description": "Title shown in popup header"
+  },
+  "copyButton": {
+    "message": "将问答复制到剪贴板",
+    "description": "Main action button text"
+  },
+
+  "headerLevelLabel": {
+    "message": "标题级别:",
+    "description": "Label for header level selector"
+  },
+  "headerH1": {
+    "message": "# (H1)",
+    "description": "Header level 1 option"
+  },
+  "headerH2": {
+    "message": "## (H2)",
+    "description": "Header level 2 option"
+  },
+  "headerH3": {
+    "message": "### (H3)",
+    "description": "Header level 3 option"
+  },
+  "headerH4": {
+    "message": "#### (H4)",
+    "description": "Header level 4 option"
+  },
+  "headerH5": {
+    "message": "##### (H5)",
+    "description": "Header level 5 option"
+  },
+
+  "labelStyleLabel": {
+    "message": "标签样式:",
+    "description": "Label for Q&A label style selector"
+  },
+  "labelStyleQA": {
+    "message": "Question / Answer",
+    "description": "Q&A label style option"
+  },
+  "labelStylePrompt": {
+    "message": "Prompt / Response",
+    "description": "Prompt/Response label style option"
+  },
+  "labelStyleShort": {
+    "message": "Q / A",
+    "description": "Short Q/A label style option"
+  },
+  "labelStyleKorean": {
+    "message": "질문 / 답변",
+    "description": "Korean label style option"
+  },
+  "labelStyleChinese": {
+    "message": "问题 / 回答",
+    "description": "Chinese label style option"
+  },
+  "labelStyleJapanese": {
+    "message": "質問 / 回答",
+    "description": "Japanese label style option"
+  },
+  "labelStyleVietnamese": {
+    "message": "Câu hỏi / Trả lời",
+    "description": "Vietnamese label style option"
+  },
+  "labelStyleIndonesian": {
+    "message": "Pertanyaan / Jawaban",
+    "description": "Indonesian label style option"
+  },
+  "labelStyleHindi": {
+    "message": "प्रश्न / उत्तर",
+    "description": "Hindi label style option"
+  },
+  "labelStyleSpanish": {
+    "message": "Pregunta / Respuesta",
+    "description": "Spanish label style option"
+  },
+  "labelStylePortuguese": {
+    "message": "Pergunta / Resposta",
+    "description": "Portuguese label style option"
+  },
+  "labelStyleFrench": {
+    "message": "Question / Réponse",
+    "description": "French label style option"
+  },
+  "labelStyleGerman": {
+    "message": "Frage / Antwort",
+    "description": "German label style option"
+  },
+  "labelStyleItalian": {
+    "message": "Domanda / Risposta",
+    "description": "Italian label style option"
+  },
+  "labelStyleRussian": {
+    "message": "Вопрос / Ответ",
+    "description": "Russian label style option"
+  },
+  "labelStyleArabic": {
+    "message": "سؤال / جواب",
+    "description": "Arabic label style option"
+  },
+  "labelStyleSwahili": {
+    "message": "Swali / Jibu",
+    "description": "Swahili label style option"
+  },
+
+  "numberFormatLabel": {
+    "message": "编号格式:",
+    "description": "Label for number format selector"
+  },
+  "numberFormatNoSpace": {
+    "message": "1 (无空格)",
+    "description": "Number format without space"
+  },
+  "numberFormatSpace": {
+    "message": " 1 (数字前空格)",
+    "description": "Number format with space before"
+  },
+  "numberFormatDashNoSpace": {
+    "message": "-1 (短横线, 无空格)",
+    "description": "Number format with dash, no space"
+  },
+  "numberFormatDash": {
+    "message": "- 1 (短横线和空格)",
+    "description": "Number format with dash and space"
+  },
+  "numberFormatSpaceDashNoSpace": {
+    "message": " -1 (空格后短横线)",
+    "description": "Number format with space then dash"
+  },
+  "numberFormatSpaceDash": {
+    "message": " - 1 (空格, 短横线, 空格)",
+    "description": "Number format with space, dash, space"
+  },
+  "numberFormatColonNoSpace": {
+    "message": ":1 (冒号, 无空格)",
+    "description": "Number format with colon, no space"
+  },
+  "numberFormatColon": {
+    "message": ": 1 (冒号和空格)",
+    "description": "Number format with colon and space"
+  },
+  "numberFormatSpaceColonNoSpace": {
+    "message": " :1 (空格后冒号)",
+    "description": "Number format with space then colon"
+  },
+  "numberFormatSpaceColon": {
+    "message": " : 1 (空格, 冒号, 空格)",
+    "description": "Number format with space, colon, space"
+  },
+
+  "imageFormatLabel": {
+    "message": "图片 URL 格式:",
+    "description": "Label for image format selector"
+  },
+  "imageFormatBracketed": {
+    "message": "[图片 URL]: https://...",
+    "description": "Bracketed image format option"
+  },
+  "imageFormatMarkdown": {
+    "message": "[图片 URL](https://...)",
+    "description": "Markdown image format option"
+  },
+  "imageFormatPlain": {
+    "message": "https://... (纯 URL)",
+    "description": "Plain URL image format option"
+  },
+
+  "imageLabelLabel": {
+    "message": "自定义图片标签:",
+    "description": "Label for custom image label input"
+  },
+  "imageLabelPlaceholder": {
+    "message": "Image URL",
+    "description": "Placeholder for custom image label input"
+  },
+
+  "includePlatformLabel": {
+    "message": "包含平台名称",
+    "description": "Label for include platform checkbox"
+  },
+
+  "excludeFileCitationsLabel": {
+    "message": "排除文件引用 (ChatGPT)",
+    "description": "Label for exclude file citations checkbox"
+  },
+  "excludeFileCitationsTooltip": {
+    "message": "排除当 ChatGPT 引用上传文件时出现的文件参考徽章",
+    "description": "Tooltip for exclude file citations option"
+  },
+
+  "includePseudoQuotesLabel": {
+    "message": "包含引号 (ChatGPT)",
+    "description": "Label for include quote marks checkbox"
+  },
+  "includePseudoQuotesTooltip": {
+    "message": "从 blockquote 列表项的 CSS ::before/::after 伪元素中提取引号",
+    "description": "Tooltip for include quote marks option"
+  },
+
+  "keyboardShortcutLabel": {
+    "message": "键盘快捷键:",
+    "description": "Label for keyboard shortcut display"
+  },
+  "shortcutLoading": {
+    "message": "加载中...",
+    "description": "Text shown while loading shortcut"
+  },
+  "shortcutNotSet": {
+    "message": "未设置快捷键",
+    "description": "Text shown when no shortcut is configured"
+  },
+  "shortcutConfigLink": {
+    "message": "在 Chrome 中配置快捷键",
+    "description": "Link text to configure shortcuts"
+  },
+
+  "commandTriggerExtraction": {
+    "message": "将问答复制到剪贴板",
+    "description": "Command description for trigger-extraction"
+  },
+
+  "manualCopyTitle": {
+    "message": "剪贴板访问失败",
+    "description": "Title for manual copy section"
+  },
+  "manualCopyInstructions": {
+    "message": "请使用下面的按钮复制提取的文本:",
+    "description": "Instructions for manual copy"
+  },
+  "manualCopyButton": {
+    "message": "复制到剪贴板",
+    "description": "Manual copy button text"
+  },
+  "backToSettingsButton": {
+    "message": "返回设置",
+    "description": "Back button text"
+  },
+
+  "statusExtracting": {
+    "message": "正在提取问答...",
+    "description": "Status message while extracting"
+  },
+  "statusError": {
+    "message": "错误: $MESSAGE$",
+    "description": "Status message for errors",
+    "placeholders": {
+      "message": {
+        "content": "$1",
+        "example": "Connection failed"
+      }
+    }
+  },
+  "statusWaitDebounce": {
+    "message": "请稍候再点击。",
+    "description": "Status message for debounce"
+  },
+  "statusStartError": {
+    "message": "开始提取时出错",
+    "description": "Status message when extraction fails to start"
+  },
+  "statusCopied": {
+    "message": "已复制到剪贴板!",
+    "description": "Status message when copy succeeds"
+  },
+
+  "toastCopied": {
+    "message": "问答已复制到剪贴板!",
+    "description": "Toast message when Q&A copied successfully"
+  },
+  "toastUnsupportedSite": {
+    "message": "此网站不受扩展程序支持。",
+    "description": "Toast message for unsupported websites"
+  },
+  "toastNoConversation": {
+    "message": "未找到可提取的对话。",
+    "description": "Toast message when no conversation found"
+  },
+  "toastNoConversationYet": {
+    "message": "还没有可以提取的对话。",
+    "description": "Toast message for empty/new chat"
+  },
+  "toastClipboardFailed": {
+    "message": "无法复制。打开扩展程序弹窗进行手动复制。",
+    "description": "Toast message when clipboard fails"
+  },
+  "toastScriptLoadError": {
+    "message": "错误: 无法加载扩展程序脚本。",
+    "description": "Toast message when scripts fail to load"
+  },
+  "toastPermissionError": {
+    "message": "检查扩展程序权限时出错。",
+    "description": "Toast message for permission check error"
+  },
+
+  "errorNoActiveTab": {
+    "message": "未找到活动标签页。",
+    "description": "Error message when no active tab"
+  },
+  "errorMissingUrl": {
+    "message": "缺少页面 URL。",
+    "description": "Error message when URL is missing"
+  },
+  "errorUnsupportedPage": {
+    "message": "不支持的页面。",
+    "description": "Error message for unsupported page"
+  },
+  "errorInvalidData": {
+    "message": "错误: 从页面收到无效数据。提取失败。",
+    "description": "Error message for invalid extraction data"
+  },
+  "errorScriptsNotLoaded": {
+    "message": "错误: 无法在页面上加载所需的扩展程序脚本。",
+    "description": "Error message when scripts don't load"
+  },
+  "errorCommunication": {
+    "message": "无法与页面通信。请重新加载页面并重试。",
+    "description": "Error message for communication failure"
+  },
+  "errorConnectionLost": {
+    "message": "与页面的连接已丢失。请重新加载后重试。",
+    "description": "Error message when connection lost"
+  },
+  "errorTimeout": {
+    "message": "提取耗时过长或意外失败。请重试。",
+    "description": "Error message for timeout"
+  },
+  "errorClipboardManual": {
+    "message": "无法复制到剪贴板。使用手动复制选项。",
+    "description": "Error message when clipboard fails in popup"
+  }
+}

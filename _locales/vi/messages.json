@@ -1,0 +1,343 @@
+{
+  "extensionName": {
+    "message": "Chatbot Q&A Clipper",
+    "description": "Extension name"
+  },
+  "extensionDescription": {
+    "message": "Trích xuất Hỏi & Đáp từ cuộc trò chuyện với chatbot và sao chép vào clipboard theo định dạng cụ thể",
+    "description": "Extension description"
+  },
+
+  "popupTitle": {
+    "message": "Chatbot Q&A Clipper",
+    "description": "Title shown in popup header"
+  },
+  "copyButton": {
+    "message": "Sao chép Hỏi & Đáp vào clipboard",
+    "description": "Main action button text"
+  },
+
+  "headerLevelLabel": {
+    "message": "Cấp tiêu đề:",
+    "description": "Label for header level selector"
+  },
+  "headerH1": {
+    "message": "# (H1)",
+    "description": "Header level 1 option"
+  },
+  "headerH2": {
+    "message": "## (H2)",
+    "description": "Header level 2 option"
+  },
+  "headerH3": {
+    "message": "### (H3)",
+    "description": "Header level 3 option"
+  },
+  "headerH4": {
+    "message": "#### (H4)",
+    "description": "Header level 4 option"
+  },
+  "headerH5": {
+    "message": "##### (H5)",
+    "description": "Header level 5 option"
+  },
+
+  "labelStyleLabel": {
+    "message": "Kiểu nhãn:",
+    "description": "Label for Q&A label style selector"
+  },
+  "labelStyleQA": {
+    "message": "Question / Answer",
+    "description": "Q&A label style option"
+  },
+  "labelStylePrompt": {
+    "message": "Prompt / Response",
+    "description": "Prompt/Response label style option"
+  },
+  "labelStyleShort": {
+    "message": "Q / A",
+    "description": "Short Q/A label style option"
+  },
+  "labelStyleKorean": {
+    "message": "질문 / 답변",
+    "description": "Korean label style option"
+  },
+  "labelStyleChinese": {
+    "message": "问题 / 回答",
+    "description": "Chinese label style option"
+  },
+  "labelStyleJapanese": {
+    "message": "質問 / 回答",
+    "description": "Japanese label style option"
+  },
+  "labelStyleVietnamese": {
+    "message": "Câu hỏi / Trả lời",
+    "description": "Vietnamese label style option"
+  },
+  "labelStyleIndonesian": {
+    "message": "Pertanyaan / Jawaban",
+    "description": "Indonesian label style option"
+  },
+  "labelStyleHindi": {
+    "message": "प्रश्न / उत्तर",
+    "description": "Hindi label style option"
+  },
+  "labelStyleSpanish": {
+    "message": "Pregunta / Respuesta",
+    "description": "Spanish label style option"
+  },
+  "labelStylePortuguese": {
+    "message": "Pergunta / Resposta",
+    "description": "Portuguese label style option"
+  },
+  "labelStyleFrench": {
+    "message": "Question / Réponse",
+    "description": "French label style option"
+  },
+  "labelStyleGerman": {
+    "message": "Frage / Antwort",
+    "description": "German label style option"
+  },
+  "labelStyleItalian": {
+    "message": "Domanda / Risposta",
+    "description": "Italian label style option"
+  },
+  "labelStyleRussian": {
+    "message": "Вопрос / Ответ",
+    "description": "Russian label style option"
+  },
+  "labelStyleArabic": {
+    "message": "سؤال / جواب",
+    "description": "Arabic label style option"
+  },
+  "labelStyleSwahili": {
+    "message": "Swali / Jibu",
+    "description": "Swahili label style option"
+  },
+
+  "numberFormatLabel": {
+    "message": "Định dạng đánh số:",
+    "description": "Label for number format selector"
+  },
+  "numberFormatNoSpace": {
+    "message": "1 (Không khoảng trắng)",
+    "description": "Number format without space"
+  },
+  "numberFormatSpace": {
+    "message": " 1 (Khoảng trắng trước số)",
+    "description": "Number format with space before"
+  },
+  "numberFormatDashNoSpace": {
+    "message": "-1 (Dấu gạch, không khoảng trắng)",
+    "description": "Number format with dash, no space"
+  },
+  "numberFormatDash": {
+    "message": "- 1 (Dấu gạch và khoảng trắng)",
+    "description": "Number format with dash and space"
+  },
+  "numberFormatSpaceDashNoSpace": {
+    "message": " -1 (Khoảng trắng rồi dấu gạch)",
+    "description": "Number format with space then dash"
+  },
+  "numberFormatSpaceDash": {
+    "message": " - 1 (Khoảng trắng, dấu gạch, khoảng trắng)",
+    "description": "Number format with space, dash, space"
+  },
+  "numberFormatColonNoSpace": {
+    "message": ":1 (Dấu hai chấm, không khoảng trắng)",
+    "description": "Number format with colon, no space"
+  },
+  "numberFormatColon": {
+    "message": ": 1 (Dấu hai chấm và khoảng trắng)",
+    "description": "Number format with colon and space"
+  },
+  "numberFormatSpaceColonNoSpace": {
+    "message": " :1 (Khoảng trắng rồi dấu hai chấm)",
+    "description": "Number format with space then colon"
+  },
+  "numberFormatSpaceColon": {
+    "message": " : 1 (Khoảng trắng, dấu hai chấm, khoảng trắng)",
+    "description": "Number format with space, colon, space"
+  },
+
+  "imageFormatLabel": {
+    "message": "Định dạng URL ảnh:",
+    "description": "Label for image format selector"
+  },
+  "imageFormatBracketed": {
+    "message": "[URL ảnh]: https://...",
+    "description": "Bracketed image format option"
+  },
+  "imageFormatMarkdown": {
+    "message": "[URL ảnh](https://...)",
+    "description": "Markdown image format option"
+  },
+  "imageFormatPlain": {
+    "message": "https://... (URL thuần)",
+    "description": "Plain URL image format option"
+  },
+
+  "imageLabelLabel": {
+    "message": "Nhãn ảnh tùy chỉnh:",
+    "description": "Label for custom image label input"
+  },
+  "imageLabelPlaceholder": {
+    "message": "URL ảnh",
+    "description": "Placeholder for custom image label input"
+  },
+
+  "includePlatformLabel": {
+    "message": "Bao gồm tên nền tảng",
+    "description": "Label for include platform checkbox"
+  },
+
+  "excludeFileCitationsLabel": {
+    "message": "Loại bỏ trích dẫn tệp (ChatGPT)",
+    "description": "Label for exclude file citations checkbox"
+  },
+  "excludeFileCitationsTooltip": {
+    "message": "Loại bỏ huy hiệu tham chiếu tệp xuất hiện khi ChatGPT trích dẫn từ tệp đã tải lên",
+    "description": "Tooltip for exclude file citations option"
+  },
+
+  "includePseudoQuotesLabel": {
+    "message": "Bao gồm dấu ngoặc kép (ChatGPT)",
+    "description": "Label for include quote marks checkbox"
+  },
+  "includePseudoQuotesTooltip": {
+    "message": "Trích xuất dấu ngoặc kép từ các pseudo-element CSS ::before/::after trong mục danh sách blockquote",
+    "description": "Tooltip for include quote marks option"
+  },
+
+  "keyboardShortcutLabel": {
+    "message": "Phím tắt:",
+    "description": "Label for keyboard shortcut display"
+  },
+  "shortcutLoading": {
+    "message": "Đang tải...",
+    "description": "Text shown while loading shortcut"
+  },
+  "shortcutNotSet": {
+    "message": "Chưa đặt phím tắt",
+    "description": "Text shown when no shortcut is configured"
+  },
+  "shortcutConfigLink": {
+    "message": "Cấu hình phím tắt trong Chrome",
+    "description": "Link text to configure shortcuts"
+  },
+
+  "commandTriggerExtraction": {
+    "message": "Sao chép Hỏi & Đáp vào clipboard",
+    "description": "Command description for trigger-extraction"
+  },
+
+  "manualCopyTitle": {
+    "message": "Không thể truy cập clipboard",
+    "description": "Title for manual copy section"
+  },
+  "manualCopyInstructions": {
+    "message": "Hãy dùng nút bên dưới để sao chép văn bản đã trích xuất:",
+    "description": "Instructions for manual copy"
+  },
+  "manualCopyButton": {
+    "message": "Sao chép vào clipboard",
+    "description": "Manual copy button text"
+  },
+  "backToSettingsButton": {
+    "message": "Quay lại Cài đặt",
+    "description": "Back button text"
+  },
+
+  "statusExtracting": {
+    "message": "Đang trích xuất Hỏi & Đáp...",
+    "description": "Status message while extracting"
+  },
+  "statusError": {
+    "message": "Lỗi: $MESSAGE$",
+    "description": "Status message for errors",
+    "placeholders": {
+      "message": {
+        "content": "$1",
+        "example": "Connection failed"
+      }
+    }
+  },
+  "statusWaitDebounce": {
+    "message": "Vui lòng đợi trước khi bấm lại.",
+    "description": "Status message for debounce"
+  },
+  "statusStartError": {
+    "message": "Lỗi khi bắt đầu trích xuất",
+    "description": "Status message when extraction fails to start"
+  },
+  "statusCopied": {
+    "message": "Đã sao chép vào clipboard!",
+    "description": "Status message when copy succeeds"
+  },
+
+  "toastCopied": {
+    "message": "Hỏi & Đáp đã được sao chép vào clipboard!",
+    "description": "Toast message when Q&A copied successfully"
+  },
+  "toastUnsupportedSite": {
+    "message": "Trang web này không được tiện ích hỗ trợ.",
+    "description": "Toast message for unsupported websites"
+  },
+  "toastNoConversation": {
+    "message": "Không tìm thấy cuộc trò chuyện để trích xuất.",
+    "description": "Toast message when no conversation found"
+  },
+  "toastNoConversationYet": {
+    "message": "Chưa có cuộc trò chuyện nào để trích xuất.",
+    "description": "Toast message for empty/new chat"
+  },
+  "toastClipboardFailed": {
+    "message": "Không thể sao chép. Mở popup tiện ích để sao chép thủ công.",
+    "description": "Toast message when clipboard fails"
+  },
+  "toastScriptLoadError": {
+    "message": "Lỗi: Không thể tải script của tiện ích.",
+    "description": "Toast message when scripts fail to load"
+  },
+  "toastPermissionError": {
+    "message": "Lỗi khi kiểm tra quyền của tiện ích.",
+    "description": "Toast message for permission check error"
+  },
+
+  "errorNoActiveTab": {
+    "message": "Không tìm thấy tab đang hoạt động.",
+    "description": "Error message when no active tab"
+  },
+  "errorMissingUrl": {
+    "message": "Thiếu URL trang.",
+    "description": "Error message when URL is missing"
+  },
+  "errorUnsupportedPage": {
+    "message": "Trang không được hỗ trợ.",
+    "description": "Error message for unsupported page"
+  },
+  "errorInvalidData": {
+    "message": "Lỗi: Nhận dữ liệu không hợp lệ từ trang. Trích xuất thất bại.",
+    "description": "Error message for invalid extraction data"
+  },
+  "errorScriptsNotLoaded": {
+    "message": "Lỗi: Không thể tải các script cần thiết của tiện ích trên trang.",
+    "description": "Error message when scripts don't load"
+  },
+  "errorCommunication": {
+    "message": "Không thể liên lạc với trang. Hãy tải lại trang và thử lại.",
+    "description": "Error message for communication failure"
+  },
+  "errorConnectionLost": {
+    "message": "Mất kết nối với trang. Hãy tải lại và thử lại.",
+    "description": "Error message when connection lost"
+  },
+  "errorTimeout": {
+    "message": "Quá trình trích xuất quá lâu hoặc thất bại ngoài ý muốn. Vui lòng thử lại.",
+    "description": "Error message for timeout"
+  },
+  "errorClipboardManual": {
+    "message": "Không thể sao chép vào clipboard. Đang sử dụng tùy chọn sao chép thủ công.",
+    "description": "Error message when clipboard fails in popup"
+  }
+}

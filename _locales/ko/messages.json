@@ -1,0 +1,344 @@
+{
+  "extensionName": {
+    "message": "Chatbot Q&A Clipper",
+    "description": "Extension name"
+  },
+  "extensionDescription": {
+    "message": "챗봇 대화에서 Q&A를 추출하여 지정된 형식으로 클립보드에 복사합니다",
+    "description": "Extension description"
+  },
+
+  "popupTitle": {
+    "message": "Chatbot Q&A Clipper",
+    "description": "Title shown in popup header"
+  },
+  "copyButton": {
+    "message": "Q&A를 클립보드에 복사",
+    "description": "Main action button text"
+  },
+
+  "headerLevelLabel": {
+    "message": "헤더 레벨:",
+    "description": "Label for header level selector"
+  },
+  "headerH1": {
+    "message": "# (H1)",
+    "description": "Header level 1 option"
+  },
+  "headerH2": {
+    "message": "## (H2)",
+    "description": "Header level 2 option"
+  },
+  "headerH3": {
+    "message": "### (H3)",
+    "description": "Header level 3 option"
+  },
+  "headerH4": {
+    "message": "#### (H4)",
+    "description": "Header level 4 option"
+  },
+  "headerH5": {
+    "message": "##### (H5)",
+    "description": "Header level 5 option"
+  },
+
+  "labelStyleLabel": {
+    "message": "라벨 스타일:",
+    "description": "Label for Q&A label style selector"
+  },
+  "labelStyleQA": {
+    "message": "Question / Answer",
+    "description": "Q&A label style option"
+  },
+  "labelStylePrompt": {
+    "message": "Prompt / Response",
+    "description": "Prompt/Response label style option"
+  },
+  "labelStyleShort": {
+    "message": "Q / A",
+    "description": "Short Q/A label style option"
+  },
+  "labelStyleKorean": {
+    "message": "질문 / 답변",
+    "description": "Korean label style option"
+  },
+  "labelStyleChinese": {
+    "message": "问题 / 回答",
+    "description": "Chinese label style option"
+  },
+  "labelStyleJapanese": {
+    "message": "質問 / 回答",
+    "description": "Japanese label style option"
+  },
+  "labelStyleVietnamese": {
+    "message": "Câu hỏi / Trả lời",
+    "description": "Vietnamese label style option"
+  },
+  "labelStyleIndonesian": {
+    "message": "Pertanyaan / Jawaban",
+    "description": "Indonesian label style option"
+  },
+  "labelStyleHindi": {
+    "message": "प्रश्न / उत्तर",
+    "description": "Hindi label style option"
+  },
+  "labelStyleSpanish": {
+    "message": "Pregunta / Respuesta",
+    "description": "Spanish label style option"
+  },
+  "labelStylePortuguese": {
+    "message": "Pergunta / Resposta",
+    "description": "Portuguese label style option"
+  },
+  "labelStyleFrench": {
+    "message": "Question / Réponse",
+    "description": "French label style option"
+  },
+  "labelStyleGerman": {
+    "message": "Frage / Antwort",
+    "description": "German label style option"
+  },
+  "labelStyleItalian": {
+    "message": "Domanda / Risposta",
+    "description": "Italian label style option"
+  },
+  "labelStyleRussian": {
+    "message": "Вопрос / Ответ",
+    "description": "Russian label style option"
+  },
+  "labelStyleArabic": {
+    "message": "سؤال / جواب",
+    "description": "Arabic label style option"
+  },
+  "labelStyleSwahili": {
+    "message": "Swali / Jibu",
+    "description": "Swahili label style option"
+  },
+
+  "numberFormatLabel": {
+    "message": "번호 형식:",
+    "description": "Label for number format selector"
+  },
+  "numberFormatNoSpace": {
+    "message": "1 (공백 없음)",
+    "description": "Number format without space"
+  },
+  "numberFormatSpace": {
+    "message": " 1 (번호 앞 공백)",
+    "description": "Number format with space before"
+  },
+  "numberFormatDashNoSpace": {
+    "message": "-1 (대시, 공백 없음)",
+    "description": "Number format with dash, no space"
+  },
+  "numberFormatDash": {
+    "message": "- 1 (대시와 공백)",
+    "description": "Number format with dash and space"
+  },
+  "numberFormatSpaceDashNoSpace": {
+    "message": " -1 (공백 후 대시)",
+    "description": "Number format with space then dash"
+  },
+  "numberFormatSpaceDash": {
+    "message": " - 1 (공백, 대시, 공백)",
+    "description": "Number format with space, dash, space"
+  },
+  "numberFormatColonNoSpace": {
+    "message": ":1 (콜론, 공백 없음)",
+    "description": "Number format with colon, no space"
+  },
+  "numberFormatColon": {
+    "message": ": 1 (콜론과 공백)",
+    "description": "Number format with colon and space"
+  },
+  "numberFormatSpaceColonNoSpace": {
+    "message": " :1 (공백 후 콜론)",
+    "description": "Number format with space then colon"
+  },
+  "numberFormatSpaceColon": {
+    "message": " : 1 (공백, 콜론, 공백)",
+    "description": "Number format with space, colon, space"
+  },
+
+  "imageFormatLabel": {
+    "message": "이미지 URL 형식:",
+    "description": "Label for image format selector"
+  },
+  "imageFormatBracketed": {
+    "message": "[Image URL]: https://...",
+    "description": "Bracketed image format option"
+  },
+  "imageFormatMarkdown": {
+    "message": "[Image URL](https://...)",
+    "description": "Markdown image format option"
+  },
+  "imageFormatPlain": {
+    "message": "https://... (일반 URL)",
+    "description": "Plain URL image format option"
+  },
+
+  "imageLabelLabel": {
+    "message": "사용자 지정 이미지 라벨:",
+    "description": "Label for custom image label input"
+  },
+  "imageLabelPlaceholder": {
+    "message": "Image URL",
+    "description": "Placeholder for custom image label input"
+  },
+
+  "includePlatformLabel": {
+    "message": "플랫폼 이름 포함",
+    "description": "Label for include platform checkbox"
+  },
+
+  "excludeFileCitationsLabel": {
+    "message": "파일 인용 제외 (ChatGPT)",
+    "description": "Label for exclude file citations checkbox"
+  },
+  "excludeFileCitationsTooltip": {
+    "message": "ChatGPT가 업로드된 파일을 인용할 때 나타나는 파일 참조 배지를 제외합니다",
+    "description": "Tooltip for exclude file citations option"
+  },
+
+  "includePseudoQuotesLabel": {
+    "message": "인용 부호 포함 (ChatGPT)",
+    "description": "Label for include quote marks checkbox"
+  },
+  "includePseudoQuotesTooltip": {
+    "message": "blockquote 목록 항목의 CSS ::before/::after 가상 요소에서 인용 부호를 추출합니다",
+    "description": "Tooltip for include quote marks option"
+  },
+
+  "keyboardShortcutLabel": {
+    "message": "키보드 단축키:",
+    "description": "Label for keyboard shortcut display"
+  },
+  "shortcutLoading": {
+    "message": "로딩 중...",
+    "description": "Text shown while loading shortcut"
+  },
+  "shortcutNotSet": {
+    "message": "단축키 미설정",
+    "description": "Text shown when no shortcut is configured"
+  },
+  "shortcutConfigLink": {
+    "message": "Chrome에서 단축키 설정",
+    "description": "Link text to configure shortcuts"
+  },
+
+  "commandTriggerExtraction": {
+    "message": "Q&A를 클립보드에 복사",
+    "description": "Command description for trigger-extraction"
+  },
+
+  "manualCopyTitle": {
+    "message": "클립보드 접근 실패",
+    "description": "Title for manual copy section"
+  },
+  "manualCopyInstructions": {
+    "message": "아래 버튼을 사용하여 추출된 텍스트를 복사하세요:",
+    "description": "Instructions for manual copy"
+  },
+  "manualCopyButton": {
+    "message": "클립보드에 복사",
+    "description": "Manual copy button text"
+  },
+  "backToSettingsButton": {
+    "message": "설정으로 돌아가기",
+    "description": "Back button text"
+  },
+
+  "statusExtracting": {
+    "message": "Q&A 추출 중...",
+    "description": "Status message while extracting"
+  },
+  "statusError": {
+    "message": "오류: $MESSAGE$",
+    "description": "Status message for errors",
+    "placeholders": {
+      "message": {
+        "content": "$1",
+        "example": "연결 실패"
+      }
+    }
+  },
+  "statusWaitDebounce": {
+    "message": "잠시 후 다시 클릭해 주세요.",
+    "description": "Status message for debounce"
+  },
+  "statusStartError": {
+    "message": "추출 시작 오류",
+    "description": "Status message when extraction fails to start"
+  },
+  "statusCopied": {
+    "message": "클립보드에 복사됨!",
+    "description": "Status message when copy succeeds"
+  },
+
+  "toastCopied": {
+    "message": "Q&A가 클립보드에 복사되었습니다!",
+    "description": "Toast message when Q&A copied successfully"
+  },
+  "toastUnsupportedSite": {
+    "message": "이 웹사이트는 익스텐션에서 지원하지 않습니다.",
+    "description": "Toast message for unsupported websites"
+  },
+  "toastNoConversation": {
+    "message": "추출할 대화를 찾을 수 없습니다.",
+    "description": "Toast message when no conversation found"
+  },
+  "toastNoConversationYet": {
+    "message": "아직 추출할 대화가 없습니다.",
+    "description": "Toast message for empty/new chat"
+  },
+  "toastClipboardFailed": {
+    "message": "복사 실패. 익스텐션 팝업에서 수동 복사하세요.",
+    "description": "Toast message when clipboard fails"
+  },
+  "toastScriptLoadError": {
+    "message": "오류: 익스텐션 스크립트를 로드할 수 없습니다.",
+    "description": "Toast message when scripts fail to load"
+  },
+  "toastPermissionError": {
+    "message": "익스텐션 권한 확인 오류.",
+    "description": "Toast message for permission check error"
+  },
+
+  "errorNoActiveTab": {
+    "message": "활성 탭을 찾을 수 없습니다.",
+    "description": "Error message when no active tab"
+  },
+  "errorMissingUrl": {
+    "message": "페이지 URL이 없습니다.",
+    "description": "Error message when URL is missing"
+  },
+  "errorUnsupportedPage": {
+    "message": "지원하지 않는 페이지입니다.",
+    "description": "Error message for unsupported page"
+  },
+  "errorInvalidData": {
+    "message": "오류: 페이지에서 잘못된 데이터를 받았습니다. 추출 실패.",
+    "description": "Error message for invalid extraction data"
+  },
+  "errorScriptsNotLoaded": {
+    "message": "오류: 페이지에 필요한 익스텐션 스크립트를 로드할 수 없습니다.",
+    "description": "Error message when scripts don't load"
+  },
+  "errorCommunication": {
+    "message": "페이지와 통신할 수 없습니다. 페이지를 새로고침하고 다시 시도해 주세요.",
+    "description": "Error message for communication failure"
+  },
+  "errorConnectionLost": {
+    "message": "페이지와의 연결이 끊어졌습니다. 새로고침 후 다시 시도해 주세요.",
+    "description": "Error message when connection lost"
+  },
+  "errorTimeout": {
+    "message": "추출이 너무 오래 걸리거나 예기치 않게 실패했습니다. 다시 시도해 주세요.",
+    "description": "Error message for timeout"
+  },
+  "errorClipboardManual": {
+    "message": "클립보드에 복사할 수 없습니다. 수동 복사 옵션을 사용합니다.",
+    "description": "Error message when clipboard fails in popup"
+  }
+}
+

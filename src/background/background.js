@@ -11,6 +11,18 @@ importScripts('../shared/formatter.js');
 // Track the last shortcut trigger time to prevent duplicates
 let lastTriggerTime = 0;
 
+// --- i18n Helper Function ---
+
+/**
+ * Gets a localized message from the _locales directory
+ * @param {string} messageName - The message key from messages.json
+ * @param {string|string[]} [substitutions] - Optional substitution strings
+ * @returns {string} The localized message
+ */
+function getMessage(messageName, substitutions) {
+  return chrome.i18n.getMessage(messageName, substitutions) || messageName;
+}
+
 /**
  * Sends a message to the popup, handling the case where the popup might be closed.
  * @param {object} message - The message object to send.
@@ -156,11 +168,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         // Validate tab exists
         if (!tabs || tabs.length === 0 || !tabs[0] || !tabs[0].id) {
           console.warn('No active tab found for popup extraction');
-          sendResponse({ success: false, error: 'No active tab found.' });
+          sendResponse({ success: false, error: getMessage('errorNoActiveTab') });
           sendMessageToPopup({
             action: 'extraction-complete',
             success: false,
-            message: 'No active tab found.'
+            message: getMessage('errorNoActiveTab')
           });
           return;
         }
@@ -172,11 +184,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         // Check if URL exists
         if (!tabUrl) {
           console.error('Tab URL is missing for popup extraction');
-          sendResponse({ success: false, error: 'Missing page URL.' });
+          sendResponse({ success: false, error: getMessage('errorMissingUrl') });
           sendMessageToPopup({
             action: 'extraction-complete',
             success: false,
-            message: 'Error: Missing page URL.'
+            message: getMessage('statusError', getMessage('errorMissingUrl'))
           });
           return;
         }
@@ -184,11 +196,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         // Check if URL uses http/https protocol (excludes chrome://, file://, etc.)
         if (!tabUrl.startsWith('http:') && !tabUrl.startsWith('https:')) {
           // console.log(`Non-web URL detected (${tabUrl}) for popup extraction - showing error`);
-          sendResponse({ success: false, error: 'Unsupported page.' });
+          sendResponse({ success: false, error: getMessage('errorUnsupportedPage') });
           sendMessageToPopup({
             action: 'extraction-complete',
             success: false,
-            message: 'Unsupported page.'
+            message: getMessage('errorUnsupportedPage')
           });
           return;
         }
@@ -216,7 +228,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendMessageToPopup({
           action: 'extraction-complete',
           success: false,
-          message: `Error: ${error.message || 'Unknown error during extraction validation'}`
+          message: getMessage('statusError', error.message || 'Unknown error during extraction validation')
         });
       }
     });
@@ -391,7 +403,7 @@ async function ensureContentScriptLoaded(tabId) {
           errorMessage.includes("The extension is not allowed to access")
         ) {
           console.error(`Host permission error detected: This website is not supported by the extension.`);
-          throw new Error("This website is not supported by the extension.");
+          throw new Error(getMessage('toastUnsupportedSite'));
         }
         
         // For critical scripts, failing is a fatal error
@@ -462,7 +474,7 @@ async function extractQA() {
       sendMessageToPopup({
         action: 'extraction-complete',
         success: false,
-        message: 'Error: No active tab found.'
+        message: getMessage('statusError', getMessage('errorNoActiveTab'))
       });
       return; // Stop execution
     }
@@ -529,11 +541,11 @@ async function extractQA() {
         // Check if the trigger came from the popup. This is tricky to know directly here.
         // Let's send a message to the popup regardless, it will only be received if open.
         // And show a toast which will only appear if user explicitly tried on the page.
-        await showToast(currentTabId, 'This website is not supported by the extension.', 3000);
+        await showToast(currentTabId, getMessage('toastUnsupportedSite'), 3000);
         sendMessageToPopup({
           action: 'extraction-complete',
           success: false,
-          message: 'Unsupported page.'
+          message: getMessage('errorUnsupportedPage')
         });
         return; // Stop execution
       }
@@ -542,11 +554,11 @@ async function extractQA() {
     } catch (permError) {
       // Catch any unexpected error during the permission check process
       console.error('Unexpected error during permission check:', permError);
-      await showToast(currentTabId, 'Error checking extension permissions.', 3000);
+      await showToast(currentTabId, getMessage('toastPermissionError'), 3000);
       sendMessageToPopup({
         action: 'extraction-complete',
         success: false,
-        message: 'Error checking extension permissions.'
+        message: getMessage('toastPermissionError')
       });
       return; // Stop execution
     }
@@ -557,11 +569,11 @@ async function extractQA() {
       const scriptsLoaded = await ensureContentScriptLoaded(currentTabId);
       if (!scriptsLoaded) {
         console.error(`Failed to ensure scripts are loaded for tab ${currentTabId}.`);
-        await showToast(currentTabId, 'Error: Could not load extension scripts.', 3000);
+        await showToast(currentTabId, getMessage('toastScriptLoadError'), 3000);
         sendMessageToPopup({
           action: 'extraction-complete',
           success: false,
-          message: 'Error: Could not load required extension scripts on the page.'
+          message: getMessage('errorScriptsNotLoaded')
         });
         return; // Stop execution
       }
@@ -573,22 +585,22 @@ async function extractQA() {
           scriptError.message.includes("Missing host permission") ||
           scriptError.message.includes("Cannot access contents of url"))) {
         // console.log(`Website not supported error for tab ${currentTabId}: ${scriptError.message}`);
-        await showToast(currentTabId, 'This website is not supported by the extension.', 3000);
+        await showToast(currentTabId, getMessage('toastUnsupportedSite'), 3000);
         sendMessageToPopup({
           action: 'extraction-complete',
           success: false,
-          message: 'This website is not supported by the extension.'
+          message: getMessage('toastUnsupportedSite')
         });
         return; // Stop execution
       }
       
       // Handle other script errors
       console.error(`Script loading error for tab ${currentTabId}:`, scriptError);
-      await showToast(currentTabId, 'Error: Could not load extension scripts.', 3000);
+      await showToast(currentTabId, getMessage('toastScriptLoadError'), 3000);
       sendMessageToPopup({
         action: 'extraction-complete',
         success: false,
-        message: `Error: ${scriptError.message || 'Could not load required extension scripts.'}`
+        message: getMessage('statusError', scriptError.message || getMessage('errorScriptsNotLoaded'))
       });
       return; // Stop execution
     }
@@ -617,7 +629,7 @@ async function extractQA() {
         
         // Our own timeout implementation (30 seconds)
         const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('Extraction took too long or timed out after 30 seconds')), 30000);
+            setTimeout(() => reject(new Error(getMessage('errorTimeout'))), 30000);
         });
         
         // Race the extraction against the timeout
@@ -627,14 +639,14 @@ async function extractQA() {
          // Check if it was a timeout error
          if (commsError.message.includes("Receiving end does not exist") || commsError.message.includes("Could not establish connection")) {
               console.error(`Communication error with content script (might be closed or unloaded):`, commsError);
-              throw new Error(`Failed to communicate with the page. Please reload the page and try again.`);
+              throw new Error(getMessage('errorCommunication'));
          } else if (commsError.message.includes("message channel closed")) {
               console.error(`Communication error (message channel closed):`, commsError);
-              throw new Error(`Connection to the page was lost. Please reload and try again.`);
+              throw new Error(getMessage('errorConnectionLost'));
          } else {
              // Assume other errors might be timeouts or unexpected issues
              console.error(`Error sending/receiving extractRawData message on tab ${currentTabId}:`, commsError);
-             throw new Error(`Extraction took too long or failed unexpectedly. Please try again.`);
+             throw new Error(getMessage('errorTimeout'));
          }
     }
 
@@ -646,21 +658,21 @@ async function extractQA() {
       if (isNoContentError) {
         // Handle as an informational scenario
         console.warn(`No conversation content on tab ${currentTabId} (${tabUrl}):`, response.error);
-        await showToast(currentTabId, `No conversation found to extract.`, 3000);
+        await showToast(currentTabId, getMessage('toastNoConversation'), 3000);
         sendMessageToPopup({
           action: 'extraction-complete',
           success: false,
-          message: `No conversation found to extract.`
+          message: getMessage('toastNoConversation')
         });
       } else {
         // Handle as a true error
         console.error(`Content script error on tab ${currentTabId} (${tabUrl}):`, response.error, response.diagnostics || '');
         const displayError = response.error.length > 100 ? response.error.substring(0, 97) + '...' : response.error;
-        await showToast(currentTabId, `Error: ${displayError}`, 4000);
+        await showToast(currentTabId, getMessage('statusError', displayError), 4000);
         sendMessageToPopup({
           action: 'extraction-complete',
           success: false,
-          message: `Extraction Error: ${response.error}`
+          message: getMessage('statusError', response.error)
         });
       }
       return; // Stop execution
@@ -671,11 +683,11 @@ async function extractQA() {
         Array.isArray(response.data.conversationTurns) && 
         response.data.conversationTurns.length === 0) {
       // console.log(`Empty conversation detected on tab ${currentTabId} (${tabUrl}) - normal case for new chat`);
-      await showToast(currentTabId, `No conversation to extract yet.`, 2000);
+      await showToast(currentTabId, getMessage('toastNoConversationYet'), 2000);
       sendMessageToPopup({
         action: 'extraction-complete',
         success: true,
-        message: `No conversation to extract yet.`
+        message: getMessage('toastNoConversationYet')
       });
       return; // Stop execution but don't log as error
     }
@@ -699,16 +711,16 @@ async function extractQA() {
 
       // Show success or error toast and notify popup
       if (copySuccess) {
-        await showToast(currentTabId, 'Q&A copied to clipboard!');
+        await showToast(currentTabId, getMessage('toastCopied'));
         sendMessageToPopup({
           action: 'extraction-complete',
           success: true,
-          message: 'Q&A copied to clipboard!'
+          message: getMessage('toastCopied')
         });
       } else {
         // Clipboard failure handling (remains the same, but text might be larger)
         console.warn(`Clipboard copy failed for tab ${currentTabId}`);
-        await showToast(currentTabId, 'Could not copy. Open extension popup for manual copy.', 4000);
+        await showToast(currentTabId, getMessage('toastClipboardFailed'), 4000);
         sendMessageToPopup({
           action: 'clipboard-failed',
           text: formattedText
@@ -716,13 +728,13 @@ async function extractQA() {
         sendMessageToPopup({
           action: 'extraction-complete',
           success: false,
-          message: 'Could not copy to clipboard. Using manual copy option.'
+          message: getMessage('errorClipboardManual')
         });
       }
     } else {
       // Handle case where response structure is incorrect
       console.error(`Extraction response from tab ${currentTabId} has invalid structure:`, response);
-      const invalidDataMessage = 'Error: Invalid data received from page. Extraction failed.';
+      const invalidDataMessage = getMessage('errorInvalidData');
       await showToast(currentTabId, invalidDataMessage, 3000);
       sendMessageToPopup({
         action: 'extraction-complete',
@@ -736,13 +748,13 @@ async function extractQA() {
     const errorMessage = error.message || 'Unknown error during extraction';
     // Try to show toast on the specific tab if we have an ID
     if (currentTabId) {
-      await showToast(currentTabId, `Error: ${errorMessage}`, 4000);
+      await showToast(currentTabId, getMessage('statusError', errorMessage), 4000);
     }
     // Notify popup if it's open
     sendMessageToPopup({
       action: 'extraction-complete',
       success: false,
-      message: `Error: ${errorMessage}`
+      message: getMessage('statusError', errorMessage)
     });
   }
 }

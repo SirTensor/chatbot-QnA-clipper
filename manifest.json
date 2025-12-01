@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "Chatbot Q&A Clipper",
-  "version": "1.5",
-  "description": "Extracts Q&A from chatbot conversations and copies them to the clipboard in specific formats",
+  "name": "__MSG_extensionName__",
+  "version": "1.5.1",
+  "description": "__MSG_extensionDescription__",
+  "default_locale": "en",
   "permissions": [
     "activeTab",
     "scripting",
@@ -67,7 +68,7 @@
       "suggested_key": {
         "default": "Alt+3"
       },
-      "description": "Extract Q&A from the current chat"
+      "description": "__MSG_commandTriggerExtraction__"
     }
   }
-} 
+}

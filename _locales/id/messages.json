@@ -1,0 +1,343 @@
+{
+  "extensionName": {
+    "message": "Chatbot Q&A Clipper",
+    "description": "Extension name"
+  },
+  "extensionDescription": {
+    "message": "Mengekstrak tanya jawab dari percakapan chatbot dan menyalinnya ke clipboard dalam format tertentu",
+    "description": "Extension description"
+  },
+
+  "popupTitle": {
+    "message": "Chatbot Q&A Clipper",
+    "description": "Title shown in popup header"
+  },
+  "copyButton": {
+    "message": "Salin Q&A ke Clipboard",
+    "description": "Main action button text"
+  },
+
+  "headerLevelLabel": {
+    "message": "Tingkat header:",
+    "description": "Label for header level selector"
+  },
+  "headerH1": {
+    "message": "# (H1)",
+    "description": "Header level 1 option"
+  },
+  "headerH2": {
+    "message": "## (H2)",
+    "description": "Header level 2 option"
+  },
+  "headerH3": {
+    "message": "### (H3)",
+    "description": "Header level 3 option"
+  },
+  "headerH4": {
+    "message": "#### (H4)",
+    "description": "Header level 4 option"
+  },
+  "headerH5": {
+    "message": "##### (H5)",
+    "description": "Header level 5 option"
+  },
+
+  "labelStyleLabel": {
+    "message": "Gaya label:",
+    "description": "Label for Q&A label style selector"
+  },
+  "labelStyleQA": {
+    "message": "Question / Answer",
+    "description": "Q&A label style option"
+  },
+  "labelStylePrompt": {
+    "message": "Prompt / Response",
+    "description": "Prompt/Response label style option"
+  },
+  "labelStyleShort": {
+    "message": "Q / A",
+    "description": "Short Q/A label style option"
+  },
+  "labelStyleKorean": {
+    "message": "질문 / 답변",
+    "description": "Korean label style option"
+  },
+  "labelStyleChinese": {
+    "message": "问题 / 回答",
+    "description": "Chinese label style option"
+  },
+  "labelStyleJapanese": {
+    "message": "質問 / 回答",
+    "description": "Japanese label style option"
+  },
+  "labelStyleVietnamese": {
+    "message": "Câu hỏi / Trả lời",
+    "description": "Vietnamese label style option"
+  },
+  "labelStyleIndonesian": {
+    "message": "Pertanyaan / Jawaban",
+    "description": "Indonesian label style option"
+  },
+  "labelStyleHindi": {
+    "message": "प्रश्न / उत्तर",
+    "description": "Hindi label style option"
+  },
+  "labelStyleSpanish": {
+    "message": "Pregunta / Respuesta",
+    "description": "Spanish label style option"
+  },
+  "labelStylePortuguese": {
+    "message": "Pergunta / Resposta",
+    "description": "Portuguese label style option"
+  },
+  "labelStyleFrench": {
+    "message": "Question / Réponse",
+    "description": "French label style option"
+  },
+  "labelStyleGerman": {
+    "message": "Frage / Antwort",
+    "description": "German label style option"
+  },
+  "labelStyleItalian": {
+    "message": "Domanda / Risposta",
+    "description": "Italian label style option"
+  },
+  "labelStyleRussian": {
+    "message": "Вопрос / Ответ",
+    "description": "Russian label style option"
+  },
+  "labelStyleArabic": {
+    "message": "سؤال / جواب",
+    "description": "Arabic label style option"
+  },
+  "labelStyleSwahili": {
+    "message": "Swali / Jibu",
+    "description": "Swahili label style option"
+  },
+
+  "numberFormatLabel": {
+    "message": "Format penomoran:",
+    "description": "Label for number format selector"
+  },
+  "numberFormatNoSpace": {
+    "message": "1 (Tanpa spasi)",
+    "description": "Number format without space"
+  },
+  "numberFormatSpace": {
+    "message": " 1 (Spasi sebelum angka)",
+    "description": "Number format with space before"
+  },
+  "numberFormatDashNoSpace": {
+    "message": "-1 (Tanda hubung, tanpa spasi)",
+    "description": "Number format with dash, no space"
+  },
+  "numberFormatDash": {
+    "message": "- 1 (Tanda hubung dan spasi)",
+    "description": "Number format with dash and space"
+  },
+  "numberFormatSpaceDashNoSpace": {
+    "message": " -1 (Spasi lalu tanda hubung)",
+    "description": "Number format with space then dash"
+  },
+  "numberFormatSpaceDash": {
+    "message": " - 1 (Spasi, tanda hubung, spasi)",
+    "description": "Number format with space, dash, space"
+  },
+  "numberFormatColonNoSpace": {
+    "message": ":1 (Titik dua, tanpa spasi)",
+    "description": "Number format with colon, no space"
+  },
+  "numberFormatColon": {
+    "message": ": 1 (Titik dua dan spasi)",
+    "description": "Number format with colon and space"
+  },
+  "numberFormatSpaceColonNoSpace": {
+    "message": " :1 (Spasi lalu titik dua)",
+    "description": "Number format with space then colon"
+  },
+  "numberFormatSpaceColon": {
+    "message": " : 1 (Spasi, titik dua, spasi)",
+    "description": "Number format with space, colon, space"
+  },
+
+  "imageFormatLabel": {
+    "message": "Format URL gambar:",
+    "description": "Label for image format selector"
+  },
+  "imageFormatBracketed": {
+    "message": "[URL Gambar]: https://...",
+    "description": "Bracketed image format option"
+  },
+  "imageFormatMarkdown": {
+    "message": "[URL Gambar](https://...)",
+    "description": "Markdown image format option"
+  },
+  "imageFormatPlain": {
+    "message": "https://... (URL polos)",
+    "description": "Plain URL image format option"
+  },
+
+  "imageLabelLabel": {
+    "message": "Label gambar khusus:",
+    "description": "Label for custom image label input"
+  },
+  "imageLabelPlaceholder": {
+    "message": "URL Gambar",
+    "description": "Placeholder for custom image label input"
+  },
+
+  "includePlatformLabel": {
+    "message": "Sertakan nama platform",
+    "description": "Label for include platform checkbox"
+  },
+
+  "excludeFileCitationsLabel": {
+    "message": "Kecualikan kutipan file (ChatGPT)",
+    "description": "Label for exclude file citations checkbox"
+  },
+  "excludeFileCitationsTooltip": {
+    "message": "Mengecualikan lencana referensi file yang muncul ketika ChatGPT mengutip dari file yang diunggah",
+    "description": "Tooltip for exclude file citations option"
+  },
+
+  "includePseudoQuotesLabel": {
+    "message": "Sertakan tanda kutip (ChatGPT)",
+    "description": "Label for include quote marks checkbox"
+  },
+  "includePseudoQuotesTooltip": {
+    "message": "Mengekstrak tanda kutip dari pseudo-element CSS ::before/::after dalam item daftar blockquote",
+    "description": "Tooltip for include quote marks option"
+  },
+
+  "keyboardShortcutLabel": {
+    "message": "Pintasan keyboard:",
+    "description": "Label for keyboard shortcut display"
+  },
+  "shortcutLoading": {
+    "message": "Memuat...",
+    "description": "Text shown while loading shortcut"
+  },
+  "shortcutNotSet": {
+    "message": "Pintasan belum diatur",
+    "description": "Text shown when no shortcut is configured"
+  },
+  "shortcutConfigLink": {
+    "message": "Atur pintasan di Chrome",
+    "description": "Link text to configure shortcuts"
+  },
+
+  "commandTriggerExtraction": {
+    "message": "Salin Q&A ke Clipboard",
+    "description": "Command description for trigger-extraction"
+  },
+
+  "manualCopyTitle": {
+    "message": "Akses clipboard gagal",
+    "description": "Title for manual copy section"
+  },
+  "manualCopyInstructions": {
+    "message": "Gunakan tombol di bawah untuk menyalin teks yang diekstrak:",
+    "description": "Instructions for manual copy"
+  },
+  "manualCopyButton": {
+    "message": "Salin ke Clipboard",
+    "description": "Manual copy button text"
+  },
+  "backToSettingsButton": {
+    "message": "Kembali ke Pengaturan",
+    "description": "Back button text"
+  },
+
+  "statusExtracting": {
+    "message": "Sedang mengekstrak Q&A...",
+    "description": "Status message while extracting"
+  },
+  "statusError": {
+    "message": "Kesalahan: $MESSAGE$",
+    "description": "Status message for errors",
+    "placeholders": {
+      "message": {
+        "content": "$1",
+        "example": "Connection failed"
+      }
+    }
+  },
+  "statusWaitDebounce": {
+    "message": "Harap tunggu sebelum mengklik lagi.",
+    "description": "Status message for debounce"
+  },
+  "statusStartError": {
+    "message": "Kesalahan memulai ekstraksi",
+    "description": "Status message when extraction fails to start"
+  },
+  "statusCopied": {
+    "message": "Disalin ke clipboard!",
+    "description": "Status message when copy succeeds"
+  },
+
+  "toastCopied": {
+    "message": "Q&A disalin ke clipboard!",
+    "description": "Toast message when Q&A copied successfully"
+  },
+  "toastUnsupportedSite": {
+    "message": "Situs web ini tidak didukung oleh ekstensi.",
+    "description": "Toast message for unsupported websites"
+  },
+  "toastNoConversation": {
+    "message": "Tidak ditemukan percakapan untuk diekstrak.",
+    "description": "Toast message when no conversation found"
+  },
+  "toastNoConversationYet": {
+    "message": "Belum ada percakapan untuk diekstrak.",
+    "description": "Toast message for empty/new chat"
+  },
+  "toastClipboardFailed": {
+    "message": "Tidak bisa menyalin. Buka popup ekstensi untuk menyalin manual.",
+    "description": "Toast message when clipboard fails"
+  },
+  "toastScriptLoadError": {
+    "message": "Kesalahan: Tidak dapat memuat skrip ekstensi.",
+    "description": "Toast message when scripts fail to load"
+  },
+  "toastPermissionError": {
+    "message": "Kesalahan memeriksa izin ekstensi.",
+    "description": "Toast message for permission check error"
+  },
+
+  "errorNoActiveTab": {
+    "message": "Tidak ditemukan tab aktif.",
+    "description": "Error message when no active tab"
+  },
+  "errorMissingUrl": {
+    "message": "URL halaman tidak ada.",
+    "description": "Error message when URL is missing"
+  },
+  "errorUnsupportedPage": {
+    "message": "Halaman tidak didukung.",
+    "description": "Error message for unsupported page"
+  },
+  "errorInvalidData": {
+    "message": "Kesalahan: Menerima data tidak valid dari halaman. Ekstraksi gagal.",
+    "description": "Error message for invalid extraction data"
+  },
+  "errorScriptsNotLoaded": {
+    "message": "Kesalahan: Tidak dapat memuat skrip ekstensi yang diperlukan di halaman.",
+    "description": "Error message when scripts don't load"
+  },
+  "errorCommunication": {
+    "message": "Gagal berkomunikasi dengan halaman. Muat ulang halaman lalu coba lagi.",
+    "description": "Error message for communication failure"
+  },
+  "errorConnectionLost": {
+    "message": "Koneksi ke halaman terputus. Muat ulang lalu coba lagi.",
+    "description": "Error message when connection lost"
+  },
+  "errorTimeout": {
+    "message": "Ekstraksi terlalu lama atau gagal secara tak terduga. Silakan coba lagi.",
+    "description": "Error message for timeout"
+  },
+  "errorClipboardManual": {
+    "message": "Tidak dapat menyalin ke clipboard. Gunakan opsi salin manual.",
+    "description": "Error message when clipboard fails in popup"
+  }
+}

@@ -8,95 +8,95 @@
 <body>
   <!-- Normal UI section -->
   <div id="normalUI">
-    <h1 style="text-align: center; margin: 1px;">Chatbot Q&A Clipper</h1>
+    <h1 style="text-align: center; margin: 1px;" data-i18n="popupTitle">Chatbot Q&A Clipper</h1>
     
-    <button id="copyButton">Copy Q&A to Clipboard</button>
+    <button id="copyButton" data-i18n="copyButton">Copy Q&A to Clipboard</button>
     <div id="status"></div>
     
     <div class="option-group">
-      <label for="headerLevel">Header Level:</label>
+      <label for="headerLevel" data-i18n="headerLevelLabel">Header Level:</label>
       <select id="headerLevel">
-        <option value="1"># (H1)</option>
-        <option value="2">## (H2)</option>
-        <option value="3">### (H3)</option>
-        <option value="4">#### (H4)</option>
-        <option value="5">##### (H5)</option>
+        <option value="1" data-i18n="headerH1"># (H1)</option>
+        <option value="2" data-i18n="headerH2">## (H2)</option>
+        <option value="3" data-i18n="headerH3">### (H3)</option>
+        <option value="4" data-i18n="headerH4">#### (H4)</option>
+        <option value="5" data-i18n="headerH5">##### (H5)</option>
       </select>
     </div>
 
     <div class="option-group">
-      <label for="labelStyle">Label Style:</label>
+      <label for="labelStyle" data-i18n="labelStyleLabel">Label Style:</label>
       <select id="labelStyle">
-        <option value="qa">Question / Answer</option>
-        <option value="prompt">Prompt / Response</option>
-        <option value="short">Q / A</option>
-        <option value="korean">질문 / 답변</option>
-        <option value="chinese">问题 / 回答</option>
-        <option value="japanese">質問 / 回答</option>
-        <option value="vietnamese">Câu hỏi / Trả lời</option>
-        <option value="indonesian">Pertanyaan / Jawaban</option>
-        <option value="hindi">प्रश्न / उत्तर</option>
-        <option value="spanish">Pregunta / Respuesta</option>
-        <option value="portuguese">Pergunta / Resposta</option>
-        <option value="french">Question / Réponse</option>
-        <option value="german">Frage / Antwort</option>
-        <option value="italian">Domanda / Risposta</option>
-        <option value="russian">Вопрос / Ответ</option>
-        <option value="arabic">سؤال / جواب</option>
-        <option value="swahili">Swali / Jibu</option>
+        <option value="qa" data-i18n="labelStyleQA">Question / Answer</option>
+        <option value="prompt" data-i18n="labelStylePrompt">Prompt / Response</option>
+        <option value="short" data-i18n="labelStyleShort">Q / A</option>
+        <option value="korean" data-i18n="labelStyleKorean">질문 / 답변</option>
+        <option value="chinese" data-i18n="labelStyleChinese">问题 / 回答</option>
+        <option value="japanese" data-i18n="labelStyleJapanese">質問 / 回答</option>
+        <option value="vietnamese" data-i18n="labelStyleVietnamese">Câu hỏi / Trả lời</option>
+        <option value="indonesian" data-i18n="labelStyleIndonesian">Pertanyaan / Jawaban</option>
+        <option value="hindi" data-i18n="labelStyleHindi">प्रश्न / उत्तर</option>
+        <option value="spanish" data-i18n="labelStyleSpanish">Pregunta / Respuesta</option>
+        <option value="portuguese" data-i18n="labelStylePortuguese">Pergunta / Resposta</option>
+        <option value="french" data-i18n="labelStyleFrench">Question / Réponse</option>
+        <option value="german" data-i18n="labelStyleGerman">Frage / Antwort</option>
+        <option value="italian" data-i18n="labelStyleItalian">Domanda / Risposta</option>
+        <option value="russian" data-i18n="labelStyleRussian">Вопрос / Ответ</option>
+        <option value="arabic" data-i18n="labelStyleArabic">سؤال / جواب</option>
+        <option value="swahili" data-i18n="labelStyleSwahili">Swali / Jibu</option>
       </select>
     </div>
 
     <div class="option-group">
-      <label for="numberFormat">Number Format:</label>
+      <label for="numberFormat" data-i18n="numberFormatLabel">Number Format:</label>
       <select id="numberFormat">
-        <option value="noSpace">1 (No space)</option>
-        <option value="space">&nbsp;1 (Space before number)</option>
-        <option value="dashNoSpace">-1 (Dash, no space)</option>
-        <option value="dash">-&nbsp;1 (Dash with space)</option>
-        <option value="spaceDashNoSpace">&nbsp;-1 (Space, then dash)</option>
-        <option value="spaceDash">&nbsp;-&nbsp;1 (Space, dash, space)</option>
-        <option value="colonNoSpace">:1 (Colon, no space)</option>
-        <option value="colon">:&nbsp;1 (Colon with space)</option>
-        <option value="spaceColonNoSpace">&nbsp;:1 (Space, then colon)</option>
-        <option value="spaceColon">&nbsp;:&nbsp;1 (Space, colon, space)</option>
+        <option value="noSpace" data-i18n="numberFormatNoSpace">1 (No space)</option>
+        <option value="space" data-i18n="numberFormatSpace">&nbsp;1 (Space before number)</option>
+        <option value="dashNoSpace" data-i18n="numberFormatDashNoSpace">-1 (Dash, no space)</option>
+        <option value="dash" data-i18n="numberFormatDash">-&nbsp;1 (Dash with space)</option>
+        <option value="spaceDashNoSpace" data-i18n="numberFormatSpaceDashNoSpace">&nbsp;-1 (Space, then dash)</option>
+        <option value="spaceDash" data-i18n="numberFormatSpaceDash">&nbsp;-&nbsp;1 (Space, dash, space)</option>
+        <option value="colonNoSpace" data-i18n="numberFormatColonNoSpace">:1 (Colon, no space)</option>
+        <option value="colon" data-i18n="numberFormatColon">:&nbsp;1 (Colon with space)</option>
+        <option value="spaceColonNoSpace" data-i18n="numberFormatSpaceColonNoSpace">&nbsp;:1 (Space, then colon)</option>
+        <option value="spaceColon" data-i18n="numberFormatSpaceColon">&nbsp;:&nbsp;1 (Space, colon, space)</option>
       </select>
     </div>
 
     <div class="option-group">
-      <label for="imageFormat">Image URL Format:</label>
+      <label for="imageFormat" data-i18n="imageFormatLabel">Image URL Format:</label>
       <select id="imageFormat">
-        <option value="bracketed">[Image URL]: https://...</option>
-        <option value="markdown">[Image URL](https://...)</option>
-        <option value="plain">https://... (plain URL)</option>
+        <option value="bracketed" data-i18n="imageFormatBracketed">[Image URL]: https://...</option>
+        <option value="markdown" data-i18n="imageFormatMarkdown">[Image URL](https://...)</option>
+        <option value="plain" data-i18n="imageFormatPlain">https://... (plain URL)</option>
       </select>
     </div>
     
     <div class="option-group">
-      <label for="imageLabel">Custom Image Label:</label>
-      <input type="text" id="imageLabel" placeholder="Image URL">
+      <label for="imageLabel" data-i18n="imageLabelLabel">Custom Image Label:</label>
+      <input type="text" id="imageLabel" data-i18n-placeholder="imageLabelPlaceholder" placeholder="Image URL">
     </div>
     
     <hr>
     
     <div class="option-group">
       <label for="includePlatform">
-        Include Platform Name <input type="checkbox" id="includePlatform" style="margin-right: 0px;">
+        <span data-i18n="includePlatformLabel">Include Platform Name</span> <input type="checkbox" id="includePlatform" style="margin-right: 0px;">
       </label>
     </div>
 
     <div class="option-group">
       <label for="excludeFileCitations">
-        Exclude File Citations (ChatGPT)
-        <span class="help-icon" data-tooltip="Excludes file reference badges that appear when ChatGPT quotes from uploaded files">ⓘ</span>
+        <span data-i18n="excludeFileCitationsLabel">Exclude File Citations (ChatGPT)</span>
+        <span class="help-icon" data-i18n-tooltip="excludeFileCitationsTooltip" data-tooltip="Excludes file reference badges that appear when ChatGPT quotes from uploaded files">ⓘ</span>
         <input type="checkbox" id="excludeFileCitations" style="margin-right: 0px;">
       </label>
     </div>
 
     <div class="option-group">
       <label for="includePseudoQuotes">
-        Include Quote Marks (ChatGPT)
-        <span class="help-icon" data-tooltip="Extracts quotation marks from CSS ::before/::after pseudo-elements in blockquote list items">ⓘ</span>
+        <span data-i18n="includePseudoQuotesLabel">Include Quote Marks (ChatGPT)</span>
+        <span class="help-icon" data-i18n-tooltip="includePseudoQuotesTooltip" data-tooltip="Extracts quotation marks from CSS ::before/::after pseudo-elements in blockquote list items">ⓘ</span>
         <input type="checkbox" id="includePseudoQuotes" style="margin-right: 0px;">
       </label>
     </div>
@@ -104,23 +104,23 @@
     <hr>
 
     <div class="option-group">
-      <label>Keyboard Shortcut:</label>
-      <div id="currentShortcut" class="shortcut-display">Loading...</div>
+      <label data-i18n="keyboardShortcutLabel">Keyboard Shortcut:</label>
+      <div id="currentShortcut" class="shortcut-display" data-i18n="shortcutLoading">Loading...</div>
       <div class="shortcut-help">
-        <a href="#" id="shortcutConfigLink">Configure shortcut in Chrome</a>
+        <a href="#" id="shortcutConfigLink" data-i18n="shortcutConfigLink">Configure shortcut in Chrome</a>
       </div>
     </div>
   </div>
   
   <!-- Manual Copy UI section (initially hidden) -->
   <div id="manualCopyUI" style="display: none;">
-    <h3>Clipboard access failed</h3>
-    <p>Please use the button below to copy the extracted text:</p>
+    <h3 data-i18n="manualCopyTitle">Clipboard access failed</h3>
+    <p data-i18n="manualCopyInstructions">Please use the button below to copy the extracted text:</p>
     <textarea id="extractedTextArea" readonly></textarea>
-    <button id="manualCopyButton">Copy to Clipboard</button>
-    <button id="backButton" class="secondary">Back to Settings</button>
+    <button id="manualCopyButton" data-i18n="manualCopyButton">Copy to Clipboard</button>
+    <button id="backButton" class="secondary" data-i18n="backToSettingsButton">Back to Settings</button>
   </div>
   
   <script src="popup.js"></script>
 </body>
-</html> 
+</html>

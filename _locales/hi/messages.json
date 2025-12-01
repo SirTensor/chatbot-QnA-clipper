@@ -1,0 +1,343 @@
+{
+  "extensionName": {
+    "message": "Chatbot Q&A Clipper",
+    "description": "Extension name"
+  },
+  "extensionDescription": {
+    "message": "चैटबॉट बातचीत से प्रश्नोत्तर निकालकर तय प्रारूप में क्लिपबोर्ड पर कॉपी करता है",
+    "description": "Extension description"
+  },
+
+  "popupTitle": {
+    "message": "Chatbot Q&A Clipper",
+    "description": "Title shown in popup header"
+  },
+  "copyButton": {
+    "message": "Q&A को क्लिपबोर्ड पर कॉपी करें",
+    "description": "Main action button text"
+  },
+
+  "headerLevelLabel": {
+    "message": "हेडर स्तर:",
+    "description": "Label for header level selector"
+  },
+  "headerH1": {
+    "message": "# (H1)",
+    "description": "Header level 1 option"
+  },
+  "headerH2": {
+    "message": "## (H2)",
+    "description": "Header level 2 option"
+  },
+  "headerH3": {
+    "message": "### (H3)",
+    "description": "Header level 3 option"
+  },
+  "headerH4": {
+    "message": "#### (H4)",
+    "description": "Header level 4 option"
+  },
+  "headerH5": {
+    "message": "##### (H5)",
+    "description": "Header level 5 option"
+  },
+
+  "labelStyleLabel": {
+    "message": "लेबल स्टाइल:",
+    "description": "Label for Q&A label style selector"
+  },
+  "labelStyleQA": {
+    "message": "Question / Answer",
+    "description": "Q&A label style option"
+  },
+  "labelStylePrompt": {
+    "message": "Prompt / Response",
+    "description": "Prompt/Response label style option"
+  },
+  "labelStyleShort": {
+    "message": "Q / A",
+    "description": "Short Q/A label style option"
+  },
+  "labelStyleKorean": {
+    "message": "질문 / 답변",
+    "description": "Korean label style option"
+  },
+  "labelStyleChinese": {
+    "message": "问题 / 回答",
+    "description": "Chinese label style option"
+  },
+  "labelStyleJapanese": {
+    "message": "質問 / 回答",
+    "description": "Japanese label style option"
+  },
+  "labelStyleVietnamese": {
+    "message": "Câu hỏi / Trả lời",
+    "description": "Vietnamese label style option"
+  },
+  "labelStyleIndonesian": {
+    "message": "Pertanyaan / Jawaban",
+    "description": "Indonesian label style option"
+  },
+  "labelStyleHindi": {
+    "message": "प्रश्न / उत्तर",
+    "description": "Hindi label style option"
+  },
+  "labelStyleSpanish": {
+    "message": "Pregunta / Respuesta",
+    "description": "Spanish label style option"
+  },
+  "labelStylePortuguese": {
+    "message": "Pergunta / Resposta",
+    "description": "Portuguese label style option"
+  },
+  "labelStyleFrench": {
+    "message": "Question / Réponse",
+    "description": "French label style option"
+  },
+  "labelStyleGerman": {
+    "message": "Frage / Antwort",
+    "description": "German label style option"
+  },
+  "labelStyleItalian": {
+    "message": "Domanda / Risposta",
+    "description": "Italian label style option"
+  },
+  "labelStyleRussian": {
+    "message": "Вопрос / Ответ",
+    "description": "Russian label style option"
+  },
+  "labelStyleArabic": {
+    "message": "سؤال / جواب",
+    "description": "Arabic label style option"
+  },
+  "labelStyleSwahili": {
+    "message": "Swali / Jibu",
+    "description": "Swahili label style option"
+  },
+
+  "numberFormatLabel": {
+    "message": "संख्या प्रारूप:",
+    "description": "Label for number format selector"
+  },
+  "numberFormatNoSpace": {
+    "message": "1 (बिना स्पेस)",
+    "description": "Number format without space"
+  },
+  "numberFormatSpace": {
+    "message": " 1 (संख्या से पहले स्पेस)",
+    "description": "Number format with space before"
+  },
+  "numberFormatDashNoSpace": {
+    "message": "-1 (डैश, बिना स्पेस)",
+    "description": "Number format with dash, no space"
+  },
+  "numberFormatDash": {
+    "message": "- 1 (डैश और स्पेस)",
+    "description": "Number format with dash and space"
+  },
+  "numberFormatSpaceDashNoSpace": {
+    "message": " -1 (स्पेस के बाद डैश)",
+    "description": "Number format with space then dash"
+  },
+  "numberFormatSpaceDash": {
+    "message": " - 1 (स्पेस, डैश, स्पेस)",
+    "description": "Number format with space, dash, space"
+  },
+  "numberFormatColonNoSpace": {
+    "message": ":1 (कोलन, बिना स्पेस)",
+    "description": "Number format with colon, no space"
+  },
+  "numberFormatColon": {
+    "message": ": 1 (कोलन और स्पेस)",
+    "description": "Number format with colon and space"
+  },
+  "numberFormatSpaceColonNoSpace": {
+    "message": " :1 (स्पेस के बाद कोलन)",
+    "description": "Number format with space then colon"
+  },
+  "numberFormatSpaceColon": {
+    "message": " : 1 (स्पेस, कोलन, स्पेस)",
+    "description": "Number format with space, colon, space"
+  },
+
+  "imageFormatLabel": {
+    "message": "छवि URL प्रारूप:",
+    "description": "Label for image format selector"
+  },
+  "imageFormatBracketed": {
+    "message": "[Image URL]: https://...",
+    "description": "Bracketed image format option"
+  },
+  "imageFormatMarkdown": {
+    "message": "[Image URL](https://...)",
+    "description": "Markdown image format option"
+  },
+  "imageFormatPlain": {
+    "message": "https://... (साधारण URL)",
+    "description": "Plain URL image format option"
+  },
+
+  "imageLabelLabel": {
+    "message": "कस्टम छवि लेबल:",
+    "description": "Label for custom image label input"
+  },
+  "imageLabelPlaceholder": {
+    "message": "Image URL",
+    "description": "Placeholder for custom image label input"
+  },
+
+  "includePlatformLabel": {
+    "message": "प्लेटफ़ॉर्म नाम शामिल करें",
+    "description": "Label for include platform checkbox"
+  },
+
+  "excludeFileCitationsLabel": {
+    "message": "फ़ाइल उद्धरण हटाएं (ChatGPT)",
+    "description": "Label for exclude file citations checkbox"
+  },
+  "excludeFileCitationsTooltip": {
+    "message": "जब ChatGPT अपलोड की गई फाइलों का संदर्भ देता है तब दिखने वाले फ़ाइल संदर्भ बैज को हटाता है",
+    "description": "Tooltip for exclude file citations option"
+  },
+
+  "includePseudoQuotesLabel": {
+    "message": "उद्धरण चिह्न शामिल करें (ChatGPT)",
+    "description": "Label for include quote marks checkbox"
+  },
+  "includePseudoQuotesTooltip": {
+    "message": "blockquote सूची आइटम के CSS ::before/::after छद्म-तत्वों से उद्धरण चिह्न निकालता है",
+    "description": "Tooltip for include quote marks option"
+  },
+
+  "keyboardShortcutLabel": {
+    "message": "कीबोर्ड शॉर्टकट:",
+    "description": "Label for keyboard shortcut display"
+  },
+  "shortcutLoading": {
+    "message": "लोड हो रहा है...",
+    "description": "Text shown while loading shortcut"
+  },
+  "shortcutNotSet": {
+    "message": "शॉर्टकट सेट नहीं है",
+    "description": "Text shown when no shortcut is configured"
+  },
+  "shortcutConfigLink": {
+    "message": "Chrome में शॉर्टकट सेट करें",
+    "description": "Link text to configure shortcuts"
+  },
+
+  "commandTriggerExtraction": {
+    "message": "Q&A को क्लिपबोर्ड पर कॉपी करें",
+    "description": "Command description for trigger-extraction"
+  },
+
+  "manualCopyTitle": {
+    "message": "क्लिपबोर्ड एक्सेस विफल",
+    "description": "Title for manual copy section"
+  },
+  "manualCopyInstructions": {
+    "message": "निकाला गया पाठ कॉपी करने के लिए नीचे दिए गए बटन का उपयोग करें:",
+    "description": "Instructions for manual copy"
+  },
+  "manualCopyButton": {
+    "message": "क्लिपबोर्ड में कॉपी करें",
+    "description": "Manual copy button text"
+  },
+  "backToSettingsButton": {
+    "message": "सेटिंग्स पर वापस जाएं",
+    "description": "Back button text"
+  },
+
+  "statusExtracting": {
+    "message": "Q&A निकाला जा रहा है...",
+    "description": "Status message while extracting"
+  },
+  "statusError": {
+    "message": "त्रुटि: $MESSAGE$",
+    "description": "Status message for errors",
+    "placeholders": {
+      "message": {
+        "content": "$1",
+        "example": "Connection failed"
+      }
+    }
+  },
+  "statusWaitDebounce": {
+    "message": "कृपया पुनः क्लिक करने से पहले प्रतीक्षा करें.",
+    "description": "Status message for debounce"
+  },
+  "statusStartError": {
+    "message": "निष्कर्षण शुरू करने में त्रुटि",
+    "description": "Status message when extraction fails to start"
+  },
+  "statusCopied": {
+    "message": "क्लिपबोर्ड में कॉपी हो गया!",
+    "description": "Status message when copy succeeds"
+  },
+
+  "toastCopied": {
+    "message": "Q&A क्लिपबोर्ड में कॉपी हो गया!",
+    "description": "Toast message when Q&A copied successfully"
+  },
+  "toastUnsupportedSite": {
+    "message": "यह वेबसाइट एक्सटेंशन द्वारा समर्थित नहीं है.",
+    "description": "Toast message for unsupported websites"
+  },
+  "toastNoConversation": {
+    "message": "निकालने के लिए कोई बातचीत नहीं मिली.",
+    "description": "Toast message when no conversation found"
+  },
+  "toastNoConversationYet": {
+    "message": "अभी तक निकालने के लिए कोई बातचीत नहीं है.",
+    "description": "Toast message for empty/new chat"
+  },
+  "toastClipboardFailed": {
+    "message": "कॉपी नहीं हो सका. मैन्युअल कॉपी के लिए एक्सटेंशन पॉपअप खोलें.",
+    "description": "Toast message when clipboard fails"
+  },
+  "toastScriptLoadError": {
+    "message": "त्रुटि: एक्सटेंशन स्क्रिप्ट लोड नहीं हो सकीं.",
+    "description": "Toast message when scripts fail to load"
+  },
+  "toastPermissionError": {
+    "message": "एक्सटेंशन अनुमतियों की जांच में त्रुटि.",
+    "description": "Toast message for permission check error"
+  },
+
+  "errorNoActiveTab": {
+    "message": "कोई सक्रिय टैब नहीं मिला.",
+    "description": "Error message when no active tab"
+  },
+  "errorMissingUrl": {
+    "message": "पेज URL अनुपलब्ध है.",
+    "description": "Error message when URL is missing"
+  },
+  "errorUnsupportedPage": {
+    "message": "असमर्थित पेज.",
+    "description": "Error message for unsupported page"
+  },
+  "errorInvalidData": {
+    "message": "त्रुटि: पेज से अमान्य डेटा प्राप्त हुआ. निष्कर्षण विफल.",
+    "description": "Error message for invalid extraction data"
+  },
+  "errorScriptsNotLoaded": {
+    "message": "त्रुटि: पेज पर आवश्यक एक्सटेंशन स्क्रिप्ट लोड नहीं हो सकीं.",
+    "description": "Error message when scripts don't load"
+  },
+  "errorCommunication": {
+    "message": "पेज से संचार नहीं हो सका. कृपया पेज रीलोड करके फिर से प्रयास करें.",
+    "description": "Error message for communication failure"
+  },
+  "errorConnectionLost": {
+    "message": "पेज से कनेक्शन टूट गया. रीलोड करें और पुनः प्रयास करें.",
+    "description": "Error message when connection lost"
+  },
+  "errorTimeout": {
+    "message": "निष्कर्षण में बहुत समय लग रहा है या अप्रत्याशित रूप से विफल हुआ. कृपया पुनः प्रयास करें.",
+    "description": "Error message for timeout"
+  },
+  "errorClipboardManual": {
+    "message": "क्लिपबोर्ड पर कॉपी नहीं हो सका. मैन्युअल कॉपी विकल्प का उपयोग कर रहे हैं.",
+    "description": "Error message when clipboard fails in popup"
+  }
+}

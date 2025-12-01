@@ -1,0 +1,343 @@
+{
+  "extensionName": {
+    "message": "Chatbot Q&A Clipper",
+    "description": "Extension name"
+  },
+  "extensionDescription": {
+    "message": "يستخرج أسئلة وأجوبة من محادثات روبوت الدردشة وينسخها إلى الحافظة بصيغ محددة",
+    "description": "Extension description"
+  },
+
+  "popupTitle": {
+    "message": "Chatbot Q&A Clipper",
+    "description": "Title shown in popup header"
+  },
+  "copyButton": {
+    "message": "نسخ الأسئلة والأجوبة إلى الحافظة",
+    "description": "Main action button text"
+  },
+
+  "headerLevelLabel": {
+    "message": "مستوى العنوان:",
+    "description": "Label for header level selector"
+  },
+  "headerH1": {
+    "message": "# (H1)",
+    "description": "Header level 1 option"
+  },
+  "headerH2": {
+    "message": "## (H2)",
+    "description": "Header level 2 option"
+  },
+  "headerH3": {
+    "message": "### (H3)",
+    "description": "Header level 3 option"
+  },
+  "headerH4": {
+    "message": "#### (H4)",
+    "description": "Header level 4 option"
+  },
+  "headerH5": {
+    "message": "##### (H5)",
+    "description": "Header level 5 option"
+  },
+
+  "labelStyleLabel": {
+    "message": "نمط التسمية:",
+    "description": "Label for Q&A label style selector"
+  },
+  "labelStyleQA": {
+    "message": "Question / Answer",
+    "description": "Q&A label style option"
+  },
+  "labelStylePrompt": {
+    "message": "Prompt / Response",
+    "description": "Prompt/Response label style option"
+  },
+  "labelStyleShort": {
+    "message": "Q / A",
+    "description": "Short Q/A label style option"
+  },
+  "labelStyleKorean": {
+    "message": "질문 / 답변",
+    "description": "Korean label style option"
+  },
+  "labelStyleChinese": {
+    "message": "问题 / 回答",
+    "description": "Chinese label style option"
+  },
+  "labelStyleJapanese": {
+    "message": "質問 / 回答",
+    "description": "Japanese label style option"
+  },
+  "labelStyleVietnamese": {
+    "message": "Câu hỏi / Trả lời",
+    "description": "Vietnamese label style option"
+  },
+  "labelStyleIndonesian": {
+    "message": "Pertanyaan / Jawaban",
+    "description": "Indonesian label style option"
+  },
+  "labelStyleHindi": {
+    "message": "प्रश्न / उत्तर",
+    "description": "Hindi label style option"
+  },
+  "labelStyleSpanish": {
+    "message": "Pregunta / Respuesta",
+    "description": "Spanish label style option"
+  },
+  "labelStylePortuguese": {
+    "message": "Pergunta / Resposta",
+    "description": "Portuguese label style option"
+  },
+  "labelStyleFrench": {
+    "message": "Question / Réponse",
+    "description": "French label style option"
+  },
+  "labelStyleGerman": {
+    "message": "Frage / Antwort",
+    "description": "German label style option"
+  },
+  "labelStyleItalian": {
+    "message": "Domanda / Risposta",
+    "description": "Italian label style option"
+  },
+  "labelStyleRussian": {
+    "message": "Вопрос / Ответ",
+    "description": "Russian label style option"
+  },
+  "labelStyleArabic": {
+    "message": "سؤال / جواب",
+    "description": "Arabic label style option"
+  },
+  "labelStyleSwahili": {
+    "message": "Swali / Jibu",
+    "description": "Swahili label style option"
+  },
+
+  "numberFormatLabel": {
+    "message": "تنسيق الترقيم:",
+    "description": "Label for number format selector"
+  },
+  "numberFormatNoSpace": {
+    "message": "1 (بدون مسافة)",
+    "description": "Number format without space"
+  },
+  "numberFormatSpace": {
+    "message": " 1 (مسافة قبل الرقم)",
+    "description": "Number format with space before"
+  },
+  "numberFormatDashNoSpace": {
+    "message": "-1 (شرطة، بدون مسافة)",
+    "description": "Number format with dash, no space"
+  },
+  "numberFormatDash": {
+    "message": "- 1 (شرطة مع مسافة)",
+    "description": "Number format with dash and space"
+  },
+  "numberFormatSpaceDashNoSpace": {
+    "message": " -1 (مسافة ثم شرطة)",
+    "description": "Number format with space then dash"
+  },
+  "numberFormatSpaceDash": {
+    "message": " - 1 (مسافة، شرطة، مسافة)",
+    "description": "Number format with space, dash, space"
+  },
+  "numberFormatColonNoSpace": {
+    "message": ":1 (نقطتان، بدون مسافة)",
+    "description": "Number format with colon, no space"
+  },
+  "numberFormatColon": {
+    "message": ": 1 (نقطتان مع مسافة)",
+    "description": "Number format with colon and space"
+  },
+  "numberFormatSpaceColonNoSpace": {
+    "message": " :1 (مسافة ثم نقطتان)",
+    "description": "Number format with space then colon"
+  },
+  "numberFormatSpaceColon": {
+    "message": " : 1 (مسافة، نقطتان، مسافة)",
+    "description": "Number format with space, colon, space"
+  },
+
+  "imageFormatLabel": {
+    "message": "تنسيق رابط الصورة:",
+    "description": "Label for image format selector"
+  },
+  "imageFormatBracketed": {
+    "message": "[رابط الصورة]: https://...",
+    "description": "Bracketed image format option"
+  },
+  "imageFormatMarkdown": {
+    "message": "[رابط الصورة](https://...)",
+    "description": "Markdown image format option"
+  },
+  "imageFormatPlain": {
+    "message": "https://... (رابط عادي)",
+    "description": "Plain URL image format option"
+  },
+
+  "imageLabelLabel": {
+    "message": "تسمية صورة مخصصة:",
+    "description": "Label for custom image label input"
+  },
+  "imageLabelPlaceholder": {
+    "message": "رابط الصورة",
+    "description": "Placeholder for custom image label input"
+  },
+
+  "includePlatformLabel": {
+    "message": "تضمين اسم المنصة",
+    "description": "Label for include platform checkbox"
+  },
+
+  "excludeFileCitationsLabel": {
+    "message": "استبعاد اقتباسات الملفات (ChatGPT)",
+    "description": "Label for exclude file citations checkbox"
+  },
+  "excludeFileCitationsTooltip": {
+    "message": "يستبعد شارات مراجع الملفات التي تظهر عندما يقتبس ChatGPT من ملفات مرفوعة",
+    "description": "Tooltip for exclude file citations option"
+  },
+
+  "includePseudoQuotesLabel": {
+    "message": "تضمين علامات الاقتباس (ChatGPT)",
+    "description": "Label for include quote marks checkbox"
+  },
+  "includePseudoQuotesTooltip": {
+    "message": "يستخرج علامات الاقتباس من عناصر CSS ::before/::after في عناصر قوائم الاقتباس المضمن",
+    "description": "Tooltip for include quote marks option"
+  },
+
+  "keyboardShortcutLabel": {
+    "message": "اختصار لوحة المفاتيح:",
+    "description": "Label for keyboard shortcut display"
+  },
+  "shortcutLoading": {
+    "message": "جارٍ التحميل...",
+    "description": "Text shown while loading shortcut"
+  },
+  "shortcutNotSet": {
+    "message": "لا يوجد اختصار محدد",
+    "description": "Text shown when no shortcut is configured"
+  },
+  "shortcutConfigLink": {
+    "message": "تكوين الاختصار في Chrome",
+    "description": "Link text to configure shortcuts"
+  },
+
+  "commandTriggerExtraction": {
+    "message": "نسخ الأسئلة والأجوبة إلى الحافظة",
+    "description": "Command description for trigger-extraction"
+  },
+
+  "manualCopyTitle": {
+    "message": "فشل الوصول إلى الحافظة",
+    "description": "Title for manual copy section"
+  },
+  "manualCopyInstructions": {
+    "message": "يرجى استخدام الزر أدناه لنسخ النص المستخرج:",
+    "description": "Instructions for manual copy"
+  },
+  "manualCopyButton": {
+    "message": "نسخ إلى الحافظة",
+    "description": "Manual copy button text"
+  },
+  "backToSettingsButton": {
+    "message": "العودة إلى الإعدادات",
+    "description": "Back button text"
+  },
+
+  "statusExtracting": {
+    "message": "جارٍ استخراج الأسئلة والأجوبة...",
+    "description": "Status message while extracting"
+  },
+  "statusError": {
+    "message": "خطأ: $MESSAGE$",
+    "description": "Status message for errors",
+    "placeholders": {
+      "message": {
+        "content": "$1",
+        "example": "Connection failed"
+      }
+    }
+  },
+  "statusWaitDebounce": {
+    "message": "يرجى الانتظار قبل النقر مرة أخرى.",
+    "description": "Status message for debounce"
+  },
+  "statusStartError": {
+    "message": "خطأ في بدء الاستخراج",
+    "description": "Status message when extraction fails to start"
+  },
+  "statusCopied": {
+    "message": "تم النسخ إلى الحافظة!",
+    "description": "Status message when copy succeeds"
+  },
+
+  "toastCopied": {
+    "message": "تم نسخ الأسئلة والأجوبة إلى الحافظة!",
+    "description": "Toast message when Q&A copied successfully"
+  },
+  "toastUnsupportedSite": {
+    "message": "هذا الموقع غير مدعوم من الإضافة.",
+    "description": "Toast message for unsupported websites"
+  },
+  "toastNoConversation": {
+    "message": "لم يتم العثور على محادثة لاستخراجها.",
+    "description": "Toast message when no conversation found"
+  },
+  "toastNoConversationYet": {
+    "message": "لا توجد محادثة للاستخراج بعد.",
+    "description": "Toast message for empty/new chat"
+  },
+  "toastClipboardFailed": {
+    "message": "تعذر النسخ. افتح نافذة الإضافة للنسخ يدويًا.",
+    "description": "Toast message when clipboard fails"
+  },
+  "toastScriptLoadError": {
+    "message": "خطأ: تعذر تحميل سكربتات الإضافة.",
+    "description": "Toast message when scripts fail to load"
+  },
+  "toastPermissionError": {
+    "message": "خطأ أثناء التحقق من أذونات الإضافة.",
+    "description": "Toast message for permission check error"
+  },
+
+  "errorNoActiveTab": {
+    "message": "لم يتم العثور على علامة تبويب نشطة.",
+    "description": "Error message when no active tab"
+  },
+  "errorMissingUrl": {
+    "message": "عنوان URL للصفحة مفقود.",
+    "description": "Error message when URL is missing"
+  },
+  "errorUnsupportedPage": {
+    "message": "صفحة غير مدعومة.",
+    "description": "Error message for unsupported page"
+  },
+  "errorInvalidData": {
+    "message": "خطأ: تم استلام بيانات غير صالحة من الصفحة. فشل الاستخراج.",
+    "description": "Error message for invalid extraction data"
+  },
+  "errorScriptsNotLoaded": {
+    "message": "خطأ: تعذر تحميل سكربتات الإضافة المطلوبة على الصفحة.",
+    "description": "Error message when scripts don't load"
+  },
+  "errorCommunication": {
+    "message": "فشل التواصل مع الصفحة. يرجى إعادة تحميل الصفحة والمحاولة مرة أخرى.",
+    "description": "Error message for communication failure"
+  },
+  "errorConnectionLost": {
+    "message": "انقطع الاتصال بالصفحة. أعد التحميل وحاول مرة أخرى.",
+    "description": "Error message when connection lost"
+  },
+  "errorTimeout": {
+    "message": "استغرق الاستخراج وقتًا طويلاً أو فشل بشكل غير متوقع. يرجى المحاولة مرة أخرى.",
+    "description": "Error message for timeout"
+  },
+  "errorClipboardManual": {
+    "message": "تعذر النسخ إلى الحافظة. جاري استخدام خيار النسخ اليدوي.",
+    "description": "Error message when clipboard fails in popup"
+  }
+}

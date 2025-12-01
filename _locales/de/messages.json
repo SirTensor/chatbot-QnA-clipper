@@ -1,0 +1,343 @@
+{
+  "extensionName": {
+    "message": "Chatbot Q&A Clipper",
+    "description": "Extension name"
+  },
+  "extensionDescription": {
+    "message": "Extrahiert Fragen und Antworten aus Chatbot-Unterhaltungen und kopiert sie in bestimmten Formaten in die Zwischenablage",
+    "description": "Extension description"
+  },
+
+  "popupTitle": {
+    "message": "Chatbot Q&A Clipper",
+    "description": "Title shown in popup header"
+  },
+  "copyButton": {
+    "message": "Q&A in die Zwischenablage kopieren",
+    "description": "Main action button text"
+  },
+
+  "headerLevelLabel": {
+    "message": "Überschriftenniveau:",
+    "description": "Label for header level selector"
+  },
+  "headerH1": {
+    "message": "# (H1)",
+    "description": "Header level 1 option"
+  },
+  "headerH2": {
+    "message": "## (H2)",
+    "description": "Header level 2 option"
+  },
+  "headerH3": {
+    "message": "### (H3)",
+    "description": "Header level 3 option"
+  },
+  "headerH4": {
+    "message": "#### (H4)",
+    "description": "Header level 4 option"
+  },
+  "headerH5": {
+    "message": "##### (H5)",
+    "description": "Header level 5 option"
+  },
+
+  "labelStyleLabel": {
+    "message": "Label-Stil:",
+    "description": "Label for Q&A label style selector"
+  },
+  "labelStyleQA": {
+    "message": "Question / Answer",
+    "description": "Q&A label style option"
+  },
+  "labelStylePrompt": {
+    "message": "Prompt / Response",
+    "description": "Prompt/Response label style option"
+  },
+  "labelStyleShort": {
+    "message": "Q / A",
+    "description": "Short Q/A label style option"
+  },
+  "labelStyleKorean": {
+    "message": "질문 / 답변",
+    "description": "Korean label style option"
+  },
+  "labelStyleChinese": {
+    "message": "问题 / 回答",
+    "description": "Chinese label style option"
+  },
+  "labelStyleJapanese": {
+    "message": "質問 / 回答",
+    "description": "Japanese label style option"
+  },
+  "labelStyleVietnamese": {
+    "message": "Câu hỏi / Trả lời",
+    "description": "Vietnamese label style option"
+  },
+  "labelStyleIndonesian": {
+    "message": "Pertanyaan / Jawaban",
+    "description": "Indonesian label style option"
+  },
+  "labelStyleHindi": {
+    "message": "प्रश्न / उत्तर",
+    "description": "Hindi label style option"
+  },
+  "labelStyleSpanish": {
+    "message": "Pregunta / Respuesta",
+    "description": "Spanish label style option"
+  },
+  "labelStylePortuguese": {
+    "message": "Pergunta / Resposta",
+    "description": "Portuguese label style option"
+  },
+  "labelStyleFrench": {
+    "message": "Question / Réponse",
+    "description": "French label style option"
+  },
+  "labelStyleGerman": {
+    "message": "Frage / Antwort",
+    "description": "German label style option"
+  },
+  "labelStyleItalian": {
+    "message": "Domanda / Risposta",
+    "description": "Italian label style option"
+  },
+  "labelStyleRussian": {
+    "message": "Вопрос / Ответ",
+    "description": "Russian label style option"
+  },
+  "labelStyleArabic": {
+    "message": "سؤال / جواب",
+    "description": "Arabic label style option"
+  },
+  "labelStyleSwahili": {
+    "message": "Swali / Jibu",
+    "description": "Swahili label style option"
+  },
+
+  "numberFormatLabel": {
+    "message": "Nummernformat:",
+    "description": "Label for number format selector"
+  },
+  "numberFormatNoSpace": {
+    "message": "1 (Kein Leerzeichen)",
+    "description": "Number format without space"
+  },
+  "numberFormatSpace": {
+    "message": " 1 (Leerzeichen vor der Zahl)",
+    "description": "Number format with space before"
+  },
+  "numberFormatDashNoSpace": {
+    "message": "-1 (Bindestrich, kein Leerzeichen)",
+    "description": "Number format with dash, no space"
+  },
+  "numberFormatDash": {
+    "message": "- 1 (Bindestrich mit Leerzeichen)",
+    "description": "Number format with dash and space"
+  },
+  "numberFormatSpaceDashNoSpace": {
+    "message": " -1 (Leerzeichen dann Bindestrich)",
+    "description": "Number format with space then dash"
+  },
+  "numberFormatSpaceDash": {
+    "message": " - 1 (Leerzeichen, Bindestrich, Leerzeichen)",
+    "description": "Number format with space, dash, space"
+  },
+  "numberFormatColonNoSpace": {
+    "message": ":1 (Doppelpunkt, kein Leerzeichen)",
+    "description": "Number format with colon, no space"
+  },
+  "numberFormatColon": {
+    "message": ": 1 (Doppelpunkt mit Leerzeichen)",
+    "description": "Number format with colon and space"
+  },
+  "numberFormatSpaceColonNoSpace": {
+    "message": " :1 (Leerzeichen dann Doppelpunkt)",
+    "description": "Number format with space then colon"
+  },
+  "numberFormatSpaceColon": {
+    "message": " : 1 (Leerzeichen, Doppelpunkt, Leerzeichen)",
+    "description": "Number format with space, colon, space"
+  },
+
+  "imageFormatLabel": {
+    "message": "Bild-URL-Format:",
+    "description": "Label for image format selector"
+  },
+  "imageFormatBracketed": {
+    "message": "[Bild-URL]: https://...",
+    "description": "Bracketed image format option"
+  },
+  "imageFormatMarkdown": {
+    "message": "[Bild-URL](https://...)",
+    "description": "Markdown image format option"
+  },
+  "imageFormatPlain": {
+    "message": "https://... (reine URL)",
+    "description": "Plain URL image format option"
+  },
+
+  "imageLabelLabel": {
+    "message": "Benutzerdefiniertes Bildlabel:",
+    "description": "Label for custom image label input"
+  },
+  "imageLabelPlaceholder": {
+    "message": "Bild-URL",
+    "description": "Placeholder for custom image label input"
+  },
+
+  "includePlatformLabel": {
+    "message": "Plattformnamen einschließen",
+    "description": "Label for include platform checkbox"
+  },
+
+  "excludeFileCitationsLabel": {
+    "message": "Dateizitate ausschließen (ChatGPT)",
+    "description": "Label for exclude file citations checkbox"
+  },
+  "excludeFileCitationsTooltip": {
+    "message": "Schließt Dateireferenz-Badges aus, die erscheinen, wenn ChatGPT hochgeladene Dateien zitiert",
+    "description": "Tooltip for exclude file citations option"
+  },
+
+  "includePseudoQuotesLabel": {
+    "message": "Anführungszeichen einschließen (ChatGPT)",
+    "description": "Label for include quote marks checkbox"
+  },
+  "includePseudoQuotesTooltip": {
+    "message": "Extrahiert Anführungszeichen aus CSS ::before/::after Pseudoelementen in Blockquote-Listeneinträgen",
+    "description": "Tooltip for include quote marks option"
+  },
+
+  "keyboardShortcutLabel": {
+    "message": "Tastenkürzel:",
+    "description": "Label for keyboard shortcut display"
+  },
+  "shortcutLoading": {
+    "message": "Laden...",
+    "description": "Text shown while loading shortcut"
+  },
+  "shortcutNotSet": {
+    "message": "Kein Shortcut festgelegt",
+    "description": "Text shown when no shortcut is configured"
+  },
+  "shortcutConfigLink": {
+    "message": "Shortcut in Chrome konfigurieren",
+    "description": "Link text to configure shortcuts"
+  },
+
+  "commandTriggerExtraction": {
+    "message": "Q&A in die Zwischenablage kopieren",
+    "description": "Command description for trigger-extraction"
+  },
+
+  "manualCopyTitle": {
+    "message": "Zwischenablagezugriff fehlgeschlagen",
+    "description": "Title for manual copy section"
+  },
+  "manualCopyInstructions": {
+    "message": "Bitte nutze die Schaltfläche unten, um den extrahierten Text zu kopieren:",
+    "description": "Instructions for manual copy"
+  },
+  "manualCopyButton": {
+    "message": "In Zwischenablage kopieren",
+    "description": "Manual copy button text"
+  },
+  "backToSettingsButton": {
+    "message": "Zurück zu Einstellungen",
+    "description": "Back button text"
+  },
+
+  "statusExtracting": {
+    "message": "Q&A wird extrahiert...",
+    "description": "Status message while extracting"
+  },
+  "statusError": {
+    "message": "Fehler: $MESSAGE$",
+    "description": "Status message for errors",
+    "placeholders": {
+      "message": {
+        "content": "$1",
+        "example": "Connection failed"
+      }
+    }
+  },
+  "statusWaitDebounce": {
+    "message": "Bitte warte, bevor du erneut klickst.",
+    "description": "Status message for debounce"
+  },
+  "statusStartError": {
+    "message": "Fehler beim Starten der Extraktion",
+    "description": "Status message when extraction fails to start"
+  },
+  "statusCopied": {
+    "message": "In Zwischenablage kopiert!",
+    "description": "Status message when copy succeeds"
+  },
+
+  "toastCopied": {
+    "message": "Q&A in die Zwischenablage kopiert!",
+    "description": "Toast message when Q&A copied successfully"
+  },
+  "toastUnsupportedSite": {
+    "message": "Diese Website wird von der Erweiterung nicht unterstützt.",
+    "description": "Toast message for unsupported websites"
+  },
+  "toastNoConversation": {
+    "message": "Keine Unterhaltung zum Extrahieren gefunden.",
+    "description": "Toast message when no conversation found"
+  },
+  "toastNoConversationYet": {
+    "message": "Noch keine Unterhaltung zum Extrahieren.",
+    "description": "Toast message for empty/new chat"
+  },
+  "toastClipboardFailed": {
+    "message": "Konnte nicht kopieren. Öffne das Erweiterungs-Popup für manuelles Kopieren.",
+    "description": "Toast message when clipboard fails"
+  },
+  "toastScriptLoadError": {
+    "message": "Fehler: Erweiterungsskripte konnten nicht geladen werden.",
+    "description": "Toast message when scripts fail to load"
+  },
+  "toastPermissionError": {
+    "message": "Fehler beim Prüfen der Erweiterungsberechtigungen.",
+    "description": "Toast message for permission check error"
+  },
+
+  "errorNoActiveTab": {
+    "message": "Kein aktiver Tab gefunden.",
+    "description": "Error message when no active tab"
+  },
+  "errorMissingUrl": {
+    "message": "Seiten-URL fehlt.",
+    "description": "Error message when URL is missing"
+  },
+  "errorUnsupportedPage": {
+    "message": "Nicht unterstützte Seite.",
+    "description": "Error message for unsupported page"
+  },
+  "errorInvalidData": {
+    "message": "Fehler: Ungültige Daten von der Seite erhalten. Extraktion fehlgeschlagen.",
+    "description": "Error message for invalid extraction data"
+  },
+  "errorScriptsNotLoaded": {
+    "message": "Fehler: Erforderliche Erweiterungsskripte konnten auf der Seite nicht geladen werden.",
+    "description": "Error message when scripts don't load"
+  },
+  "errorCommunication": {
+    "message": "Kommunikation mit der Seite fehlgeschlagen. Bitte Seite neu laden und erneut versuchen.",
+    "description": "Error message for communication failure"
+  },
+  "errorConnectionLost": {
+    "message": "Verbindung zur Seite verloren. Bitte neu laden und erneut versuchen.",
+    "description": "Error message when connection lost"
+  },
+  "errorTimeout": {
+    "message": "Die Extraktion dauerte zu lange oder ist unerwartet fehlgeschlagen. Bitte erneut versuchen.",
+    "description": "Error message for timeout"
+  },
+  "errorClipboardManual": {
+    "message": "Konnte nicht in die Zwischenablage kopieren. Verwende die Option zum manuellen Kopieren.",
+    "description": "Error message when clipboard fails in popup"
+  }
+}
