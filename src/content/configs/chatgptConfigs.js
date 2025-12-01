@@ -1067,13 +1067,19 @@
       },
       extractUserUploadedImages: (turnElement) => {
           const images = [];
+          const selectors = chatgptConfig.selectors;
           // Look for images directly (role is already verified by caller)
-          const imageElements = turnElement.querySelectorAll('div.overflow-hidden.rounded-lg img[src]');
+          const imageElements = turnElement.querySelectorAll(selectors.userImageContainer);
           imageElements.forEach(imgElement => {
               const src = imgElement.getAttribute('src');
               if (src && !src.startsWith('data:') && !src.startsWith('blob:')) {
-                  let altText = imgElement.getAttribute('alt')?.trim();
-                  const extractedContent = altText && altText !== "업로드한 이미지" ? altText : "User Uploaded Image";
+                  const altText = imgElement.getAttribute('alt')?.trim();
+                  const ariaLabel = imgElement.getAttribute('aria-label')?.trim();
+                  const labelFromDom = altText || ariaLabel || null;
+                  // Upload previews wrap the image in a dialog-opening button and ship a localized placeholder alt
+                  const isUploadPreviewThumb = !!imgElement.closest('button[aria-haspopup="dialog"]') ||
+                                               !!imgElement.closest('div.bg-token-main-surface-secondary');
+                  const extractedContent = (!isUploadPreviewThumb && labelFromDom) ? labelFromDom : "User Uploaded Image";
                   try {
                       const absoluteSrc = new URL(src, window.location.origin).href;
                       images.push({ type: 'image', sourceUrl: absoluteSrc, isPreviewOnly: false, extractedContent: extractedContent });
