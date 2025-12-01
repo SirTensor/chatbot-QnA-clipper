@@ -1,12 +1,12 @@
-// --- Updated grokConfigs.js (v19 - File attachment icon selector i18n-safe) ---
+// --- Updated grokConfigs.js (v20 - Preserve code block order in lists & i18n file icons) ---
 
 /**
  * Configuration for extracting Q&A data from Grok (grok.com)
- * Version: 19 (File attachment icon selector i18n-safe)
+ * Version: 20 (Preserve code block order in lists & i18n file icons)
  */
 (function() {
   // Initialization check
-  if (window.grokConfig && window.grokConfig.version >= 19) { // Updated version check
+  if (window.grokConfig && window.grokConfig.version >= 20) { // Updated version check
     // console.log("Grok config already initialized (v" + window.grokConfig.version + "), skipping.");
     return;
   }
@@ -148,12 +148,15 @@
         }
       });
       
-      // 6. Remove code blocks from the clone too
+      // 6. Replace code blocks in the clone with placeholders to preserve ordering
+      const codeBlocksInClone = liClone.querySelectorAll(':scope > div.not-prose');
       codeBlockElements.forEach((codeBlock, index) => {
-        const selector = ':scope > div.not-prose';
-        const codeBlockInClone = liClone.querySelector(selector);
+        const codeBlockInClone = codeBlocksInClone[index];
         if (codeBlockInClone) {
-          liClone.removeChild(codeBlockInClone);
+          const placeholderText = `[[CODE_BLOCK_${index}]]`;
+          const textNodeFactory = liClone.ownerDocument || document;
+          const placeholderNode = textNodeFactory.createTextNode(placeholderText);
+          codeBlockInClone.parentNode.replaceChild(placeholderNode, codeBlockInClone);
         }
       });
       
@@ -176,24 +179,94 @@
           marker = `${startNum + itemIndex}.`;
         }
         
-        // 9. Handle multi-line content within list items
-        // Split content by newlines to handle continuation lines with proper indentation
-        const contentLines = trimmedItemMarkdown.split('\n');
         const markerLength = marker.length + 1; // +1 for the space after marker
         const continuationIndent = ' '.repeat(markerLength); // Indent for continuation lines
-        
-        // First line goes with the marker
-        const firstLine = contentLines[0] || '';
-        let line = `${bqPrefix}${indent}${marker} ${firstLine}`;
-        processedItems.push(line);
-        
-        // Subsequent lines get continuation indentation
-        for (let i = 1; i < contentLines.length; i++) {
-          const contLine = contentLines[i];
-          if (contLine.trim()) {
-            // Preserve original indentation from the content, add list continuation indent
-            processedItems.push(`${bqPrefix}${indent}${continuationIndent}${contLine}`);
+        const itemLines = [];
+        let markerAdded = false;
+
+        const ensureMarkerLine = () => {
+          if (!markerAdded) {
+            itemLines.push(`${bqPrefix}${indent}${marker}`);
+            markerAdded = true;
           }
+        };
+
+        const addTextBlock = (textBlock) => {
+          if (!textBlock) return;
+          const lines = textBlock.split('\n').filter(line => line.trim());
+          lines.forEach(line => {
+            if (!markerAdded) {
+              itemLines.push(`${bqPrefix}${indent}${marker} ${line}`);
+              markerAdded = true;
+            } else {
+              itemLines.push(`${bqPrefix}${indent}${continuationIndent}${line}`);
+            }
+          });
+        };
+
+        const addCodeBlock = (codeIndex) => {
+          const codeBlock = codeBlockElements[codeIndex];
+          if (!codeBlock) return;
+          const innerCodeContainer = codeBlock.querySelector(window.grokConfig.selectors.assistantCodeBlockInnerContainer);
+          if (!innerCodeContainer) return;
+          const codeItem = processCodeBlock(innerCodeContainer);
+          if (!codeItem) return;
+
+          if (!markerAdded) {
+            itemLines.push(`${bqPrefix}${indent}${marker}`);
+            markerAdded = true;
+          }
+          
+          const nestedIndent = '   '.repeat(level + 1); // 3 spaces per level
+          let codeIndent;
+          
+          if (isWithinBlockquote) {
+            // Add 3-space indentation for code blocks in list items within blockquotes
+            codeIndent = `${bqPrefix}   ${nestedIndent}`;
+          } else {
+            codeIndent = nestedIndent;
+          }
+          
+          const lang = codeItem.language || '';
+          
+          // Add opening fence with correct indentation
+          itemLines.push(`${codeIndent}\`\`\`${lang}`);
+          
+          // Add each line of code with correct indentation
+          codeItem.content.split('\n').forEach(line => {
+            itemLines.push(`${codeIndent}${line}`);
+          });
+          
+          // Add closing fence with correct indentation
+          itemLines.push(`${codeIndent}\`\`\``);
+        };
+
+        // 9. Reconstruct list item content in DOM order using placeholders
+        const placeholderRegex = /\[\[CODE_BLOCK_(\d+)\]\]/g;
+        let lastIndex = 0;
+        let match;
+        let hasOrderedParts = false;
+
+        while ((match = placeholderRegex.exec(trimmedItemMarkdown)) !== null) {
+          const textSegment = trimmedItemMarkdown.slice(lastIndex, match.index).trim();
+          if (textSegment) {
+            addTextBlock(textSegment);
+            hasOrderedParts = true;
+          }
+          addCodeBlock(parseInt(match[1], 10));
+          hasOrderedParts = true;
+          lastIndex = placeholderRegex.lastIndex;
+        }
+
+        const trailingText = trimmedItemMarkdown.slice(lastIndex).trim();
+        if (trailingText) {
+          addTextBlock(trailingText);
+          hasOrderedParts = true;
+        }
+
+        // If there were no placeholders/text segments but we still have text, add it
+        if (!hasOrderedParts && trimmedItemMarkdown) {
+          addTextBlock(trimmedItemMarkdown);
         }
         
         // 11. Process nested lists recursively
@@ -201,8 +274,9 @@
           const nestedListType = nestedList.tagName.toLowerCase();
           const nestedResult = processList(nestedList, nestedListType, level + 1, isWithinBlockquote, blockquoteLevel);
           if (nestedResult) {
+            ensureMarkerLine();
             nestedResult.content.split('\n').forEach(nestedLine => {
-              processedItems.push(nestedLine);
+              itemLines.push(nestedLine);
             });
           }
         });
@@ -211,6 +285,7 @@
         blockquoteElements.forEach(blockquote => {
           const bqContent = processBlockquote(blockquote, isWithinBlockquote ? blockquoteLevel : 0);
           if (bqContent) {
+            ensureMarkerLine();
             // For blockquotes inside list items, apply parent list's indentation
             const nestedIndent = '   '.repeat(level + 1); // 3 spaces per level
             
@@ -221,51 +296,18 @@
                 // If we're already in a blockquote, only add 3-space indentation for nested code blocks
                 // Regular blockquote content should not get extra indentation
                 if (isWithinBlockquote) {
-                  processedItems.push(line);
+                  itemLines.push(line);
                 } else {
                   // Otherwise, add the parent list's indentation before the blockquote marker
-                  processedItems.push(`${nestedIndent}${line}`);
+                  itemLines.push(`${nestedIndent}${line}`);
                 }
               }
             });
           }
         });
         
-        // 13. Process code blocks nested within list items
-        codeBlockElements.forEach(codeBlock => {
-          const innerCodeContainer = codeBlock.querySelector(window.grokConfig.selectors.assistantCodeBlockInnerContainer);
-          if (innerCodeContainer) {
-            const codeItem = processCodeBlock(innerCodeContainer);
-            if (codeItem) {
-              const lang = codeItem.language || '';
-              
-              // Calculate indentation for nested code blocks
-              const nestedIndent = '   '.repeat(level + 1); // 3 spaces per level
-              
-              // Format the code with proper list indentation and blockquote prefix if needed
-              const codeLines = codeItem.content.split('\n');
-              let codeIndent;
-              
-              if (isWithinBlockquote) {
-                // Add 3-space indentation for code blocks in list items within blockquotes
-                codeIndent = `${bqPrefix}   ${nestedIndent}`;
-              } else {
-                codeIndent = nestedIndent;
-              }
-              
-              // Add opening fence with correct indentation
-              processedItems.push(`${codeIndent}\`\`\`${lang}`);
-              
-              // Add each line of code with correct indentation
-              codeLines.forEach(line => {
-                processedItems.push(`${codeIndent}${line}`);
-              });
-              
-              // Add closing fence with correct indentation
-              processedItems.push(`${codeIndent}\`\`\``);
-            }
-          }
-        });
+        // Commit all lines for this list item
+        itemLines.forEach(line => processedItems.push(line));
 
         if (listType === 'ol') itemIndex++;
       }
@@ -1121,7 +1163,7 @@
   // --- Main Configuration Object ---
   const grokConfig = {
     platformName: 'Grok',
-    version: 19, // Updated config version - File attachment icon selector i18n-safe
+    version: 20, // Updated config version - Preserve code block order in lists & i18n file icons
     selectors: {
       turnContainer: 'div.relative.group.flex.flex-col.justify-center[class*="items-"]',
       userMessageIndicator: '.items-end',
