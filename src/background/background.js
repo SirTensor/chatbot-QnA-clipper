@@ -23,6 +23,41 @@ function getMessage(messageName, substitutions) {
   return chrome.i18n.getMessage(messageName, substitutions) || messageName;
 }
 
+// Determine localized defaults
+function getDefaultLabelStyle() {
+  const languageMap = {
+    ko: 'korean',
+    zh: 'chinese',
+    ja: 'japanese',
+    vi: 'vietnamese',
+    id: 'indonesian',
+    hi: 'hindi',
+    es: 'spanish',
+    pt: 'portuguese',
+    fr: 'french',
+    de: 'german',
+    it: 'italian',
+    ru: 'russian',
+    ar: 'arabic',
+    sw: 'swahili'
+  };
+  const uiLanguage = (chrome.i18n.getUILanguage && chrome.i18n.getUILanguage()) || navigator.language || '';
+  const baseLang = uiLanguage.toLowerCase().split('-')[0];
+  return languageMap[baseLang] || 'qa';
+}
+
+function getDefaultFormatSettings() {
+  return {
+    headerLevel: '1',
+    labelStyle: getDefaultLabelStyle(),
+    numberFormat: 'space',
+    imageFormat: 'bracketed',
+    imageLabel: '',
+    includePlatform: true
+    // Note: customShortcut removed as it's now handled by Chrome's native commands API
+  };
+}
+
 /**
  * Sends a message to the popup, handling the case where the popup might be closed.
  * @param {object} message - The message object to send.
@@ -110,18 +145,15 @@ chrome.runtime.onInstalled.addListener(() => {
 
     // If no settings exist, initialize with defaults
     if (!data.formatSettings) {
-      const defaultSettings = {
-        headerLevel: '1',
-        labelStyle: 'qa',
-        numberFormat: 'space',
-        imageFormat: 'bracketed',
-        imageLabel: '',
-        includePlatform: true 
-        // Note: customShortcut removed as it's now handled by Chrome's native commands API
-      };
+      const defaultSettings = getDefaultFormatSettings();
 
       chrome.storage.local.set({ formatSettings: defaultSettings }, () => {
         // console.log('Initialized default settings:', defaultSettings);
+      });
+    } else if (!data.formatSettings.labelStyle) {
+      const mergedSettings = { ...getDefaultFormatSettings(), ...data.formatSettings };
+      chrome.storage.local.set({ formatSettings: mergedSettings }, () => {
+        // console.log('Backfilled missing labelStyle with default:', mergedSettings);
       });
     }
   });
@@ -607,7 +639,7 @@ async function extractQA() {
 
     // Get the format settings
     const data = await chrome.storage.local.get('formatSettings');
-    const formatSettings = data.formatSettings || {};
+    const formatSettings = { ...getDefaultFormatSettings(), ...(data.formatSettings || {}) };
     // console.log('Using format settings:', formatSettings);
 
     // Send message to content script to extract raw data

@@ -10,6 +10,28 @@ function getMessage(messageName, substitutions) {
   return chrome.i18n.getMessage(messageName, substitutions) || messageName;
 }
 
+function getDefaultLabelStyle() {
+  const languageMap = {
+    ko: 'korean',
+    zh: 'chinese',
+    ja: 'japanese',
+    vi: 'vietnamese',
+    id: 'indonesian',
+    hi: 'hindi',
+    es: 'spanish',
+    pt: 'portuguese',
+    fr: 'french',
+    de: 'german',
+    it: 'italian',
+    ru: 'russian',
+    ar: 'arabic',
+    sw: 'swahili'
+  };
+  const uiLanguage = (chrome.i18n.getUILanguage && chrome.i18n.getUILanguage()) || navigator.language || '';
+  const baseLang = uiLanguage.toLowerCase().split('-')[0];
+  return languageMap[baseLang] || 'qa';
+}
+
 /**
  * Applies i18n translations to all elements with data-i18n attributes
  */
@@ -117,9 +139,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Load settings
   chrome.storage.local.get('formatSettings', (data) => {
+    const defaultLabelStyle = getDefaultLabelStyle();
+
     if (data.formatSettings) {
       document.getElementById('headerLevel').value = data.formatSettings.headerLevel || '2';
-      document.getElementById('labelStyle').value = data.formatSettings.labelStyle || 'qa';
+      document.getElementById('labelStyle').value = data.formatSettings.labelStyle || defaultLabelStyle;
       document.getElementById('numberFormat').value = data.formatSettings.numberFormat || 'space';
 
       document.getElementById('includePlatform').checked = data.formatSettings.includePlatform || false;
@@ -137,6 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       // No saved settings - set defaults including excludeFileCitations checked
       document.getElementById('excludeFileCitations').checked = true;
+      document.getElementById('labelStyle').value = defaultLabelStyle;
     }
   });
   
