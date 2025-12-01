@@ -1,12 +1,12 @@
-// --- Updated grokConfigs.js (v20 - Preserve code block order in lists & i18n file icons) ---
+// --- Updated grokConfigs.js (v22 - Handle image-only replies + localized labels & fallback viewers) ---
 
 /**
  * Configuration for extracting Q&A data from Grok (grok.com)
- * Version: 20 (Preserve code block order in lists & i18n file icons)
+ * Version: 22 (Handle image-only replies + localized labels & fallback viewers)
  */
 (function() {
   // Initialization check
-  if (window.grokConfig && window.grokConfig.version >= 20) { // Updated version check
+  if (window.grokConfig && window.grokConfig.version >= 22) { // Updated version check
     // console.log("Grok config already initialized (v" + window.grokConfig.version + "), skipping.");
     return;
   }
@@ -394,12 +394,13 @@
   function processAssistantImageGrid(gridEl) {
       const images = [];
       const selectors = window.grokConfig.selectors;
+      const viewerLabel = gridEl.closest('[data-testid="image-viewer"]')?.getAttribute('aria-label')?.trim();
       gridEl.querySelectorAll(selectors.assistantImageElement).forEach(imgElement => {
           const src = imgElement.getAttribute('src');
           if (src && !src.startsWith('data:') && !src.startsWith('blob:')) {
               try {
                   const absoluteSrc = new URL(src, window.location.origin).href;
-                  const altText = imgElement.getAttribute('alt')?.trim() || "Image";
+                  const altText = imgElement.getAttribute('alt')?.trim() || viewerLabel || "Image";
                   images.push({
                       type: 'image',
                       src: absoluteSrc,
@@ -1163,7 +1164,7 @@
   // --- Main Configuration Object ---
   const grokConfig = {
     platformName: 'Grok',
-    version: 20, // Updated config version - Preserve code block order in lists & i18n file icons
+    version: 22, // Updated config version - Handle image-only replies + localized labels & fallback viewers
     selectors: {
       turnContainer: 'div.relative.group.flex.flex-col.justify-center[class*="items-"]',
       userMessageIndicator: '.items-end',
@@ -1200,6 +1201,7 @@
       interactiveBlockContainer: 'div.flex.cursor-pointer.rounded-2xl[id^="artifact_card_"]',
       interactiveBlockTitle: '.font-medium.text-sm',
       interactiveBlockType: '.text-fg-secondary.text-sm',
+      assistantImageViewer: '[data-testid=\"image-viewer\"]',
     },
 
     // --- Extraction Functions ---
@@ -1308,6 +1310,14 @@
       // Updated to handle the nested structure: message-bubble > div.relative > response-content-markdown
       const directChildren = Array.from(messageBubble.children);
       const allElements = [];
+      const addedElements = new Set();
+      const addElement = (element, type, parent) => {
+        if (!element || addedElements.has(element)) return;
+        allElements.push({ element, type, parent });
+        addedElements.add(element);
+      };
+      const relevantSelector = selectors.assistantRelevantBlocks;
+      const nestedRelevantSelector = relevantSelector.replace(/:scope\\s*>\\s*/g, ''); // Allow nested blocks when no content container
       
       directChildren.forEach(child => {
         // Check if this is a response-content-markdown container directly
@@ -1315,7 +1325,7 @@
           // Add all relevant blocks within this content container
           const relevantBlocks = child.querySelectorAll(selectors.assistantRelevantBlocks);
           relevantBlocks.forEach(block => {
-            allElements.push({ element: block, type: 'content', parent: child });
+            addElement(block, 'content', child);
           });
         }
         // Check if this child contains response-content-markdown containers (nested structure)
@@ -1326,15 +1336,29 @@
             // Add all relevant blocks within each content container
             const relevantBlocks = contentContainer.querySelectorAll(selectors.assistantRelevantBlocks);
             relevantBlocks.forEach(block => {
-              allElements.push({ element: block, type: 'content', parent: contentContainer });
+              addElement(block, 'content', contentContainer);
             });
           });
           // Check if this child contains interactive blocks (like div.py-1)
           const interactiveBlocks = child.querySelectorAll(selectors.interactiveBlockContainer);
           interactiveBlocks.forEach(block => {
-            allElements.push({ element: block, type: 'interactive', parent: child });
+            addElement(block, 'interactive', child);
           });
         }
+      });
+
+      // Fallback: capture content blocks that live directly under the bubble (e.g., image-only replies without markdown container)
+      const fallbackBlocks = new Set([
+        ...messageBubble.querySelectorAll(relevantSelector),
+        ...messageBubble.querySelectorAll(nestedRelevantSelector)
+      ]);
+      fallbackBlocks.forEach(block => addElement(block, 'content', messageBubble));
+      const fallbackInteractiveBlocks = messageBubble.querySelectorAll(selectors.interactiveBlockContainer);
+      fallbackInteractiveBlocks.forEach(block => addElement(block, 'interactive', messageBubble));
+      // Capture standalone image viewers that may sit outside markdown containers
+      const imageViewers = messageBubble.querySelectorAll(selectors.assistantImageViewer);
+      imageViewers.forEach(viewer => {
+        viewer.querySelectorAll(selectors.assistantImageGrid).forEach(grid => addElement(grid, 'content', viewer));
       });
       
       // Sort elements by their DOM position
@@ -1562,4 +1586,4 @@
   // console.log("grokConfig.js initialized (v" + grokConfig.version + ")");
 
 })(); // End of IIFE
-// --- END OF UPDATED FILE grokConfigs.js (v18) ---
+// --- END OF UPDATED FILE grokConfigs.js (v22) ---
