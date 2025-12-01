@@ -80,24 +80,25 @@
     <hr>
     
     <div class="option-group">
-      <label for="includePlatform">
-        <span data-i18n="includePlatformLabel">Include Platform Name</span> <input type="checkbox" id="includePlatform" style="margin-right: 0px;">
+      <label for="includePlatform" class="checkbox-row">
+        <span class="checkbox-text" data-i18n="includePlatformLabel">Include Platform Name</span>
+        <input type="checkbox" id="includePlatform">
       </label>
     </div>
 
     <div class="option-group">
-      <label for="excludeFileCitations">
-        <span data-i18n="excludeFileCitationsLabel">Exclude File Citations (ChatGPT)</span>
+      <label for="excludeFileCitations" class="checkbox-row">
+        <span class="checkbox-text" data-i18n="excludeFileCitationsLabel">Exclude File Citations (ChatGPT)</span>
         <span class="help-icon" data-i18n-tooltip="excludeFileCitationsTooltip" data-tooltip="Excludes file reference badges that appear when ChatGPT quotes from uploaded files">ⓘ</span>
-        <input type="checkbox" id="excludeFileCitations" style="margin-right: 0px;">
+        <input type="checkbox" id="excludeFileCitations">
       </label>
     </div>
 
     <div class="option-group">
-      <label for="includePseudoQuotes">
-        <span data-i18n="includePseudoQuotesLabel">Include Quote Marks (ChatGPT)</span>
+      <label for="includePseudoQuotes" class="checkbox-row">
+        <span class="checkbox-text" data-i18n="includePseudoQuotesLabel">Include Quote Marks (ChatGPT)</span>
         <span class="help-icon" data-i18n-tooltip="includePseudoQuotesTooltip" data-tooltip="Extracts quotation marks from CSS ::before/::after pseudo-elements in blockquote list items">ⓘ</span>
-        <input type="checkbox" id="includePseudoQuotes" style="margin-right: 0px;">
+        <input type="checkbox" id="includePseudoQuotes">
       </label>
     </div>
 

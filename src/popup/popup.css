@@ -194,3 +194,26 @@ hr {
 .help-tooltip.visible {
   opacity: 1;
 }
+
+/* Checkbox row layout for long translations */
+.checkbox-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.checkbox-row .checkbox-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.checkbox-row .help-icon {
+  flex-shrink: 0;
+  margin-left: 0;
+  margin-top: 2px;
+}
+
+.checkbox-row input[type="checkbox"] {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
