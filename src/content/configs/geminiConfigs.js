@@ -1,9 +1,9 @@
-// geminiConfigs.js (v50 - Comprehensive KaTeX parsing with full support for complex mathematical structures)
+// geminiConfigs.js (v51 - Use data-math attribute for reliable LaTeX extraction)
 
 (function() {
     // Initialization check
-    // v50: Comprehensive KaTeX parsing with full support for complex mathematical structures
-    if (window.geminiConfig && window.geminiConfig.version >= 50) { return; }
+    // v51: Use data-math attribute for reliable LaTeX extraction
+    if (window.geminiConfig && window.geminiConfig.version >= 51) { return; }
 
     // --- Helper Functions ---
 
@@ -545,6 +545,7 @@
 
     /**
      * Converts KaTeX HTML structure back to LaTeX notation
+     * v51: Now uses data-math attribute directly when available (much more reliable)
      * @param {HTMLElement} mathBlock - The math-block element containing KaTeX
      * @returns {string|null} - LaTeX notation or null if conversion fails
      */
@@ -557,6 +558,18 @@
             // Check if this is a display math (katex-display) or inline math
             const isDisplayMath = mathBlock.querySelector('.katex-display') !== null;
             
+            // v51: First check for data-math attribute - this is the most reliable source
+            const dataMath = mathBlock.getAttribute('data-math');
+            if (dataMath) {
+                // Wrap with appropriate delimiters
+                if (isDisplayMath) {
+                    return '$$' + dataMath + '$$';
+                } else {
+                    return '$' + dataMath + '$';
+                }
+            }
+            
+            // Fallback to KaTeX HTML parsing if data-math is not available
             const katexElement = mathBlock.querySelector('.katex');
             if (!katexElement) return null;
             
@@ -2306,7 +2319,7 @@
     // --- Main Configuration Object ---
           const geminiConfig = {
         platformName: 'Gemini',
-        version: 50, // v50: Comprehensive KaTeX parsing with full support for complex mathematical structures
+        version: 51, // v51: Use data-math attribute for reliable LaTeX extraction
       selectors: {
         turnContainer: 'user-query, model-response',
         userMessageContainer: 'user-query', userText: '.query-text',
@@ -2668,7 +2681,7 @@
     }; // End geminiConfig
 
     window.geminiConfig = geminiConfig;
-    // console.log("geminiConfig initialized (v50 - Comprehensive KaTeX parsing with full support for complex mathematical structures)");
+    // console.log("geminiConfig initialized (v51 - Use data-math attribute for reliable LaTeX extraction)");
 
     /**
      * Special fixed version to handle blockquotes with nested lists
