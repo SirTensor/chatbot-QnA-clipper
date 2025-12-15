@@ -1,9 +1,9 @@
-// geminiConfigs.js (v51 - Use data-math attribute for reliable LaTeX extraction)
+// geminiConfigs.js (v52 - Fix thinking elements selector for AI response extraction)
 
 (function() {
     // Initialization check
-    // v51: Use data-math attribute for reliable LaTeX extraction
-    if (window.geminiConfig && window.geminiConfig.version >= 51) { return; }
+    // v52: Fix thinking elements selector - model-response-text is on structured-content-container
+    if (window.geminiConfig && window.geminiConfig.version >= 52) { return; }
 
     // --- Helper Functions ---
 
@@ -2319,7 +2319,7 @@
     // --- Main Configuration Object ---
           const geminiConfig = {
         platformName: 'Gemini',
-        version: 51, // v51: Use data-math attribute for reliable LaTeX extraction
+        version: 52, // v52: Fix thinking elements selector for AI response extraction
       selectors: {
         turnContainer: 'user-query, model-response',
         userMessageContainer: 'user-query', userText: '.query-text',
@@ -2499,27 +2499,30 @@
       extractAssistantContent: (turnElement) => {
           const contentItems = [];
           
-          // v41: First check if there are thinking elements - if so, look for actual response content
+          // v52: Fix selector for thinking elements - model-response-text is on structured-content-container, not message-content
           const thinkingElements = turnElement.querySelectorAll('model-thoughts');
           let contentArea = null;
           
           if (thinkingElements.length > 0) {
               // When thinking process is visible, look specifically for the actual response content
-              const responseContent = turnElement.querySelector('message-content.model-response-text');
-              if (responseContent) {
-                  contentArea = responseContent.querySelector('div.markdown.markdown-main-panel');
+              // v52: Fixed - model-response-text class is on structured-content-container, not message-content
+              const responseContainer = turnElement.querySelector('structured-content-container.model-response-text');
+              if (responseContainer) {
+                  contentArea = responseContainer.querySelector('div.markdown.markdown-main-panel');
               }
               
               // Fallback: if the above didn't work, try alternative selectors
               if (!contentArea) {
-                  contentArea = turnElement.querySelector('message-content[class*="model-response-text"] div.markdown');
+                  contentArea = turnElement.querySelector('structured-content-container[class*="model-response-text"] div.markdown');
               }
-          } else {
-              // Normal case - no thinking process visible
+          }
+          
+          // v52: Always try the generic selector as final fallback (works for both thinking and non-thinking cases)
+          if (!contentArea) {
               contentArea = turnElement.querySelector(geminiConfig.selectors.assistantContentArea);
           }
           
-          if (!contentArea) { console.warn("[Extractor v41] Gemini markdown content area not found."); return []; }
+          if (!contentArea) { console.warn("[Extractor v52] Gemini markdown content area not found."); return []; }
 
           // v32: Use querySelectorAll to find all potentially relevant elements, regardless of nesting
           const relevantElements = Array.from(contentArea.querySelectorAll(geminiConfig.selectors.relevantBlocks));
