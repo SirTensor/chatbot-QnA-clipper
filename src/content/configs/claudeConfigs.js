@@ -1,13 +1,38 @@
-// claudeConfig.js (v11 - Fixed strikethrough in nested list structures)
+// claudeConfig.js (v12 - Skip thinking/reasoning blocks, fix table extraction)
 
 (function() {
   // Initialization check to prevent re-running the script if already loaded
-  if (window.claudeConfig && window.claudeConfig.version >= 11) {
+  if (window.claudeConfig && window.claudeConfig.version >= 12) {
     // console.log("Claude config already initialized (v" + window.claudeConfig.version + "), skipping.");
     return;
   }
 
   // --- Helper Functions ---
+
+  /**
+   * Checks if an element is a Claude thinking/reasoning block that should be skipped.
+   * These blocks contain the AI's internal reasoning and have a toggle button to show/hide.
+   * @param {HTMLElement} element - The element to check
+   * @returns {boolean} - True if this is a thinking block
+   */
+  function isThinkingBlock(element) {
+    if (!element || element.tagName.toLowerCase() !== 'div') return false;
+
+    // Check for the characteristic classes of thinking blocks:
+    // They have font-ui, border-0.5, border-border-300, rounded-lg classes
+    const hasThinkingClasses = element.classList.contains('border-0.5') &&
+                               element.classList.contains('border-border-300') &&
+                               element.classList.contains('rounded-lg') &&
+                               element.classList.contains('font-ui');
+
+    if (!hasThinkingClasses) return false;
+
+    // Additionally verify by checking for the toggle button that's characteristic of thinking blocks
+    // The button has class "group/row" and is used to expand/collapse the thinking content
+    const toggleButton = element.querySelector('button.group\\/row');
+
+    return toggleButton !== null;
+  }
 
   /**
    * Converts del (strikethrough) elements to markdown syntax within the given element
@@ -41,17 +66,23 @@
     const isStandalonePre = tagNameLower === 'pre' && !isInListItem;
     
     // Skip KaTeX elements as they are handled by dedicated processing
-    const isKaTeXElement = element.classList.contains('katex') || 
+    const isKaTeXElement = element.classList.contains('katex') ||
                           element.classList.contains('katex-display') ||
                           element.classList.contains('katex-mathml') ||
                           element.classList.contains('katex-html');
-    
+
+    // Skip table container divs (div.overflow-x-auto containing a table)
+    const isTableContainer = tagNameLower === 'div' &&
+                            element.classList.contains('overflow-x-auto') &&
+                            element.querySelector(':scope > table');
+
     return tagNameLower === 'ul' ||
            tagNameLower === 'ol' ||
            isStandalonePre || // Only skip standalone pre elements
            tagNameLower === 'table' || // Skip tables (handled separately)
            tagNameLower === 'blockquote' || // Skip blockquotes (handled separately)
            isKaTeXElement || // Skip KaTeX elements (handled by processKaTeX)
+           isTableContainer || // Skip table container divs (handled by processTableToMarkdown)
            element.closest(selectors.artifactButton); // Check if element is INSIDE an artifact button/cell
   }
 
@@ -86,7 +117,7 @@
       // Look for both old pre elements and new div container structure
       const codeBlocksInLi = Array.from(li.querySelectorAll(':scope > pre, :scope > div.relative[class*="group/copy"]'));
       let codeBlocksContent = '';
-      
+
       if (codeBlocksInLi.length > 0) {
         // Process each code block and collect their content
         codeBlocksInLi.forEach(codeBlockElement => {
@@ -98,7 +129,7 @@
             // This handles table markdown output
             codeBlocksContent += `${codeItem.content}`;
           }
-          
+
           // Remove the code block element from the clone to prevent duplicate processing
           const tagName = codeBlockElement.tagName.toLowerCase();
           if (tagName === 'pre') {
@@ -124,6 +155,31 @@
               if (index >= 0 && index < divContainers.length) {
                 liClone.removeChild(divContainers[index]);
               }
+            }
+          }
+        });
+      }
+
+      // Find and process tables within the li (wrapped in div.overflow-x-auto)
+      const tableContainersInLi = Array.from(li.querySelectorAll(':scope > div.overflow-x-auto'));
+      let tablesContent = '';
+
+      if (tableContainersInLi.length > 0) {
+        tableContainersInLi.forEach(tableContainer => {
+          const tableElement = tableContainer.querySelector(':scope > table');
+          if (tableElement) {
+            const tableItem = processTableToMarkdown(tableElement);
+            if (tableItem && tableItem.type === 'text') {
+              tablesContent += `${tableItem.content}`;
+            }
+          }
+
+          // Remove the table container from the clone to prevent duplicate processing
+          const tableContainersInClone = liClone.querySelectorAll(':scope > div.overflow-x-auto');
+          if (tableContainersInClone.length > 0) {
+            const index = Array.from(li.querySelectorAll(':scope > div.overflow-x-auto')).indexOf(tableContainer);
+            if (index >= 0 && index < tableContainersInClone.length) {
+              liClone.removeChild(tableContainersInClone[index]);
             }
           }
         });
@@ -192,14 +248,27 @@
       if (codeBlocksContent) {
         // Calculate the indentation for nested code blocks within this list item
         const nestedElementIndent = '    '.repeat(level + 1);
-        
+
         // Indent each line of the code block content
         const indentedCodeBlockContent = codeBlocksContent.split('\n').map(line => {
           // Removed special handling for blank lines as \n\n was the likely cause
           return `${nestedElementIndent}${line}`;
         }).join('\n');
-        
+
         nestedContent += '\n' + indentedCodeBlockContent;
+      }
+
+      // Append the tables content to the nested content
+      if (tablesContent) {
+        // Calculate the indentation for nested tables within this list item
+        const nestedElementIndent = '    '.repeat(level + 1);
+
+        // Indent each line of the table content
+        const indentedTablesContent = tablesContent.split('\n').map(line => {
+          return `${nestedElementIndent}${line}`;
+        }).join('\n');
+
+        nestedContent += '\n' + indentedTablesContent;
       }
 
       // Combine the item markdown and nested content
@@ -833,9 +902,15 @@
               QAClipper.Utils.addTextItem(contentItems, `${prefix} ${headingText}`);
           }
       } else if (tagNameLower === 'div') {
+          // Check if this is a table container (div.overflow-x-auto containing a table)
+          const tableElement = element.querySelector(':scope > table');
+          if (tableElement && element.classList.contains('overflow-x-auto')) {
+              // This is a table container - process the table
+              item = processTableToMarkdown(tableElement);
+              if (item) contentItems.push(item);
+          }
           // Check if this is a code block container with the new structure
-          const preElement = element.querySelector('pre.code-block__code');
-          if (preElement) {
+          else if (element.querySelector('pre.code-block__code')) {
               // This is a code block container - process it
               item = processCodeBlock(element); // Pass the container div, not just the pre
               if (item) contentItems.push(item);
@@ -864,7 +939,7 @@
   // --- Main Configuration Object ---
   const claudeConfig = {
     platformName: 'Claude',
-    version: 11, // Fixed strikethrough in nested list structures
+    version: 12, // Skip thinking/reasoning blocks, fix table extraction
     selectors: {
       // Container for a single turn (user or assistant)
       turnContainer: 'div[data-test-render-count]',
@@ -898,7 +973,7 @@
       blockquoteContainer: 'blockquote',
       
       // --- Table Selectors ---
-      tableContainer: 'pre.font-styrene', // The pre element containing the table
+      tableContainer: 'div.overflow-x-auto, pre.font-styrene', // Container divs or pre elements containing tables
       tableElement: 'table', // The actual table element
 
       // --- Artifact (Interactive Block) Selectors ---
@@ -1080,12 +1155,17 @@
       
       directChildren.forEach((child) => {
           const tagNameLower = child.tagName.toLowerCase();
-          
+
+          // Skip thinking/reasoning blocks (the collapsible section showing AI's internal reasoning)
+          if (isThinkingBlock(child)) {
+              return;
+          }
+
           // Skip flex spacing elements
           if (child.classList.contains('flex') && child.classList.contains('flex-col') && child.classList.contains('gap-2')) {
               return;
           }
-          
+
           if (tagNameLower === 'div') {
               // Check for artifact containers first
               const artifactCell = child.querySelector(selectors.artifactButton);
@@ -1096,7 +1176,8 @@
               }
               
               // Look for content grids within this div
-              const contentGrid = child.querySelector('div.grid-cols-1.grid.gap-2\\.5, div[class*="grid-cols-1"][class*="grid"][class*="gap-2"]');
+              // Match standard-markdown class or grid layouts with various gap sizes (gap-2, gap-2.5, gap-4, etc.)
+              const contentGrid = child.querySelector('div.standard-markdown, div.grid-cols-1.grid.gap-2\\.5, div[class*="grid-cols-1"][class*="grid"][class*="gap-"]');
               if (contentGrid) {
                   // Process children of the content grid
                   const gridChildren = Array.from(contentGrid.children);
@@ -1121,6 +1202,6 @@
 
   // Assign to window object
   window.claudeConfig = claudeConfig;
-  console.log("claudeConfig.js initialized (v" + claudeConfig.version + ") with fixed strikethrough in nested lists");
+  console.log("claudeConfig.js initialized (v" + claudeConfig.version + ") - skip thinking blocks, fix table extraction");
 
 })(); // End of IIFE
