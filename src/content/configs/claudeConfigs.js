@@ -895,12 +895,14 @@
       } else if (tagNameLower.match(/^h[1-6]$/)) { // Handle headings h1-h6
           const level = parseInt(tagNameLower.substring(1), 10);
           const prefix = '#'.repeat(level);
-          const headingText = QAClipper.Utils.htmlToMarkdown(element, { 
+          const headingText = QAClipper.Utils.htmlToMarkdown(element, {
               skipElementCheck: shouldSkipElement
           }).trim();
           if (headingText) {
               QAClipper.Utils.addTextItem(contentItems, `${prefix} ${headingText}`);
           }
+      } else if (tagNameLower === 'hr') { // Handle horizontal rules
+          QAClipper.Utils.addTextItem(contentItems, '---');
       } else if (tagNameLower === 'div') {
           // Check if this is a table container (div.overflow-x-auto containing a table)
           const tableElement = element.querySelector(':scope > table');
