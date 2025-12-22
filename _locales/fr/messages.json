@@ -1,19 +1,19 @@
 {
   "extensionName": {
-    "message": "Chatbot Q&A Clipper",
+    "message": "Chatbot questions/réponses Clipper",
     "description": "Extension name"
   },
   "extensionDescription": {
-    "message": "Extrait les questions/réponses des conversations de chatbot et les copie dans le presse-papiers dans des formats spécifiques",
+    "message": "Extrait les questions/réponses des conversations avec un chatbot et les copie dans le presse-papiers dans des formats prédéfinis.",
     "description": "Extension description"
   },
 
   "popupTitle": {
-    "message": "Chatbot Q&A Clipper",
+    "message": "Chatbot questions/réponses Clipper",
     "description": "Title shown in popup header"
   },
   "copyButton": {
-    "message": "Copier le Q&R dans le presse-papiers",
+    "message": "Copier les questions/réponses dans le presse-papiers",
     "description": "Main action button text"
   },
 
@@ -62,9 +62,13 @@
     "message": "질문 / 답변",
     "description": "Korean label style option"
   },
-  "labelStyleChinese": {
+  "labelStylePutonghua": {
     "message": "问题 / 回答",
-    "description": "Chinese label style option"
+    "description": "Putonghua (Simplified Chinese) label style option"
+  },
+  "labelStyleGuoyu": {
+    "message": "問題 / 回答",
+    "description": "Guoyu (Traditional Chinese) label style option"
   },
   "labelStyleJapanese": {
     "message": "質問 / 回答",
@@ -113,6 +117,38 @@
   "labelStyleSwahili": {
     "message": "Swali / Jibu",
     "description": "Swahili label style option"
+  },
+  "labelStyleUkrainian": {
+    "message": "Питання / Відповідь",
+    "description": "Ukrainian label style option"
+  },
+  "labelStyleDutch": {
+    "message": "Vraag / Antwoord",
+    "description": "Dutch label style option"
+  },
+  "labelStylePolish": {
+    "message": "Pytanie / Odpowiedź",
+    "description": "Polish label style option"
+  },
+  "labelStyleTurkish": {
+    "message": "Soru / Cevap",
+    "description": "Turkish label style option"
+  },
+  "labelStyleThai": {
+    "message": "คำถาม / คำตอบ",
+    "description": "Thai label style option"
+  },
+  "labelStylePersian": {
+    "message": "سوال / جواب",
+    "description": "Persian label style option"
+  },
+  "labelStyleHebrew": {
+    "message": "שאלה / תשובה",
+    "description": "Hebrew label style option"
+  },
+  "labelStyleFilipino": {
+    "message": "Tanong / Sagot",
+    "description": "Filipino label style option"
   },
 
   "numberFormatLabel": {
@@ -227,7 +263,7 @@
   },
 
   "commandTriggerExtraction": {
-    "message": "Copier le Q&R dans le presse-papiers",
+    "message": "Extraire et copier les questions/réponses",
     "description": "Command description for trigger-extraction"
   },
 
@@ -240,7 +276,7 @@
     "description": "Instructions for manual copy"
   },
   "manualCopyButton": {
-    "message": "Copier dans le presse-papiers",
+    "message": "Copier les questions/réponses",
     "description": "Manual copy button text"
   },
   "backToSettingsButton": {
@@ -249,11 +285,11 @@
   },
 
   "statusExtracting": {
-    "message": "Extraction du Q&R...",
+    "message": "Extraction des questions/réponses...",
     "description": "Status message while extracting"
   },
   "statusError": {
-    "message": "Erreur: $MESSAGE$",
+    "message": "Erreur : $MESSAGE$",
     "description": "Status message for errors",
     "placeholders": {
       "message": {
@@ -276,7 +312,7 @@
   },
 
   "toastCopied": {
-    "message": "Q&R copié dans le presse-papiers!",
+    "message": "Questions/réponses copiées dans le presse-papiers !",
     "description": "Toast message when Q&A copied successfully"
   },
   "toastUnsupportedSite": {
@@ -292,11 +328,11 @@
     "description": "Toast message for empty/new chat"
   },
   "toastClipboardFailed": {
-    "message": "Impossible de copier. Ouvrez le popup de l'extension pour copier manuellement.",
+    "message": "Impossible de copier. Ouvrez le pop-up de l'extension pour copier manuellement.",
     "description": "Toast message when clipboard fails"
   },
   "toastScriptLoadError": {
-    "message": "Erreur: impossible de charger les scripts de l'extension.",
+    "message": "Erreur : impossible de charger les scripts de l'extension.",
     "description": "Toast message when scripts fail to load"
   },
   "toastPermissionError": {
@@ -317,11 +353,11 @@
     "description": "Error message for unsupported page"
   },
   "errorInvalidData": {
-    "message": "Erreur: données invalides reçues depuis la page. L'extraction a échoué.",
+    "message": "Erreur : données invalides reçues depuis la page. L'extraction a échoué.",
     "description": "Error message for invalid extraction data"
   },
   "errorScriptsNotLoaded": {
-    "message": "Erreur: impossible de charger sur la page les scripts nécessaires de l'extension.",
+    "message": "Erreur : impossible de charger sur la page les scripts nécessaires de l'extension.",
     "description": "Error message when scripts don't load"
   },
   "errorCommunication": {

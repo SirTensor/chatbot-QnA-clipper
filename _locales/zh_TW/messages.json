@@ -1,24 +1,24 @@
 {
   "extensionName": {
-    "message": "Клиппер вопросов и ответов чат-бота",
+    "message": "聊天機器人問答擷取器",
     "description": "Extension name"
   },
   "extensionDescription": {
-    "message": "Извлекает вопросы и ответы из разговоров чат-бота и копирует их в буфер обмена в заданных форматах",
+    "message": "從聊天機器人對話中擷取問答，並以特定格式複製到剪貼簿",
     "description": "Extension description"
   },
 
   "popupTitle": {
-    "message": "Клиппер вопросов и ответов чат-бота",
+    "message": "聊天機器人問答擷取器",
     "description": "Title shown in popup header"
   },
   "copyButton": {
-    "message": "Копировать вопросы и ответы в буфер обмена",
+    "message": "將問答複製到剪貼簿",
     "description": "Main action button text"
   },
 
   "headerLevelLabel": {
-    "message": "Уровень заголовка:",
+    "message": "標題層級:",
     "description": "Label for header level selector"
   },
   "headerH1": {
@@ -43,7 +43,7 @@
   },
 
   "labelStyleLabel": {
-    "message": "Стиль меток:",
+    "message": "標籤樣式:",
     "description": "Label for Q&A label style selector"
   },
   "labelStyleQA": {
@@ -152,144 +152,144 @@
   },
 
   "numberFormatLabel": {
-    "message": "Формат нумерации:",
+    "message": "編號格式:",
     "description": "Label for number format selector"
   },
   "numberFormatNoSpace": {
-    "message": "1 (Без пробела)",
+    "message": "1 (無空格)",
     "description": "Number format without space"
   },
   "numberFormatSpace": {
-    "message": " 1 (Пробел перед числом)",
+    "message": " 1 (數字前空格)",
     "description": "Number format with space before"
   },
   "numberFormatDashNoSpace": {
-    "message": "-1 (Дефис, без пробела)",
+    "message": "-1 (短橫線, 無空格)",
     "description": "Number format with dash, no space"
   },
   "numberFormatDash": {
-    "message": "- 1 (Дефис с пробелом)",
+    "message": "- 1 (短橫線和空格)",
     "description": "Number format with dash and space"
   },
   "numberFormatSpaceDashNoSpace": {
-    "message": " -1 (Пробел, затем дефис)",
+    "message": " -1 (空格後短橫線)",
     "description": "Number format with space then dash"
   },
   "numberFormatSpaceDash": {
-    "message": " - 1 (Пробел, дефис, пробел)",
+    "message": " - 1 (空格, 短橫線, 空格)",
     "description": "Number format with space, dash, space"
   },
   "numberFormatColonNoSpace": {
-    "message": ":1 (Двоеточие, без пробела)",
+    "message": ":1 (冒號, 無空格)",
     "description": "Number format with colon, no space"
   },
   "numberFormatColon": {
-    "message": ": 1 (Двоеточие с пробелом)",
+    "message": ": 1 (冒號和空格)",
     "description": "Number format with colon and space"
   },
   "numberFormatSpaceColonNoSpace": {
-    "message": " :1 (Пробел, затем двоеточие)",
+    "message": " :1 (空格後冒號)",
     "description": "Number format with space then colon"
   },
   "numberFormatSpaceColon": {
-    "message": " : 1 (Пробел, двоеточие, пробел)",
+    "message": " : 1 (空格, 冒號, 空格)",
     "description": "Number format with space, colon, space"
   },
 
   "imageFormatLabel": {
-    "message": "Формат URL изображения:",
+    "message": "圖片連結 格式:",
     "description": "Label for image format selector"
   },
   "imageFormatBracketed": {
-    "message": "[URL изображения]: https://...",
+    "message": "[圖片連結]: https://...",
     "description": "Bracketed image format option"
   },
   "imageFormatMarkdown": {
-    "message": "[URL изображения](https://...)",
+    "message": "[圖片連結](https://...)",
     "description": "Markdown image format option"
   },
   "imageFormatPlain": {
-    "message": "https://... (прямая ссылка)",
+    "message": "https://... (純連結)",
     "description": "Plain URL image format option"
   },
 
   "imageLabelLabel": {
-    "message": "Пользовательская подпись к изображению:",
+    "message": "自訂圖片標籤:",
     "description": "Label for custom image label input"
   },
   "imageLabelPlaceholder": {
-    "message": "URL изображения",
+    "message": "圖片連結",
     "description": "Placeholder for custom image label input"
   },
 
   "includePlatformLabel": {
-    "message": "Добавлять название платформы",
+    "message": "包含平台名稱",
     "description": "Label for include platform checkbox"
   },
 
   "excludeFileCitationsLabel": {
-    "message": "Исключить ссылки на файлы (ChatGPT)",
+    "message": "排除檔案引用 (ChatGPT)",
     "description": "Label for exclude file citations checkbox"
   },
   "excludeFileCitationsTooltip": {
-    "message": "Исключает значки ссылок на файлы, которые появляются, когда ChatGPT цитирует загруженные файлы",
+    "message": "排除當 ChatGPT 引用上傳檔案時出現的檔案參考徽章",
     "description": "Tooltip for exclude file citations option"
   },
 
   "includePseudoQuotesLabel": {
-    "message": "Включать кавычки (ChatGPT)",
+    "message": "包含引號 (ChatGPT)",
     "description": "Label for include quote marks checkbox"
   },
   "includePseudoQuotesTooltip": {
-    "message": "Извлекает кавычки из CSS ::before/::after псевдоэлементов в элементах списка blockquote",
+    "message": "從 blockquote 列表項的 CSS ::before/::after 偽元素中擷取引號",
     "description": "Tooltip for include quote marks option"
   },
 
   "keyboardShortcutLabel": {
-    "message": "Горячая клавиша:",
+    "message": "鍵盤快捷鍵:",
     "description": "Label for keyboard shortcut display"
   },
   "shortcutLoading": {
-    "message": "Загрузка...",
+    "message": "載入中...",
     "description": "Text shown while loading shortcut"
   },
   "shortcutNotSet": {
-    "message": "Горячая клавиша не задана",
+    "message": "未設定快捷鍵",
     "description": "Text shown when no shortcut is configured"
   },
   "shortcutConfigLink": {
-    "message": "Настроить горячую клавишу в Chrome",
+    "message": "在 Chrome 中設定快捷鍵",
     "description": "Link text to configure shortcuts"
   },
 
   "commandTriggerExtraction": {
-    "message": "Копировать Q&A в буфер обмена",
+    "message": "將問答複製到剪貼簿",
     "description": "Command description for trigger-extraction"
   },
 
   "manualCopyTitle": {
-    "message": "Сбой доступа к буферу обмена",
+    "message": "剪貼簿存取失敗",
     "description": "Title for manual copy section"
   },
   "manualCopyInstructions": {
-    "message": "Используйте кнопку ниже, чтобы скопировать извлеченный текст:",
+    "message": "請使用下方按鈕複製擷取的文字:",
     "description": "Instructions for manual copy"
   },
   "manualCopyButton": {
-    "message": "Скопировать в буфер обмена",
+    "message": "複製到剪貼簿",
     "description": "Manual copy button text"
   },
   "backToSettingsButton": {
-    "message": "Назад к настройкам",
+    "message": "返回設定",
     "description": "Back button text"
   },
 
   "statusExtracting": {
-    "message": "Извлечение Q&A...",
+    "message": "正在擷取問答...",
     "description": "Status message while extracting"
   },
   "statusError": {
-    "message": "Ошибка: $MESSAGE$",
+    "message": "錯誤: $MESSAGE$",
     "description": "Status message for errors",
     "placeholders": {
       "message": {
@@ -299,81 +299,81 @@
     }
   },
   "statusWaitDebounce": {
-    "message": "Пожалуйста, подождите перед повторным нажатием.",
+    "message": "請稍候再點擊。",
     "description": "Status message for debounce"
   },
   "statusStartError": {
-    "message": "Ошибка запуска извлечения",
+    "message": "開始擷取時發生錯誤",
     "description": "Status message when extraction fails to start"
   },
   "statusCopied": {
-    "message": "Скопировано в буфер обмена!",
+    "message": "已複製到剪貼簿!",
     "description": "Status message when copy succeeds"
   },
 
   "toastCopied": {
-    "message": "Q&A скопированы в буфер обмена!",
+    "message": "問答已複製到剪貼簿!",
     "description": "Toast message when Q&A copied successfully"
   },
   "toastUnsupportedSite": {
-    "message": "Этот сайт не поддерживается расширением.",
+    "message": "此網站不受擴充功能支援。",
     "description": "Toast message for unsupported websites"
   },
   "toastNoConversation": {
-    "message": "Не найдено разговоров для извлечения.",
+    "message": "找不到可擷取的對話。",
     "description": "Toast message when no conversation found"
   },
   "toastNoConversationYet": {
-    "message": "Пока нет разговоров для извлечения.",
+    "message": "目前還沒有可以擷取的對話。",
     "description": "Toast message for empty/new chat"
   },
   "toastClipboardFailed": {
-    "message": "Не удалось скопировать. Откройте всплывающее окно расширения для ручного копирования.",
+    "message": "無法複製。請開啟擴充功能彈出視窗進行手動複製。",
     "description": "Toast message when clipboard fails"
   },
   "toastScriptLoadError": {
-    "message": "Ошибка: не удалось загрузить скрипты расширения.",
+    "message": "錯誤: 無法載入擴充功能腳本。",
     "description": "Toast message when scripts fail to load"
   },
   "toastPermissionError": {
-    "message": "Ошибка проверки разрешений расширения.",
+    "message": "檢查擴充功能權限時發生錯誤。",
     "description": "Toast message for permission check error"
   },
 
   "errorNoActiveTab": {
-    "message": "Активная вкладка не найдена.",
+    "message": "找不到使用中的分頁。",
     "description": "Error message when no active tab"
   },
   "errorMissingUrl": {
-    "message": "Отсутствует URL страницы.",
+    "message": "缺少頁面 URL。",
     "description": "Error message when URL is missing"
   },
   "errorUnsupportedPage": {
-    "message": "Неподдерживаемая страница.",
+    "message": "不支援的頁面。",
     "description": "Error message for unsupported page"
   },
   "errorInvalidData": {
-    "message": "Ошибка: получены неверные данные со страницы. Извлечение не удалось.",
+    "message": "錯誤: 從頁面收到無效資料。擷取失敗。",
     "description": "Error message for invalid extraction data"
   },
   "errorScriptsNotLoaded": {
-    "message": "Ошибка: не удалось загрузить необходимые скрипты расширения на странице.",
+    "message": "錯誤: 無法在頁面上載入所需的擴充功能腳本。",
     "description": "Error message when scripts don't load"
   },
   "errorCommunication": {
-    "message": "Не удалось связаться со страницей. Перезагрузите страницу и попробуйте снова.",
+    "message": "無法與頁面通訊。請重新載入頁面後再試。",
     "description": "Error message for communication failure"
   },
   "errorConnectionLost": {
-    "message": "Соединение со страницей потеряно. Перезагрузите и попробуйте снова.",
+    "message": "與頁面的連線已中斷。請重新載入後再試。",
     "description": "Error message when connection lost"
   },
   "errorTimeout": {
-    "message": "Извлечение заняло слишком много времени или завершилось с ошибкой. Попробуйте еще раз.",
+    "message": "擷取耗時過長或發生意外錯誤。請重試。",
     "description": "Error message for timeout"
   },
   "errorClipboardManual": {
-    "message": "Не удалось скопировать в буфер. Используется ручное копирование.",
+    "message": "無法複製到剪貼簿。請使用手動複製選項。",
     "description": "Error message when clipboard fails in popup"
   }
 }

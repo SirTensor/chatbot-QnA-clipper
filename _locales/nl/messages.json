@@ -4,7 +4,7 @@
     "description": "Extension name"
   },
   "extensionDescription": {
-    "message": "Extrai perguntas e respostas de conversas com chatbots e copia para a área de transferência em formatos específicos",
+    "message": "Haalt vragen en antwoorden uit chatbot-gesprekken en kopieert ze naar het klembord in specifieke formaten",
     "description": "Extension description"
   },
 
@@ -13,12 +13,12 @@
     "description": "Title shown in popup header"
   },
   "copyButton": {
-    "message": "Copiar Q&A para a área de transferência",
+    "message": "Kopieer Q&A naar het klembord",
     "description": "Main action button text"
   },
 
   "headerLevelLabel": {
-    "message": "Nível do título:",
+    "message": "Kopniveau:",
     "description": "Label for header level selector"
   },
   "headerH1": {
@@ -43,7 +43,7 @@
   },
 
   "labelStyleLabel": {
-    "message": "Estilo de rótulo:",
+    "message": "Labelstijl:",
     "description": "Label for Q&A label style selector"
   },
   "labelStyleQA": {
@@ -62,9 +62,13 @@
     "message": "질문 / 답변",
     "description": "Korean label style option"
   },
-  "labelStyleChinese": {
+  "labelStylePutonghua": {
     "message": "问题 / 回答",
-    "description": "Chinese label style option"
+    "description": "Putonghua (Simplified Chinese) label style option"
+  },
+  "labelStyleGuoyu": {
+    "message": "問題 / 回答",
+    "description": "Guoyu (Traditional Chinese) label style option"
   },
   "labelStyleJapanese": {
     "message": "質問 / 回答",
@@ -114,146 +118,178 @@
     "message": "Swali / Jibu",
     "description": "Swahili label style option"
   },
+  "labelStyleUkrainian": {
+    "message": "Питання / Відповідь",
+    "description": "Ukrainian label style option"
+  },
+  "labelStyleDutch": {
+    "message": "Vraag / Antwoord",
+    "description": "Dutch label style option"
+  },
+  "labelStylePolish": {
+    "message": "Pytanie / Odpowiedź",
+    "description": "Polish label style option"
+  },
+  "labelStyleTurkish": {
+    "message": "Soru / Cevap",
+    "description": "Turkish label style option"
+  },
+  "labelStyleThai": {
+    "message": "คำถาม / คำตอบ",
+    "description": "Thai label style option"
+  },
+  "labelStylePersian": {
+    "message": "سوال / جواب",
+    "description": "Persian label style option"
+  },
+  "labelStyleHebrew": {
+    "message": "שאלה / תשובה",
+    "description": "Hebrew label style option"
+  },
+  "labelStyleFilipino": {
+    "message": "Tanong / Sagot",
+    "description": "Filipino label style option"
+  },
 
   "numberFormatLabel": {
-    "message": "Formato de numeração:",
+    "message": "Nummerformaat:",
     "description": "Label for number format selector"
   },
   "numberFormatNoSpace": {
-    "message": "1 (Sem espaço)",
+    "message": "1 (Geen spatie)",
     "description": "Number format without space"
   },
   "numberFormatSpace": {
-    "message": " 1 (Espaço antes do número)",
+    "message": " 1 (Spatie voor nummer)",
     "description": "Number format with space before"
   },
   "numberFormatDashNoSpace": {
-    "message": "-1 (Hífen, sem espaço)",
+    "message": "-1 (Streepje, geen spatie)",
     "description": "Number format with dash, no space"
   },
   "numberFormatDash": {
-    "message": "- 1 (Hífen com espaço)",
+    "message": "- 1 (Streepje met spatie)",
     "description": "Number format with dash and space"
   },
   "numberFormatSpaceDashNoSpace": {
-    "message": " -1 (Espaço e depois hífen)",
+    "message": " -1 (Spatie, dan streepje)",
     "description": "Number format with space then dash"
   },
   "numberFormatSpaceDash": {
-    "message": " - 1 (Espaço, hífen, espaço)",
+    "message": " - 1 (Spatie, streepje, spatie)",
     "description": "Number format with space, dash, space"
   },
   "numberFormatColonNoSpace": {
-    "message": ":1 (Dois pontos, sem espaço)",
+    "message": ":1 (Dubbele punt, geen spatie)",
     "description": "Number format with colon, no space"
   },
   "numberFormatColon": {
-    "message": ": 1 (Dois pontos com espaço)",
+    "message": ": 1 (Dubbele punt met spatie)",
     "description": "Number format with colon and space"
   },
   "numberFormatSpaceColonNoSpace": {
-    "message": " :1 (Espaço e depois dois pontos)",
+    "message": " :1 (Spatie, dan dubbele punt)",
     "description": "Number format with space then colon"
   },
   "numberFormatSpaceColon": {
-    "message": " : 1 (Espaço, dois pontos, espaço)",
+    "message": " : 1 (Spatie, dubbele punt, spatie)",
     "description": "Number format with space, colon, space"
   },
 
   "imageFormatLabel": {
-    "message": "Formato de URL da imagem:",
+    "message": "Afbeeldings-URL formaat:",
     "description": "Label for image format selector"
   },
   "imageFormatBracketed": {
-    "message": "[URL da imagem]: https://...",
+    "message": "[Afbeeldings-URL]: https://...",
     "description": "Bracketed image format option"
   },
   "imageFormatMarkdown": {
-    "message": "[URL da imagem](https://...)",
+    "message": "[Afbeeldings-URL](https://...)",
     "description": "Markdown image format option"
   },
   "imageFormatPlain": {
-    "message": "https://... (URL simples)",
+    "message": "https://... (gewone URL)",
     "description": "Plain URL image format option"
   },
 
   "imageLabelLabel": {
-    "message": "Rótulo de imagem personalizado:",
+    "message": "Aangepast afbeeldingslabel:",
     "description": "Label for custom image label input"
   },
   "imageLabelPlaceholder": {
-    "message": "URL da imagem",
+    "message": "Afbeeldings-URL",
     "description": "Placeholder for custom image label input"
   },
 
   "includePlatformLabel": {
-    "message": "Incluir nome da plataforma",
+    "message": "Platformnaam opnemen",
     "description": "Label for include platform checkbox"
   },
 
   "excludeFileCitationsLabel": {
-    "message": "Excluir citações de arquivos (ChatGPT)",
+    "message": "Bestandscitaties uitsluiten (ChatGPT)",
     "description": "Label for exclude file citations checkbox"
   },
   "excludeFileCitationsTooltip": {
-    "message": "Exclui os selos de referência de arquivo que aparecem quando o ChatGPT cita arquivos enviados",
+    "message": "Sluit bestandsreferentiebadges uit die verschijnen wanneer ChatGPT citeert uit geüploade bestanden",
     "description": "Tooltip for exclude file citations option"
   },
 
   "includePseudoQuotesLabel": {
-    "message": "Incluir aspas (ChatGPT)",
+    "message": "Aanhalingstekens opnemen (ChatGPT)",
     "description": "Label for include quote marks checkbox"
   },
   "includePseudoQuotesTooltip": {
-    "message": "Extrai aspas dos pseudo-elementos CSS ::before/::after em itens de lista de blockquote",
+    "message": "Haalt aanhalingstekens uit CSS ::before/::after pseudo-elementen in blockquote lijstitems",
     "description": "Tooltip for include quote marks option"
   },
 
   "keyboardShortcutLabel": {
-    "message": "Atalho de teclado:",
+    "message": "Sneltoets:",
     "description": "Label for keyboard shortcut display"
   },
   "shortcutLoading": {
-    "message": "Carregando...",
+    "message": "Laden...",
     "description": "Text shown while loading shortcut"
   },
   "shortcutNotSet": {
-    "message": "Atalho não definido",
+    "message": "Geen sneltoets ingesteld",
     "description": "Text shown when no shortcut is configured"
   },
   "shortcutConfigLink": {
-    "message": "Configurar atalho no Chrome",
+    "message": "Sneltoets configureren in Chrome",
     "description": "Link text to configure shortcuts"
   },
 
   "commandTriggerExtraction": {
-    "message": "Copiar Q&A para a área de transferência",
+    "message": "Kopieer Q&A naar klembord",
     "description": "Command description for trigger-extraction"
   },
 
   "manualCopyTitle": {
-    "message": "Falha no acesso à área de transferência",
+    "message": "Klembordtoegang mislukt",
     "description": "Title for manual copy section"
   },
   "manualCopyInstructions": {
-    "message": "Use o botão abaixo para copiar o texto extraído:",
+    "message": "Gebruik de onderstaande knop om de geëxtraheerde tekst te kopiëren:",
     "description": "Instructions for manual copy"
   },
   "manualCopyButton": {
-    "message": "Copiar para a área de transferência",
+    "message": "Kopiëren naar klembord",
     "description": "Manual copy button text"
   },
   "backToSettingsButton": {
-    "message": "Voltar para Configurações",
+    "message": "Terug naar instellingen",
     "description": "Back button text"
   },
 
   "statusExtracting": {
-    "message": "Extraindo Q&A...",
+    "message": "Q&A extraheren...",
     "description": "Status message while extracting"
   },
   "statusError": {
-    "message": "Erro: $MESSAGE$",
+    "message": "Fout: $MESSAGE$",
     "description": "Status message for errors",
     "placeholders": {
       "message": {
@@ -263,81 +299,81 @@
     }
   },
   "statusWaitDebounce": {
-    "message": "Aguarde antes de clicar novamente.",
+    "message": "Even wachten voor opnieuw klikken.",
     "description": "Status message for debounce"
   },
   "statusStartError": {
-    "message": "Erro ao iniciar a extração",
+    "message": "Fout bij starten extractie",
     "description": "Status message when extraction fails to start"
   },
   "statusCopied": {
-    "message": "Copiado para a área de transferência!",
+    "message": "Gekopieerd naar klembord!",
     "description": "Status message when copy succeeds"
   },
 
   "toastCopied": {
-    "message": "Q&A copiado para a área de transferência!",
+    "message": "Q&A gekopieerd naar klembord!",
     "description": "Toast message when Q&A copied successfully"
   },
   "toastUnsupportedSite": {
-    "message": "Este site não é suportado pela extensão.",
+    "message": "Deze website wordt niet ondersteund door de extensie.",
     "description": "Toast message for unsupported websites"
   },
   "toastNoConversation": {
-    "message": "Nenhuma conversa encontrada para extrair.",
+    "message": "Geen gesprek gevonden om te extraheren.",
     "description": "Toast message when no conversation found"
   },
   "toastNoConversationYet": {
-    "message": "Ainda não há conversa para extrair.",
+    "message": "Nog geen gesprek om te extraheren.",
     "description": "Toast message for empty/new chat"
   },
   "toastClipboardFailed": {
-    "message": "Não foi possível copiar. Abra o pop-up da extensão para copiar manualmente.",
+    "message": "Kon niet kopiëren. Open de extensie-popup voor handmatig kopiëren.",
     "description": "Toast message when clipboard fails"
   },
   "toastScriptLoadError": {
-    "message": "Erro: Não foi possível carregar os scripts da extensão.",
+    "message": "Fout: Kon extensiescripts niet laden.",
     "description": "Toast message when scripts fail to load"
   },
   "toastPermissionError": {
-    "message": "Erro ao verificar as permissões da extensão.",
+    "message": "Fout bij controleren van extensiemachtigingen.",
     "description": "Toast message for permission check error"
   },
 
   "errorNoActiveTab": {
-    "message": "Nenhuma guia ativa encontrada.",
+    "message": "Geen actief tabblad gevonden.",
     "description": "Error message when no active tab"
   },
   "errorMissingUrl": {
-    "message": "URL da página ausente.",
+    "message": "Pagina-URL ontbreekt.",
     "description": "Error message when URL is missing"
   },
   "errorUnsupportedPage": {
-    "message": "Página não suportada.",
+    "message": "Niet-ondersteunde pagina.",
     "description": "Error message for unsupported page"
   },
   "errorInvalidData": {
-    "message": "Erro: Dados inválidos recebidos da página. A extração falhou.",
+    "message": "Fout: Ongeldige gegevens ontvangen van pagina. Extractie mislukt.",
     "description": "Error message for invalid extraction data"
   },
   "errorScriptsNotLoaded": {
-    "message": "Erro: Não foi possível carregar os scripts necessários da extensão na página.",
+    "message": "Fout: Kon vereiste extensiescripts niet laden op de pagina.",
     "description": "Error message when scripts don't load"
   },
   "errorCommunication": {
-    "message": "Falha ao comunicar com a página. Recarregue e tente novamente.",
+    "message": "Communicatie met de pagina mislukt. Herlaad de pagina en probeer opnieuw.",
     "description": "Error message for communication failure"
   },
   "errorConnectionLost": {
-    "message": "A conexão com a página foi perdida. Recarregue e tente novamente.",
+    "message": "Verbinding met de pagina verloren. Herlaad en probeer opnieuw.",
     "description": "Error message when connection lost"
   },
   "errorTimeout": {
-    "message": "A extração demorou muito ou falhou inesperadamente. Tente novamente.",
+    "message": "Extractie duurde te lang of mislukte onverwacht. Probeer opnieuw.",
     "description": "Error message for timeout"
   },
   "errorClipboardManual": {
-    "message": "Não foi possível copiar para a área de transferência. Usando a opção de cópia manual.",
+    "message": "Kon niet naar klembord kopiëren. Handmatige kopieeroptie gebruiken.",
     "description": "Error message when clipboard fails in popup"
   }
 }

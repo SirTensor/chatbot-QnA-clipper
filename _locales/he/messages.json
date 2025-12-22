@@ -1,24 +1,24 @@
 {
   "extensionName": {
-    "message": "Клиппер вопросов и ответов чат-бота",
+    "message": "צ'אטבוט שאלות ותשובות Clipper",
     "description": "Extension name"
   },
   "extensionDescription": {
-    "message": "Извлекает вопросы и ответы из разговоров чат-бота и копирует их в буфер обмена в заданных форматах",
+    "message": "מחלץ שאלות ותשובות משיחות עם צ'אטבוטים ומעתיק ללוח בפורמטים מסוימים",
     "description": "Extension description"
   },
 
   "popupTitle": {
-    "message": "Клиппер вопросов и ответов чат-бота",
+    "message": "צ'אטבוט שאלות ותשובות Clipper",
     "description": "Title shown in popup header"
   },
   "copyButton": {
-    "message": "Копировать вопросы и ответы в буфер обмена",
+    "message": "העתק שאלות ותשובות ללוח",
     "description": "Main action button text"
   },
 
   "headerLevelLabel": {
-    "message": "Уровень заголовка:",
+    "message": "רמת כותרת:",
     "description": "Label for header level selector"
   },
   "headerH1": {
@@ -43,7 +43,7 @@
   },
 
   "labelStyleLabel": {
-    "message": "Стиль меток:",
+    "message": "סגנון תווית:",
     "description": "Label for Q&A label style selector"
   },
   "labelStyleQA": {
@@ -152,144 +152,144 @@
   },
 
   "numberFormatLabel": {
-    "message": "Формат нумерации:",
+    "message": "פורמט מספור:",
     "description": "Label for number format selector"
   },
   "numberFormatNoSpace": {
-    "message": "1 (Без пробела)",
+    "message": "1 (ללא רווח)",
     "description": "Number format without space"
   },
   "numberFormatSpace": {
-    "message": " 1 (Пробел перед числом)",
+    "message": " 1 (רווח לפני המספר)",
     "description": "Number format with space before"
   },
   "numberFormatDashNoSpace": {
-    "message": "-1 (Дефис, без пробела)",
+    "message": "-1 (מקף, ללא רווח)",
     "description": "Number format with dash, no space"
   },
   "numberFormatDash": {
-    "message": "- 1 (Дефис с пробелом)",
+    "message": "- 1 (מקף עם רווח)",
     "description": "Number format with dash and space"
   },
   "numberFormatSpaceDashNoSpace": {
-    "message": " -1 (Пробел, затем дефис)",
+    "message": " -1 (רווח, אחר כך מקף)",
     "description": "Number format with space then dash"
   },
   "numberFormatSpaceDash": {
-    "message": " - 1 (Пробел, дефис, пробел)",
+    "message": " - 1 (רווח, מקף, רווח)",
     "description": "Number format with space, dash, space"
   },
   "numberFormatColonNoSpace": {
-    "message": ":1 (Двоеточие, без пробела)",
+    "message": ":1 (נקודתיים, ללא רווח)",
     "description": "Number format with colon, no space"
   },
   "numberFormatColon": {
-    "message": ": 1 (Двоеточие с пробелом)",
+    "message": ": 1 (נקודתיים עם רווח)",
     "description": "Number format with colon and space"
   },
   "numberFormatSpaceColonNoSpace": {
-    "message": " :1 (Пробел, затем двоеточие)",
+    "message": " :1 (רווח, אחר כך נקודתיים)",
     "description": "Number format with space then colon"
   },
   "numberFormatSpaceColon": {
-    "message": " : 1 (Пробел, двоеточие, пробел)",
+    "message": " : 1 (רווח, נקודתיים, רווח)",
     "description": "Number format with space, colon, space"
   },
 
   "imageFormatLabel": {
-    "message": "Формат URL изображения:",
+    "message": "פורמט URL תמונה:",
     "description": "Label for image format selector"
   },
   "imageFormatBracketed": {
-    "message": "[URL изображения]: https://...",
+    "message": "[URL תמונה]: https://...",
     "description": "Bracketed image format option"
   },
   "imageFormatMarkdown": {
-    "message": "[URL изображения](https://...)",
+    "message": "[URL תמונה](https://...)",
     "description": "Markdown image format option"
   },
   "imageFormatPlain": {
-    "message": "https://... (прямая ссылка)",
+    "message": "https://... (URL פשוט)",
     "description": "Plain URL image format option"
   },
 
   "imageLabelLabel": {
-    "message": "Пользовательская подпись к изображению:",
+    "message": "תווית תמונה מותאמת אישית:",
     "description": "Label for custom image label input"
   },
   "imageLabelPlaceholder": {
-    "message": "URL изображения",
+    "message": "URL תמונה",
     "description": "Placeholder for custom image label input"
   },
 
   "includePlatformLabel": {
-    "message": "Добавлять название платформы",
+    "message": "כלול שם פלטפורמה",
     "description": "Label for include platform checkbox"
   },
 
   "excludeFileCitationsLabel": {
-    "message": "Исключить ссылки на файлы (ChatGPT)",
+    "message": "הסר ציטוטי קבצים (ChatGPT)",
     "description": "Label for exclude file citations checkbox"
   },
   "excludeFileCitationsTooltip": {
-    "message": "Исключает значки ссылок на файлы, которые появляются, когда ChatGPT цитирует загруженные файлы",
+    "message": "מסיר תגי הפניה לקבצים שמופיעים כאשר ChatGPT מצטט מקבצים שהועלו",
     "description": "Tooltip for exclude file citations option"
   },
 
   "includePseudoQuotesLabel": {
-    "message": "Включать кавычки (ChatGPT)",
+    "message": "כלול סימני ציטוט (ChatGPT)",
     "description": "Label for include quote marks checkbox"
   },
   "includePseudoQuotesTooltip": {
-    "message": "Извлекает кавычки из CSS ::before/::after псевдоэлементов в элементах списка blockquote",
+    "message": "מחלץ סימני ציטוט מאלמנטים מדומים CSS ::before/::after בפריטי רשימת blockquote",
     "description": "Tooltip for include quote marks option"
   },
 
   "keyboardShortcutLabel": {
-    "message": "Горячая клавиша:",
+    "message": "קיצור מקלדת:",
     "description": "Label for keyboard shortcut display"
   },
   "shortcutLoading": {
-    "message": "Загрузка...",
+    "message": "טוען...",
     "description": "Text shown while loading shortcut"
   },
   "shortcutNotSet": {
-    "message": "Горячая клавиша не задана",
+    "message": "לא הוגדר קיצור",
     "description": "Text shown when no shortcut is configured"
   },
   "shortcutConfigLink": {
-    "message": "Настроить горячую клавишу в Chrome",
+    "message": "הגדר קיצור ב-Chrome",
     "description": "Link text to configure shortcuts"
   },
 
   "commandTriggerExtraction": {
-    "message": "Копировать Q&A в буфер обмена",
+    "message": "העתק שאלות ותשובות ללוח",
     "description": "Command description for trigger-extraction"
   },
 
   "manualCopyTitle": {
-    "message": "Сбой доступа к буферу обмена",
+    "message": "הגישה ללוח נכשלה",
     "description": "Title for manual copy section"
   },
   "manualCopyInstructions": {
-    "message": "Используйте кнопку ниже, чтобы скопировать извлеченный текст:",
+    "message": "אנא השתמש בכפתור למטה כדי להעתיק את הטקסט שחולץ:",
     "description": "Instructions for manual copy"
   },
   "manualCopyButton": {
-    "message": "Скопировать в буфер обмена",
+    "message": "העתק ללוח",
     "description": "Manual copy button text"
   },
   "backToSettingsButton": {
-    "message": "Назад к настройкам",
+    "message": "חזרה להגדרות",
     "description": "Back button text"
   },
 
   "statusExtracting": {
-    "message": "Извлечение Q&A...",
+    "message": "מחלץ שאלות ותשובות...",
     "description": "Status message while extracting"
   },
   "statusError": {
-    "message": "Ошибка: $MESSAGE$",
+    "message": "שגיאה: $MESSAGE$",
     "description": "Status message for errors",
     "placeholders": {
       "message": {
@@ -299,81 +299,81 @@
     }
   },
   "statusWaitDebounce": {
-    "message": "Пожалуйста, подождите перед повторным нажатием.",
+    "message": "אנא המתן לפני לחיצה נוספת.",
     "description": "Status message for debounce"
   },
   "statusStartError": {
-    "message": "Ошибка запуска извлечения",
+    "message": "שגיאה בהתחלת החילוץ",
     "description": "Status message when extraction fails to start"
   },
   "statusCopied": {
-    "message": "Скопировано в буфер обмена!",
+    "message": "הועתק ללוח!",
     "description": "Status message when copy succeeds"
   },
 
   "toastCopied": {
-    "message": "Q&A скопированы в буфер обмена!",
+    "message": "שאלות ותשובות הועתקו ללוח!",
     "description": "Toast message when Q&A copied successfully"
   },
   "toastUnsupportedSite": {
-    "message": "Этот сайт не поддерживается расширением.",
+    "message": "אתר זה אינו נתמך על ידי התוסף.",
     "description": "Toast message for unsupported websites"
   },
   "toastNoConversation": {
-    "message": "Не найдено разговоров для извлечения.",
+    "message": "לא נמצאה שיחה לחילוץ.",
     "description": "Toast message when no conversation found"
   },
   "toastNoConversationYet": {
-    "message": "Пока нет разговоров для извлечения.",
+    "message": "עדיין אין שיחה לחילוץ.",
     "description": "Toast message for empty/new chat"
   },
   "toastClipboardFailed": {
-    "message": "Не удалось скопировать. Откройте всплывающее окно расширения для ручного копирования.",
+    "message": "לא ניתן להעתיק. פתח את חלון התוסף להעתקה ידנית.",
     "description": "Toast message when clipboard fails"
   },
   "toastScriptLoadError": {
-    "message": "Ошибка: не удалось загрузить скрипты расширения.",
+    "message": "שגיאה: לא ניתן לטעון את סקריפטי התוסף.",
     "description": "Toast message when scripts fail to load"
   },
   "toastPermissionError": {
-    "message": "Ошибка проверки разрешений расширения.",
+    "message": "שגיאה בבדיקת הרשאות התוסף.",
     "description": "Toast message for permission check error"
   },
 
   "errorNoActiveTab": {
-    "message": "Активная вкладка не найдена.",
+    "message": "לא נמצאה כרטיסייה פעילה.",
     "description": "Error message when no active tab"
   },
   "errorMissingUrl": {
-    "message": "Отсутствует URL страницы.",
+    "message": "כתובת URL של הדף חסרה.",
     "description": "Error message when URL is missing"
   },
   "errorUnsupportedPage": {
-    "message": "Неподдерживаемая страница.",
+    "message": "דף לא נתמך.",
     "description": "Error message for unsupported page"
   },
   "errorInvalidData": {
-    "message": "Ошибка: получены неверные данные со страницы. Извлечение не удалось.",
+    "message": "שגיאה: התקבלו נתונים לא חוקיים מהדף. החילוץ נכשל.",
     "description": "Error message for invalid extraction data"
   },
   "errorScriptsNotLoaded": {
-    "message": "Ошибка: не удалось загрузить необходимые скрипты расширения на странице.",
+    "message": "שגיאה: לא ניתן לטעון את סקריפטי התוסף הנדרשים בדף.",
     "description": "Error message when scripts don't load"
   },
   "errorCommunication": {
-    "message": "Не удалось связаться со страницей. Перезагрузите страницу и попробуйте снова.",
+    "message": "נכשלה התקשורת עם הדף. אנא רענן את הדף ונסה שוב.",
     "description": "Error message for communication failure"
   },
   "errorConnectionLost": {
-    "message": "Соединение со страницей потеряно. Перезагрузите и попробуйте снова.",
+    "message": "החיבור לדף אבד. אנא רענן ונסה שוב.",
     "description": "Error message when connection lost"
   },
   "errorTimeout": {
-    "message": "Извлечение заняло слишком много времени или завершилось с ошибкой. Попробуйте еще раз.",
+    "message": "החילוץ ארך זמן רב מדי או נכשל באופן בלתי צפוי. אנא נסה שוב.",
     "description": "Error message for timeout"
   },
   "errorClipboardManual": {
-    "message": "Не удалось скопировать в буфер. Используется ручное копирование.",
+    "message": "לא ניתן להעתיק ללוח. משתמש באפשרות העתקה ידנית.",
     "description": "Error message when clipboard fails in popup"
   }
 }

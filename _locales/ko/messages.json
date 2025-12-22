@@ -1,6 +1,6 @@
 {
   "extensionName": {
-    "message": "Chatbot Q&A Clipper",
+    "message": "챗봇 Q&A 클리퍼",
     "description": "Extension name"
   },
   "extensionDescription": {
@@ -9,7 +9,7 @@
   },
 
   "popupTitle": {
-    "message": "Chatbot Q&A Clipper",
+    "message": "챗봇 Q&A 클리퍼",
     "description": "Title shown in popup header"
   },
   "copyButton": {
@@ -62,9 +62,13 @@
     "message": "질문 / 답변",
     "description": "Korean label style option"
   },
-  "labelStyleChinese": {
+  "labelStylePutonghua": {
     "message": "问题 / 回答",
-    "description": "Chinese label style option"
+    "description": "Putonghua (Simplified Chinese) label style option"
+  },
+  "labelStyleGuoyu": {
+    "message": "問題 / 回答",
+    "description": "Guoyu (Traditional Chinese) label style option"
   },
   "labelStyleJapanese": {
     "message": "質問 / 回答",
@@ -113,6 +117,38 @@
   "labelStyleSwahili": {
     "message": "Swali / Jibu",
     "description": "Swahili label style option"
+  },
+  "labelStyleUkrainian": {
+    "message": "Питання / Відповідь",
+    "description": "Ukrainian label style option"
+  },
+  "labelStyleDutch": {
+    "message": "Vraag / Antwoord",
+    "description": "Dutch label style option"
+  },
+  "labelStylePolish": {
+    "message": "Pytanie / Odpowiedź",
+    "description": "Polish label style option"
+  },
+  "labelStyleTurkish": {
+    "message": "Soru / Cevap",
+    "description": "Turkish label style option"
+  },
+  "labelStyleThai": {
+    "message": "คำถาม / คำตอบ",
+    "description": "Thai label style option"
+  },
+  "labelStylePersian": {
+    "message": "سوال / جواب",
+    "description": "Persian label style option"
+  },
+  "labelStyleHebrew": {
+    "message": "שאלה / תשובה",
+    "description": "Hebrew label style option"
+  },
+  "labelStyleFilipino": {
+    "message": "Tanong / Sagot",
+    "description": "Filipino label style option"
   },
 
   "numberFormatLabel": {
@@ -165,11 +201,11 @@
     "description": "Label for image format selector"
   },
   "imageFormatBracketed": {
-    "message": "[Image URL]: https://...",
+    "message": "[이미지 URL]: https://...",
     "description": "Bracketed image format option"
   },
   "imageFormatMarkdown": {
-    "message": "[Image URL](https://...)",
+    "message": "[이미지 URL](https://...)",
     "description": "Markdown image format option"
   },
   "imageFormatPlain": {
@@ -182,7 +218,7 @@
     "description": "Label for custom image label input"
   },
   "imageLabelPlaceholder": {
-    "message": "Image URL",
+    "message": "이미지 URL",
     "description": "Placeholder for custom image label input"
   },
 
@@ -280,7 +316,7 @@
     "description": "Toast message when Q&A copied successfully"
   },
   "toastUnsupportedSite": {
-    "message": "이 웹사이트는 익스텐션에서 지원하지 않습니다.",
+    "message": "이 웹사이트는 확장 프로그램에서 지원하지 않습니다.",
     "description": "Toast message for unsupported websites"
   },
   "toastNoConversation": {
@@ -292,15 +328,15 @@
     "description": "Toast message for empty/new chat"
   },
   "toastClipboardFailed": {
-    "message": "복사 실패. 익스텐션 팝업에서 수동 복사하세요.",
+    "message": "복사 실패. 확장 프로그램 팝업에서 수동 복사하세요.",
     "description": "Toast message when clipboard fails"
   },
   "toastScriptLoadError": {
-    "message": "오류: 익스텐션 스크립트를 로드할 수 없습니다.",
+    "message": "오류: 확장 프로그램 스크립트를 로드할 수 없습니다.",
     "description": "Toast message when scripts fail to load"
   },
   "toastPermissionError": {
-    "message": "익스텐션 권한 확인 오류.",
+    "message": "확장 프로그램 권한 확인 오류.",
     "description": "Toast message for permission check error"
   },
 
@@ -321,7 +357,7 @@
     "description": "Error message for invalid extraction data"
   },
   "errorScriptsNotLoaded": {
-    "message": "오류: 페이지에 필요한 익스텐션 스크립트를 로드할 수 없습니다.",
+    "message": "오류: 페이지에 필요한 확장 프로그램 스크립트를 로드할 수 없습니다.",
     "description": "Error message when scripts don't load"
   },
   "errorCommunication": {

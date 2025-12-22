@@ -1,19 +1,19 @@
 {
   "extensionName": {
-    "message": "Chatbot Q&A Clipper",
+    "message": "Chatbot Tanya Jawab Clipper",
     "description": "Extension name"
   },
   "extensionDescription": {
-    "message": "Mengekstrak tanya jawab dari percakapan chatbot dan menyalinnya ke clipboard dalam format tertentu",
+    "message": "Mengekstrak tanya jawab dari percakapan chatbot dan menyalinnya ke papan klip dalam format tertentu",
     "description": "Extension description"
   },
 
   "popupTitle": {
-    "message": "Chatbot Q&A Clipper",
+    "message": "Chatbot Tanya Jawab Clipper",
     "description": "Title shown in popup header"
   },
   "copyButton": {
-    "message": "Salin Q&A ke Clipboard",
+    "message": "Salin Tanya Jawab ke Papan Klip",
     "description": "Main action button text"
   },
 
@@ -62,9 +62,13 @@
     "message": "질문 / 답변",
     "description": "Korean label style option"
   },
-  "labelStyleChinese": {
+  "labelStylePutonghua": {
     "message": "问题 / 回答",
-    "description": "Chinese label style option"
+    "description": "Putonghua (Simplified Chinese) label style option"
+  },
+  "labelStyleGuoyu": {
+    "message": "問題 / 回答",
+    "description": "Guoyu (Traditional Chinese) label style option"
   },
   "labelStyleJapanese": {
     "message": "質問 / 回答",
@@ -113,6 +117,38 @@
   "labelStyleSwahili": {
     "message": "Swali / Jibu",
     "description": "Swahili label style option"
+  },
+  "labelStyleUkrainian": {
+    "message": "Питання / Відповідь",
+    "description": "Ukrainian label style option"
+  },
+  "labelStyleDutch": {
+    "message": "Vraag / Antwoord",
+    "description": "Dutch label style option"
+  },
+  "labelStylePolish": {
+    "message": "Pytanie / Odpowiedź",
+    "description": "Polish label style option"
+  },
+  "labelStyleTurkish": {
+    "message": "Soru / Cevap",
+    "description": "Turkish label style option"
+  },
+  "labelStyleThai": {
+    "message": "คำถาม / คำตอบ",
+    "description": "Thai label style option"
+  },
+  "labelStylePersian": {
+    "message": "سوال / جواب",
+    "description": "Persian label style option"
+  },
+  "labelStyleHebrew": {
+    "message": "שאלה / תשובה",
+    "description": "Hebrew label style option"
+  },
+  "labelStyleFilipino": {
+    "message": "Tanong / Sagot",
+    "description": "Filipino label style option"
   },
 
   "numberFormatLabel": {
@@ -227,12 +263,12 @@
   },
 
   "commandTriggerExtraction": {
-    "message": "Salin Q&A ke Clipboard",
+    "message": "Salin Tanya Jawab ke Papan Klip",
     "description": "Command description for trigger-extraction"
   },
 
   "manualCopyTitle": {
-    "message": "Akses clipboard gagal",
+    "message": "Akses Papan Klip gagal",
     "description": "Title for manual copy section"
   },
   "manualCopyInstructions": {
@@ -240,7 +276,7 @@
     "description": "Instructions for manual copy"
   },
   "manualCopyButton": {
-    "message": "Salin ke Clipboard",
+    "message": "Salin ke Papan Klip",
     "description": "Manual copy button text"
   },
   "backToSettingsButton": {
@@ -249,7 +285,7 @@
   },
 
   "statusExtracting": {
-    "message": "Sedang mengekstrak Q&A...",
+    "message": "Sedang mengekstrak tanya jawab...",
     "description": "Status message while extracting"
   },
   "statusError": {
@@ -271,12 +307,12 @@
     "description": "Status message when extraction fails to start"
   },
   "statusCopied": {
-    "message": "Disalin ke clipboard!",
+    "message": "Disalin ke papan klip!",
     "description": "Status message when copy succeeds"
   },
 
   "toastCopied": {
-    "message": "Q&A disalin ke clipboard!",
+    "message": "Tanya jawab disalin ke papan klip!",
     "description": "Toast message when Q&A copied successfully"
   },
   "toastUnsupportedSite": {
@@ -293,7 +329,7 @@
   },
   "toastClipboardFailed": {
     "message": "Tidak bisa menyalin. Buka popup ekstensi untuk menyalin manual.",
-    "description": "Toast message when clipboard fails"
+    "description": "Toast message when papan klip fails"
   },
   "toastScriptLoadError": {
     "message": "Kesalahan: Tidak dapat memuat skrip ekstensi.",
@@ -337,7 +373,7 @@
     "description": "Error message for timeout"
   },
   "errorClipboardManual": {
-    "message": "Tidak dapat menyalin ke clipboard. Gunakan opsi salin manual.",
-    "description": "Error message when clipboard fails in popup"
+    "message": "Tidak dapat menyalin ke papan klip. Gunakan opsi salin manual.",
+    "description": "Error message when papan klip fails in popup"
   }
 }

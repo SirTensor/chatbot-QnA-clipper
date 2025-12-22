@@ -1,6 +1,11 @@
 // --- Internationalization (i18n) Helper Functions ---
 
 /**
+ * RTL (Right-to-Left) languages list
+ */
+const RTL_LANGUAGES = ['ar', 'fa', 'he'];
+
+/**
  * Gets a localized message from the _locales directory
  * @param {string} messageName - The message key from messages.json
  * @param {string|string[]} [substitutions] - Optional substitution strings
@@ -10,10 +15,37 @@ function getMessage(messageName, substitutions) {
   return chrome.i18n.getMessage(messageName, substitutions) || messageName;
 }
 
+/**
+ * Checks if the current UI language is RTL and applies dir attribute
+ */
+function applyRTLDirection() {
+  const uiLanguage = (chrome.i18n.getUILanguage && chrome.i18n.getUILanguage()) || navigator.language || '';
+  const baseLang = uiLanguage.toLowerCase().split('-')[0];
+
+  if (RTL_LANGUAGES.includes(baseLang)) {
+    document.documentElement.setAttribute('dir', 'rtl');
+    document.body.classList.add('rtl');
+  } else {
+    document.documentElement.setAttribute('dir', 'ltr');
+    document.body.classList.remove('rtl');
+  }
+}
+
 function getDefaultLabelStyle() {
+  const uiLanguage = (chrome.i18n.getUILanguage && chrome.i18n.getUILanguage()) || navigator.language || '';
+  const fullLang = uiLanguage.toLowerCase().replace('-', '_');
+  const baseLang = uiLanguage.toLowerCase().split('-')[0];
+
+  // Handle Chinese variants: putonghua (Simplified) vs guoyu (Traditional)
+  if (baseLang === 'zh') {
+    if (fullLang === 'zh_tw' || fullLang === 'zh_hk' || fullLang === 'zh_mo') {
+      return 'guoyu';
+    }
+    return 'putonghua';
+  }
+
   const languageMap = {
     ko: 'korean',
-    zh: 'chinese',
     ja: 'japanese',
     vi: 'vietnamese',
     id: 'indonesian',
@@ -25,11 +57,37 @@ function getDefaultLabelStyle() {
     it: 'italian',
     ru: 'russian',
     ar: 'arabic',
-    sw: 'swahili'
+    sw: 'swahili',
+    uk: 'ukrainian',
+    nl: 'dutch',
+    pl: 'polish',
+    tr: 'turkish',
+    th: 'thai',
+    fa: 'persian',
+    he: 'hebrew',
+    fil: 'filipino'
   };
-  const uiLanguage = (chrome.i18n.getUILanguage && chrome.i18n.getUILanguage()) || navigator.language || '';
-  const baseLang = uiLanguage.toLowerCase().split('-')[0];
+
   return languageMap[baseLang] || 'qa';
+}
+
+/**
+ * Reorders the label style dropdown to put user's language at the very top
+ */
+function reorderLabelStyleDropdown() {
+  const select = document.getElementById('labelStyle');
+  if (!select) return;
+
+  const userStyle = getDefaultLabelStyle();
+  // Universal options - no reordering needed for these
+  const universalOptions = ['qa', 'prompt', 'short'];
+  if (universalOptions.includes(userStyle)) return;
+
+  // Find the user's option and move it to the very top
+  const userOption = select.querySelector(`option[value="${userStyle}"]`);
+  if (!userOption) return;
+
+  select.insertBefore(userOption, select.firstChild);
 }
 
 /**
@@ -188,8 +246,12 @@ function updateStatus(message) {
 
 // Load saved settings when popup opens
 document.addEventListener('DOMContentLoaded', () => {
-  // Apply i18n translations first
+  // Apply RTL direction if needed
+  applyRTLDirection();
+  // Apply i18n translations
   applyI18n();
+  // Reorder label style dropdown to put user's language at top
+  reorderLabelStyleDropdown();
   setupHelpTooltips();
 
   // Load settings

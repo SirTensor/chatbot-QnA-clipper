@@ -26,23 +26,42 @@ function getMessage(messageName, substitutions) {
 // Determine localized defaults
 function getDefaultLabelStyle() {
   const languageMap = {
-    ko: 'korean',
-    zh: 'chinese',
-    ja: 'japanese',
-    vi: 'vietnamese',
-    id: 'indonesian',
-    hi: 'hindi',
-    es: 'spanish',
-    pt: 'portuguese',
-    fr: 'french',
-    de: 'german',
-    it: 'italian',
-    ru: 'russian',
     ar: 'arabic',
-    sw: 'swahili'
+    de: 'german',
+    es: 'spanish',
+    fa: 'persian',
+    fil: 'filipino',
+    fr: 'french',
+    he: 'hebrew',
+    hi: 'hindi',
+    id: 'indonesian',
+    it: 'italian',
+    ja: 'japanese',
+    ko: 'korean',
+    nl: 'dutch',
+    pl: 'polish',
+    pt: 'portuguese',
+    ru: 'russian',
+    sw: 'swahili',
+    th: 'thai',
+    tr: 'turkish',
+    uk: 'ukrainian',
+    vi: 'vietnamese'
   };
   const uiLanguage = (chrome.i18n.getUILanguage && chrome.i18n.getUILanguage()) || navigator.language || '';
   const baseLang = uiLanguage.toLowerCase().split('-')[0];
+  const fullLang = uiLanguage.toLowerCase().replace('-', '_');
+
+  // Handle Chinese variants: putonghua (Simplified) vs guoyu (Traditional)
+  if (baseLang === 'zh') {
+    // zh_TW, zh_HK, zh_MO use Traditional Chinese (guoyu)
+    if (fullLang === 'zh_tw' || fullLang === 'zh_hk' || fullLang === 'zh_mo') {
+      return 'guoyu';
+    }
+    // zh_CN and others use Simplified Chinese (putonghua)
+    return 'putonghua';
+  }
+
   return languageMap[baseLang] || 'qa';
 }
 

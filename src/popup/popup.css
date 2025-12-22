@@ -217,3 +217,31 @@ hr {
   flex-shrink: 0;
   margin-top: 3px;
 }
+
+/* RTL (Right-to-Left) Support */
+body.rtl {
+  direction: rtl;
+  text-align: right;
+}
+
+body.rtl .help-icon {
+  margin-left: 0;
+  margin-right: 4px;
+}
+
+body.rtl .checkbox-row {
+  flex-direction: row-reverse;
+}
+
+body.rtl .checkbox-row .help-icon {
+  margin-right: 0;
+  margin-left: 0;
+}
+
+body.rtl .help-tooltip {
+  text-align: right;
+}
+
+body.rtl .shortcut-help {
+  text-align: right;
+}

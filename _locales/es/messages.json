@@ -62,9 +62,13 @@
     "message": "질문 / 답변",
     "description": "Korean label style option"
   },
-  "labelStyleChinese": {
+  "labelStylePutonghua": {
     "message": "问题 / 回答",
-    "description": "Chinese label style option"
+    "description": "Putonghua (Simplified Chinese) label style option"
+  },
+  "labelStyleGuoyu": {
+    "message": "問題 / 回答",
+    "description": "Guoyu (Traditional Chinese) label style option"
   },
   "labelStyleJapanese": {
     "message": "質問 / 回答",
@@ -113,6 +117,38 @@
   "labelStyleSwahili": {
     "message": "Swali / Jibu",
     "description": "Swahili label style option"
+  },
+  "labelStyleUkrainian": {
+    "message": "Питання / Відповідь",
+    "description": "Ukrainian label style option"
+  },
+  "labelStyleDutch": {
+    "message": "Vraag / Antwoord",
+    "description": "Dutch label style option"
+  },
+  "labelStylePolish": {
+    "message": "Pytanie / Odpowiedź",
+    "description": "Polish label style option"
+  },
+  "labelStyleTurkish": {
+    "message": "Soru / Cevap",
+    "description": "Turkish label style option"
+  },
+  "labelStyleThai": {
+    "message": "คำถาม / คำตอบ",
+    "description": "Thai label style option"
+  },
+  "labelStylePersian": {
+    "message": "سوال / جواب",
+    "description": "Persian label style option"
+  },
+  "labelStyleHebrew": {
+    "message": "שאלה / תשובה",
+    "description": "Hebrew label style option"
+  },
+  "labelStyleFilipino": {
+    "message": "Tanong / Sagot",
+    "description": "Filipino label style option"
   },
 
   "numberFormatLabel": {
@@ -244,12 +280,12 @@
     "description": "Manual copy button text"
   },
   "backToSettingsButton": {
-    "message": "Volver a Configuración",
+    "message": "Volver a la configuración",
     "description": "Back button text"
   },
 
   "statusExtracting": {
-    "message": "Extrayendo Q&A...",
+    "message": "Extrayendo preguntas y respuestas...",
     "description": "Status message while extracting"
   },
   "statusError": {
@@ -292,7 +328,7 @@
     "description": "Toast message for empty/new chat"
   },
   "toastClipboardFailed": {
-    "message": "No se pudo copiar. Abre el popup de la extensión para copiar manualmente.",
+    "message": "No se pudo copiar. Abre la ventana emergente de la extensión para copiar manualmente.",
     "description": "Toast message when clipboard fails"
   },
   "toastScriptLoadError": {

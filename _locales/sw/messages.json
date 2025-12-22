@@ -1,6 +1,6 @@
 {
   "extensionName": {
-    "message": "Chatbot Q&A Clipper",
+    "message": "Chatbot Maswali na Majibu Clipper",
     "description": "Extension name"
   },
   "extensionDescription": {
@@ -9,11 +9,11 @@
   },
 
   "popupTitle": {
-    "message": "Chatbot Q&A Clipper",
+    "message": "Chatbot Maswali na Majibu Clipper",
     "description": "Title shown in popup header"
   },
   "copyButton": {
-    "message": "Nakili Q&A kwenye ubao wa kunakili",
+    "message": "Nakili Maswali na Majibu kwenye ubao wa kunakili",
     "description": "Main action button text"
   },
 
@@ -62,9 +62,13 @@
     "message": "질문 / 답변",
     "description": "Korean label style option"
   },
-  "labelStyleChinese": {
+  "labelStylePutonghua": {
     "message": "问题 / 回答",
-    "description": "Chinese label style option"
+    "description": "Putonghua (Simplified Chinese) label style option"
+  },
+  "labelStyleGuoyu": {
+    "message": "問題 / 回答",
+    "description": "Guoyu (Traditional Chinese) label style option"
   },
   "labelStyleJapanese": {
     "message": "質問 / 回答",
@@ -113,6 +117,38 @@
   "labelStyleSwahili": {
     "message": "Swali / Jibu",
     "description": "Swahili label style option"
+  },
+  "labelStyleUkrainian": {
+    "message": "Питання / Відповідь",
+    "description": "Ukrainian label style option"
+  },
+  "labelStyleDutch": {
+    "message": "Vraag / Antwoord",
+    "description": "Dutch label style option"
+  },
+  "labelStylePolish": {
+    "message": "Pytanie / Odpowiedź",
+    "description": "Polish label style option"
+  },
+  "labelStyleTurkish": {
+    "message": "Soru / Cevap",
+    "description": "Turkish label style option"
+  },
+  "labelStyleThai": {
+    "message": "คำถาม / คำตอบ",
+    "description": "Thai label style option"
+  },
+  "labelStylePersian": {
+    "message": "سوال / جواب",
+    "description": "Persian label style option"
+  },
+  "labelStyleHebrew": {
+    "message": "שאלה / תשובה",
+    "description": "Hebrew label style option"
+  },
+  "labelStyleFilipino": {
+    "message": "Tanong / Sagot",
+    "description": "Filipino label style option"
   },
 
   "numberFormatLabel": {
@@ -280,7 +316,7 @@
     "description": "Toast message when Q&A copied successfully"
   },
   "toastUnsupportedSite": {
-    "message": "Tovuti hii haiungwi mkono na programu-jalizi.",
+    "message": "Tovuti hii haiungwi mkono na kiendelezi.",
     "description": "Toast message for unsupported websites"
   },
   "toastNoConversation": {
@@ -292,15 +328,15 @@
     "description": "Toast message for empty/new chat"
   },
   "toastClipboardFailed": {
-    "message": "Imeshindwa kunakili. Fungua kichupo cha programu-jalizi kunakili kwa mkono.",
+    "message": "Imeshindwa kunakili. Fungua kichupo cha kiendelezi kunakili kwa mkono.",
     "description": "Toast message when clipboard fails"
   },
   "toastScriptLoadError": {
-    "message": "Hitilafu: Haiwezi kupakia maandishi ya programu-jalizi.",
+    "message": "Hitilafu: Haiwezi kupakia maandishi ya kiendelezi.",
     "description": "Toast message when scripts fail to load"
   },
   "toastPermissionError": {
-    "message": "Hitilafu kukagua ruhusa za programu-jalizi.",
+    "message": "Hitilafu kukagua ruhusa za kiendelezi.",
     "description": "Toast message for permission check error"
   },
 
@@ -321,7 +357,7 @@
     "description": "Error message for invalid extraction data"
   },
   "errorScriptsNotLoaded": {
-    "message": "Hitilafu: Imeshindwa kupakia maandishi muhimu ya programu-jalizi kwenye ukurasa.",
+    "message": "Hitilafu: Imeshindwa kupakia maandishi muhimu ya kiendelezi kwenye ukurasa.",
     "description": "Error message when scripts don't load"
   },
   "errorCommunication": {

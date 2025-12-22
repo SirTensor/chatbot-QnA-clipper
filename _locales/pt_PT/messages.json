@@ -1,24 +1,24 @@
 {
   "extensionName": {
-    "message": "Клиппер вопросов и ответов чат-бота",
+    "message": "Chatbot Q&A Clipper",
     "description": "Extension name"
   },
   "extensionDescription": {
-    "message": "Извлекает вопросы и ответы из разговоров чат-бота и копирует их в буфер обмена в заданных форматах",
+    "message": "Extrai perguntas e respostas de conversas com chatbots e copia para a área de transferência em formatos específicos",
     "description": "Extension description"
   },
 
   "popupTitle": {
-    "message": "Клиппер вопросов и ответов чат-бота",
+    "message": "Chatbot Q&A Clipper",
     "description": "Title shown in popup header"
   },
   "copyButton": {
-    "message": "Копировать вопросы и ответы в буфер обмена",
+    "message": "Copiar Q&A para a área de transferência",
     "description": "Main action button text"
   },
 
   "headerLevelLabel": {
-    "message": "Уровень заголовка:",
+    "message": "Nível do título:",
     "description": "Label for header level selector"
   },
   "headerH1": {
@@ -43,7 +43,7 @@
   },
 
   "labelStyleLabel": {
-    "message": "Стиль меток:",
+    "message": "Estilo de etiqueta:",
     "description": "Label for Q&A label style selector"
   },
   "labelStyleQA": {
@@ -152,144 +152,144 @@
   },
 
   "numberFormatLabel": {
-    "message": "Формат нумерации:",
+    "message": "Formato de numeração:",
     "description": "Label for number format selector"
   },
   "numberFormatNoSpace": {
-    "message": "1 (Без пробела)",
+    "message": "1 (Sem espaço)",
     "description": "Number format without space"
   },
   "numberFormatSpace": {
-    "message": " 1 (Пробел перед числом)",
+    "message": " 1 (Espaço antes do número)",
     "description": "Number format with space before"
   },
   "numberFormatDashNoSpace": {
-    "message": "-1 (Дефис, без пробела)",
+    "message": "-1 (Hífen, sem espaço)",
     "description": "Number format with dash, no space"
   },
   "numberFormatDash": {
-    "message": "- 1 (Дефис с пробелом)",
+    "message": "- 1 (Hífen com espaço)",
     "description": "Number format with dash and space"
   },
   "numberFormatSpaceDashNoSpace": {
-    "message": " -1 (Пробел, затем дефис)",
+    "message": " -1 (Espaço e depois hífen)",
     "description": "Number format with space then dash"
   },
   "numberFormatSpaceDash": {
-    "message": " - 1 (Пробел, дефис, пробел)",
+    "message": " - 1 (Espaço, hífen, espaço)",
     "description": "Number format with space, dash, space"
   },
   "numberFormatColonNoSpace": {
-    "message": ":1 (Двоеточие, без пробела)",
+    "message": ":1 (Dois pontos, sem espaço)",
     "description": "Number format with colon, no space"
   },
   "numberFormatColon": {
-    "message": ": 1 (Двоеточие с пробелом)",
+    "message": ": 1 (Dois pontos com espaço)",
     "description": "Number format with colon and space"
   },
   "numberFormatSpaceColonNoSpace": {
-    "message": " :1 (Пробел, затем двоеточие)",
+    "message": " :1 (Espaço e depois dois pontos)",
     "description": "Number format with space then colon"
   },
   "numberFormatSpaceColon": {
-    "message": " : 1 (Пробел, двоеточие, пробел)",
+    "message": " : 1 (Espaço, dois pontos, espaço)",
     "description": "Number format with space, colon, space"
   },
 
   "imageFormatLabel": {
-    "message": "Формат URL изображения:",
+    "message": "Formato de URL da imagem:",
     "description": "Label for image format selector"
   },
   "imageFormatBracketed": {
-    "message": "[URL изображения]: https://...",
+    "message": "[URL da imagem]: https://...",
     "description": "Bracketed image format option"
   },
   "imageFormatMarkdown": {
-    "message": "[URL изображения](https://...)",
+    "message": "[URL da imagem](https://...)",
     "description": "Markdown image format option"
   },
   "imageFormatPlain": {
-    "message": "https://... (прямая ссылка)",
+    "message": "https://... (URL simples)",
     "description": "Plain URL image format option"
   },
 
   "imageLabelLabel": {
-    "message": "Пользовательская подпись к изображению:",
+    "message": "Etiqueta de imagem personalizada:",
     "description": "Label for custom image label input"
   },
   "imageLabelPlaceholder": {
-    "message": "URL изображения",
+    "message": "URL da imagem",
     "description": "Placeholder for custom image label input"
   },
 
   "includePlatformLabel": {
-    "message": "Добавлять название платформы",
+    "message": "Incluir nome da plataforma",
     "description": "Label for include platform checkbox"
   },
 
   "excludeFileCitationsLabel": {
-    "message": "Исключить ссылки на файлы (ChatGPT)",
+    "message": "Excluir citações de ficheiros (ChatGPT)",
     "description": "Label for exclude file citations checkbox"
   },
   "excludeFileCitationsTooltip": {
-    "message": "Исключает значки ссылок на файлы, которые появляются, когда ChatGPT цитирует загруженные файлы",
+    "message": "Exclui os selos de referência de ficheiro que aparecem quando o ChatGPT cita ficheiros enviados",
     "description": "Tooltip for exclude file citations option"
   },
 
   "includePseudoQuotesLabel": {
-    "message": "Включать кавычки (ChatGPT)",
+    "message": "Incluir aspas (ChatGPT)",
     "description": "Label for include quote marks checkbox"
   },
   "includePseudoQuotesTooltip": {
-    "message": "Извлекает кавычки из CSS ::before/::after псевдоэлементов в элементах списка blockquote",
+    "message": "Extrai aspas dos pseudo-elementos CSS ::before/::after em itens de lista de blockquote",
     "description": "Tooltip for include quote marks option"
   },
 
   "keyboardShortcutLabel": {
-    "message": "Горячая клавиша:",
+    "message": "Atalho de teclado:",
     "description": "Label for keyboard shortcut display"
   },
   "shortcutLoading": {
-    "message": "Загрузка...",
+    "message": "A carregar...",
     "description": "Text shown while loading shortcut"
   },
   "shortcutNotSet": {
-    "message": "Горячая клавиша не задана",
+    "message": "Atalho não definido",
     "description": "Text shown when no shortcut is configured"
   },
   "shortcutConfigLink": {
-    "message": "Настроить горячую клавишу в Chrome",
+    "message": "Configurar atalho no Chrome",
     "description": "Link text to configure shortcuts"
   },
 
   "commandTriggerExtraction": {
-    "message": "Копировать Q&A в буфер обмена",
+    "message": "Copiar Q&A para a área de transferência",
     "description": "Command description for trigger-extraction"
   },
 
   "manualCopyTitle": {
-    "message": "Сбой доступа к буферу обмена",
+    "message": "Falha no acesso a área de transferência",
     "description": "Title for manual copy section"
   },
   "manualCopyInstructions": {
-    "message": "Используйте кнопку ниже, чтобы скопировать извлеченный текст:",
+    "message": "Utilize o botão abaixo para copiar o texto extraído:",
     "description": "Instructions for manual copy"
   },
   "manualCopyButton": {
-    "message": "Скопировать в буфер обмена",
+    "message": "Copiar para a área de transferência",
     "description": "Manual copy button text"
   },
   "backToSettingsButton": {
-    "message": "Назад к настройкам",
+    "message": "Voltar para Definições",
     "description": "Back button text"
   },
 
   "statusExtracting": {
-    "message": "Извлечение Q&A...",
+    "message": "A extrair Q&A...",
     "description": "Status message while extracting"
   },
   "statusError": {
-    "message": "Ошибка: $MESSAGE$",
+    "message": "Erro: $MESSAGE$",
     "description": "Status message for errors",
     "placeholders": {
       "message": {
@@ -299,81 +299,81 @@
     }
   },
   "statusWaitDebounce": {
-    "message": "Пожалуйста, подождите перед повторным нажатием.",
+    "message": "Aguarde antes de clicar novamente.",
     "description": "Status message for debounce"
   },
   "statusStartError": {
-    "message": "Ошибка запуска извлечения",
+    "message": "Erro ao iniciar a extração",
     "description": "Status message when extraction fails to start"
   },
   "statusCopied": {
-    "message": "Скопировано в буфер обмена!",
+    "message": "Copiado para a área de transferência!",
     "description": "Status message when copy succeeds"
   },
 
   "toastCopied": {
-    "message": "Q&A скопированы в буфер обмена!",
+    "message": "Q&A copiado para a área de transferência!",
     "description": "Toast message when Q&A copied successfully"
   },
   "toastUnsupportedSite": {
-    "message": "Этот сайт не поддерживается расширением.",
+    "message": "Este site não é suportado pela extensão.",
     "description": "Toast message for unsupported websites"
   },
   "toastNoConversation": {
-    "message": "Не найдено разговоров для извлечения.",
+    "message": "Nenhuma conversa encontrada para extrair.",
     "description": "Toast message when no conversation found"
   },
   "toastNoConversationYet": {
-    "message": "Пока нет разговоров для извлечения.",
+    "message": "Ainda não há conversa para extrair.",
     "description": "Toast message for empty/new chat"
   },
   "toastClipboardFailed": {
-    "message": "Не удалось скопировать. Откройте всплывающее окно расширения для ручного копирования.",
+    "message": "Não foi possível copiar. Abra o pop-up da extensão para copiar manualmente.",
     "description": "Toast message when clipboard fails"
   },
   "toastScriptLoadError": {
-    "message": "Ошибка: не удалось загрузить скрипты расширения.",
+    "message": "Erro: Não foi possível carregar os scripts da extensão.",
     "description": "Toast message when scripts fail to load"
   },
   "toastPermissionError": {
-    "message": "Ошибка проверки разрешений расширения.",
+    "message": "Erro ao verificar as permissões da extensão.",
     "description": "Toast message for permission check error"
   },
 
   "errorNoActiveTab": {
-    "message": "Активная вкладка не найдена.",
+    "message": "Nenhum separador ativo encontrado.",
     "description": "Error message when no active tab"
   },
   "errorMissingUrl": {
-    "message": "Отсутствует URL страницы.",
+    "message": "URL da página em falta.",
     "description": "Error message when URL is missing"
   },
   "errorUnsupportedPage": {
-    "message": "Неподдерживаемая страница.",
+    "message": "Página não suportada.",
     "description": "Error message for unsupported page"
   },
   "errorInvalidData": {
-    "message": "Ошибка: получены неверные данные со страницы. Извлечение не удалось.",
+    "message": "Erro: Dados inválidos recebidos da página. A extração falhou.",
     "description": "Error message for invalid extraction data"
   },
   "errorScriptsNotLoaded": {
-    "message": "Ошибка: не удалось загрузить необходимые скрипты расширения на странице.",
+    "message": "Erro: Não foi possível carregar os scripts necessários da extensão na página.",
     "description": "Error message when scripts don't load"
   },
   "errorCommunication": {
-    "message": "Не удалось связаться со страницей. Перезагрузите страницу и попробуйте снова.",
+    "message": "Falha ao comunicar com a página. Recarregue e tente novamente.",
     "description": "Error message for communication failure"
   },
   "errorConnectionLost": {
-    "message": "Соединение со страницей потеряно. Перезагрузите и попробуйте снова.",
+    "message": "A ligação com a página foi perdida. Recarregue e tente novamente.",
     "description": "Error message when connection lost"
   },
   "errorTimeout": {
-    "message": "Извлечение заняло слишком много времени или завершилось с ошибкой. Попробуйте еще раз.",
+    "message": "A extração demorou demasiado ou falhou inesperadamente. Tente novamente.",
     "description": "Error message for timeout"
   },
   "errorClipboardManual": {
-    "message": "Не удалось скопировать в буфер. Используется ручное копирование.",
+    "message": "Não foi possível copiar para à área de transferência. A utilizar a opção de cópia manual.",
     "description": "Error message when clipboard fails in popup"
   }
 }

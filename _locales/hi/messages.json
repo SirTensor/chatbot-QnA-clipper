@@ -1,6 +1,6 @@
 {
   "extensionName": {
-    "message": "Chatbot Q&A Clipper",
+    "message": "चैटबॉट प्रश्न-उत्तर क्लिपर",
     "description": "Extension name"
   },
   "extensionDescription": {
@@ -9,11 +9,11 @@
   },
 
   "popupTitle": {
-    "message": "Chatbot Q&A Clipper",
+    "message": "चैटबॉट प्रश्न-उत्तर क्लिपर",
     "description": "Title shown in popup header"
   },
   "copyButton": {
-    "message": "Q&A को क्लिपबोर्ड पर कॉपी करें",
+    "message": "प्रश्न-उत्तर क्लिपबोर्ड पर कॉपी करें",
     "description": "Main action button text"
   },
 
@@ -62,9 +62,13 @@
     "message": "질문 / 답변",
     "description": "Korean label style option"
   },
-  "labelStyleChinese": {
+  "labelStylePutonghua": {
     "message": "问题 / 回答",
-    "description": "Chinese label style option"
+    "description": "Putonghua (Simplified Chinese) label style option"
+  },
+  "labelStyleGuoyu": {
+    "message": "問題 / 回答",
+    "description": "Guoyu (Traditional Chinese) label style option"
   },
   "labelStyleJapanese": {
     "message": "質問 / 回答",
@@ -113,6 +117,38 @@
   "labelStyleSwahili": {
     "message": "Swali / Jibu",
     "description": "Swahili label style option"
+  },
+  "labelStyleUkrainian": {
+    "message": "Питання / Відповідь",
+    "description": "Ukrainian label style option"
+  },
+  "labelStyleDutch": {
+    "message": "Vraag / Antwoord",
+    "description": "Dutch label style option"
+  },
+  "labelStylePolish": {
+    "message": "Pytanie / Odpowiedź",
+    "description": "Polish label style option"
+  },
+  "labelStyleTurkish": {
+    "message": "Soru / Cevap",
+    "description": "Turkish label style option"
+  },
+  "labelStyleThai": {
+    "message": "คำถาม / คำตอบ",
+    "description": "Thai label style option"
+  },
+  "labelStylePersian": {
+    "message": "سوال / جواب",
+    "description": "Persian label style option"
+  },
+  "labelStyleHebrew": {
+    "message": "שאלה / תשובה",
+    "description": "Hebrew label style option"
+  },
+  "labelStyleFilipino": {
+    "message": "Tanong / Sagot",
+    "description": "Filipino label style option"
   },
 
   "numberFormatLabel": {
@@ -165,11 +201,11 @@
     "description": "Label for image format selector"
   },
   "imageFormatBracketed": {
-    "message": "[Image URL]: https://...",
+    "message": "[छवि URL]: https://...",
     "description": "Bracketed image format option"
   },
   "imageFormatMarkdown": {
-    "message": "[Image URL](https://...)",
+    "message": "[छवि URL](https://...)",
     "description": "Markdown image format option"
   },
   "imageFormatPlain": {
@@ -182,7 +218,7 @@
     "description": "Label for custom image label input"
   },
   "imageLabelPlaceholder": {
-    "message": "Image URL",
+    "message": "छवि URL",
     "description": "Placeholder for custom image label input"
   },
 
@@ -232,7 +268,7 @@
   },
 
   "manualCopyTitle": {
-    "message": "क्लिपबोर्ड एक्सेस विफल",
+    "message": "क्लिपबोर्ड तक पहुँच विफल",
     "description": "Title for manual copy section"
   },
   "manualCopyInstructions": {

@@ -1,12 +1,12 @@
-// --- Updated grokConfigs.js (v24 - Use $...$ for inline math) ---
+// --- Updated grokConfigs.js (v25 - Fix math display container extraction) ---
 
 /**
  * Configuration for extracting Q&A data from Grok (grok.com)
- * Version: 24 (Use $...$ for inline math)
+ * Version: 25 (Fix math display container extraction)
  */
 (function() {
   // Initialization check
-  if (window.grokConfig && window.grokConfig.version >= 24) { // Updated version check
+  if (window.grokConfig && window.grokConfig.version >= 25) { // Updated version check
     // console.log("Grok config already initialized (v" + window.grokConfig.version + "), skipping.");
     return;
   }
@@ -1164,7 +1164,7 @@
   // --- Main Configuration Object ---
   const grokConfig = {
     platformName: 'Grok',
-    version: 24, // Updated config version - Use $...$ for inline math
+    version: 25, // Updated config version - Fix math display container extraction
     selectors: {
       turnContainer: 'div.relative.group.flex.flex-col.justify-center[class*="items-"]',
       userMessageIndicator: '.items-end',
@@ -1178,7 +1178,7 @@
       userAttachmentImageElement: 'figure img',
       userAttachmentFileIcon: 'figure svg.lucide[role="img"]',
       assistantContentContainer: 'div.response-content-markdown',
-      assistantRelevantBlocks: ':scope > :is(p.break-words, h1, h2, h3, h4, h5, h6, ol, ul, div.not-prose, div.grid, div.table-container, div.py-2, blockquote, hr, span.katex-display, div.relative:has(div.table-container))',
+      assistantRelevantBlocks: ':scope > :is(p.break-words, h1, h2, h3, h4, h5, h6, ol, ul, div.not-prose, div.grid, div.table-container, div.py-2, blockquote, hr, span.katex-display, div.overflow-x-auto, div.relative:has(div.table-container))',
       listItem: 'li',
       assistantCodeBlockOuterContainer: 'div.not-prose',
       assistantCodeBlockInnerContainer: ':scope > div.relative, div.not-prose > div.relative',
@@ -1194,6 +1194,7 @@
       katexMathML: 'span.katex-mathml',
       katexHTML: 'span.katex-html',
       katexDisplayContainer: 'span.katex-display',
+      mathDisplayContainer: 'div.overflow-x-auto',
       chartContainer: 'div.py-2',
       chartFrame: 'div.h-\\[500px\\].bg-surface-l1.rounded-xl.overflow-hidden.border.border-border',
       chartIframe: 'iframe[src*="artifacts.grokusercontent.com"]',
@@ -1535,6 +1536,22 @@
               processedElements.add(block);
               block.querySelectorAll('*').forEach(child => processedElements.add(child));
           }
+          // Handle Math Display Container (div.overflow-x-auto containing katex-display)
+          else if (tagNameLower === 'div' && block.classList.contains('overflow-x-auto')) {
+              // console.log(`  -> Handling as Math Display Container`);
+              const katexDisplayElement = block.querySelector(selectors.katexDisplayContainer);
+              if (katexDisplayElement) {
+                  const katexElement = katexDisplayElement.querySelector('.katex');
+                  if (katexElement) {
+                      const latexSource = extractKaTexSource(katexElement);
+                      if (latexSource) {
+                          QAClipper.Utils.addTextItem(contentItems, `$$\n${latexSource}\n$$`);
+                      }
+                  }
+              }
+              processedElements.add(block);
+              block.querySelectorAll('*').forEach(child => processedElements.add(child));
+          }
           // Handle Chart Containers
           else if (tagNameLower === 'div' && block.classList.contains('py-2')) {
               // console.log(`  -> Checking for Chart Container`);
@@ -1591,4 +1608,4 @@
   // console.log("grokConfig.js initialized (v" + grokConfig.version + ")");
 
 })(); // End of IIFE
-// --- END OF UPDATED FILE grokConfigs.js (v24) ---
+// --- END OF UPDATED FILE grokConfigs.js (v25) ---
