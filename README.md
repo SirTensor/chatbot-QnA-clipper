@@ -48,7 +48,8 @@ Choose heading level from H1 to H5:
 - `# Question 1` (H1)
 - `## Question 1` (H2)
 - `### Question 1` (H3)
-- etc.
+- `#### Question 1` (H4)
+- `##### Question 1` (H5)
 
 ### Label Style
 Select from various label formats:
