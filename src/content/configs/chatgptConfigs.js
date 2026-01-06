@@ -1,9 +1,9 @@
-// chatgptConfigs.js (v31 - Extract CSS ::before/::after pseudo-element content)
+// chatgptConfigs.js (v32 - Handle table containers in lists/quotes and new class names)
 
 (function() {
     // Initialization check
-    // v31: Extract CSS ::before/::after content using getComputedStyle for blockquote list items
-    if (window.chatgptConfig && window.chatgptConfig.version === 31) { return; }
+    // v32: Handle table containers in lists/quotes and new class names
+    if (window.chatgptConfig && window.chatgptConfig.version === 32) { return; }
 
     // --- Helper Functions ---
 
@@ -105,6 +105,44 @@
         }
         
         return result;
+    }
+
+    function getTableElement(element) {
+        if (!element || element.nodeType !== Node.ELEMENT_NODE) {
+            return null;
+        }
+
+        const tagNameLower = element.tagName.toLowerCase();
+        if (tagNameLower === 'table') {
+            return element;
+        }
+
+        if (tagNameLower !== 'div') {
+            return null;
+        }
+
+        const classList = Array.from(element.classList || []);
+        const hasTableContainerClass = classList.some(cls => cls.toLowerCase().includes('tablecontainer'));
+
+        if (element.classList.contains('overflow-x-auto') || hasTableContainerClass) {
+            return element.querySelector(':scope > table, :scope table');
+        }
+
+        return null;
+    }
+
+    function getTableMarkdown(tableElement) {
+        if (!tableElement) return null;
+
+        const markdown = processTableToMarkdown(tableElement);
+        if (markdown) return markdown;
+
+        if (window.QAClipper && window.QAClipper.Utils && typeof window.QAClipper.Utils.tableToMarkdown === 'function') {
+            const fallback = window.QAClipper.Utils.tableToMarkdown(tableElement);
+            return fallback || null;
+        }
+
+        return null;
     }
 
     /**
@@ -244,15 +282,27 @@
                 }
             } else if (node.nodeType === Node.ELEMENT_NODE) {
                 const tagName = node.tagName.toLowerCase();
+                const tableElement = getTableElement(node);
+                const isTableBlock = !!tableElement;
 
                 // Add spacing before block elements if needed
-                if (previousNodeRequiresSpace && ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre', 'ul', 'ol', 'blockquote'].includes(tagName)) {
+                if (previousNodeRequiresSpace && (isTableBlock || ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre', 'ul', 'ol', 'blockquote'].includes(tagName))) {
                     if (resultLines.length > 0 && resultLines[resultLines.length - 1].trim() !== prefix.trim()) {
                          resultLines.push(prefix.trim()); // Add empty blockquote line for spacing
                     }
                 }
 
-                if (['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(tagName)) {
+                if (isTableBlock) {
+                    const tableMarkdown = getTableMarkdown(tableElement);
+                    if (tableMarkdown) {
+                        tableMarkdown.split('\n').forEach(line => {
+                            resultLines.push(`${prefix}${line}`);
+                        });
+                        previousNodeRequiresSpace = true;
+                    } else {
+                        previousNodeRequiresSpace = false;
+                    }
+                } else if (['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(tagName)) {
                     const level = parseInt(tagName.substring(1));
                     const hashes = '#'.repeat(level);
                     const headingText = node.textContent.trim();
@@ -406,9 +456,34 @@
                          }
                      } else if (node.nodeType === Node.ELEMENT_NODE) {
                          const tagName = node.tagName.toLowerCase();
+                         const tableElement = getTableElement(node);
                          
+                         // Handle table containers
+                         if (tableElement) {
+                             flushTextBuffer();
+
+                             const tableMarkdown = getTableMarkdown(tableElement);
+                             if (tableMarkdown) {
+                                 if (!hasAddedContent) {
+                                     currentContentLines.push(`${bqPrefix}${indent}${marker} `);
+                                     hasAddedContent = true;
+                                 }
+
+                                 const lastLine = currentContentLines[currentContentLines.length - 1] || '';
+                                 const trimmedLastLine = lastLine.trim();
+                                 const isBlankLine = !trimmedLastLine || trimmedLastLine === bqPrefix.trim();
+                                 if (!isBlankLine) {
+                                     currentContentLines.push(`${bqPrefix}${textIndent}`);
+                                 }
+
+                                 tableMarkdown.split('\n').forEach(line => {
+                                     currentContentLines.push(`${bqPrefix}${textIndent}${line}`);
+                                 });
+                                 hasAddedContent = true;
+                             }
+                         }
                          // Handle checkbox items (task list items)
-                         if (tagName === 'p' && node.querySelector('input[type="checkbox"]')) {
+                         else if (tagName === 'p' && node.querySelector('input[type="checkbox"]')) {
                              flushTextBuffer(); // Flush any existing text first
                              
                              const checkbox = node.querySelector('input[type="checkbox"]');
@@ -723,11 +798,8 @@
              if (processedElements.has(element)) return;
 
              const tagNameLower = element.tagName.toLowerCase();
-             const isTableContainer = tagNameLower === 'table' ||
-                                    (tagNameLower === 'div' && (element.classList.contains('overflow-x-auto') || element.classList.contains('tableContainer') || 
-                                    Array.from(element.classList).some(cls => cls.startsWith('_tableContainer_'))) && element.querySelector(':scope > table, :scope table')) ||
-                                    element.querySelector('.tableContainer > table, [class*="_tableContainer_"] table');
-             const tableElement = isTableContainer ? (tagNameLower === 'table' ? element : (element.querySelector(':scope > table') || element.querySelector('table'))) : null;
+             const tableElement = getTableElement(element);
+             const isTableContainer = !!tableElement;
 
              const isStandardMdBlock = ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'hr'].includes(tagNameLower);
              let handledSeparately = false;
@@ -754,7 +826,7 @@
              else if (tableElement) {
                 flushMdBlock();
                 if (processedElements.has(element) || processedElements.has(tableElement)) return;
-                const tableMarkdown = processTableToMarkdown(tableElement);
+                const tableMarkdown = getTableMarkdown(tableElement);
                 if (tableMarkdown) {
                     QAClipper.Utils.addTextItem(contentItems, tableMarkdown);
                 } else { console.warn("[Extractor v24] Failed to process table:", tableElement); }
@@ -932,7 +1004,7 @@
     // --- Main Configuration Object ---
     const chatgptConfig = {
       platformName: 'ChatGPT',
-      version: 31, // v31: Extract CSS ::before/::after content using getComputedStyle for blockquote list items
+      version: 32, // v32: Handle table containers in lists/quotes and new class names
       selectors: { // Updated selectors for new table structure
         turnContainer: 'article[data-testid^="conversation-turn-"]',
         turnContainerFallback: 'div[data-message-author-role]', // Fallback for edge cases without article wrapper
@@ -958,6 +1030,7 @@
           div.markdown.prose > table,
           div.markdown.prose > div.overflow-x-auto > table,
           div.markdown.prose div.tableContainer > table,
+          div.markdown.prose > div[class*="tableContainer"],
           div.markdown.prose > div[class*="_tableContainer_"],
           div.markdown.prose > span.katex-display,
           div.markdown.prose > span.katex,
