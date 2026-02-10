@@ -1,9 +1,9 @@
-// geminiConfigs.js (v52 - Fix thinking elements selector for AI response extraction)
+// geminiConfigs.js (v53 - Add Gemini share response-container support)
 
 (function() {
     // Initialization check
-    // v52: Fix thinking elements selector - model-response-text is on structured-content-container
-    if (window.geminiConfig && window.geminiConfig.version >= 52) { return; }
+    // v53: Add Gemini share response-container support while preserving normal chat extraction
+    if (window.geminiConfig && window.geminiConfig.version >= 53) { return; }
 
     // --- Helper Functions ---
 
@@ -27,6 +27,37 @@
              tagNameLower === 'response-element' || // Skip response-element for dedicated processing
              tagNameLower === 'table' || // Skip table at top level
              element.matches('.math-block'); // Skip math blocks for dedicated processing
+    }
+
+    /**
+     * Gemini-only markdown conversion wrapper.
+     * Replaces Gemini math spans with LaTeX text first so shared utils do not need platform-specific logic.
+     * @param {HTMLElement} element - Element to convert.
+     * @param {Object} options - htmlToMarkdown options.
+     * @returns {string}
+     */
+    function htmlToMarkdownWithGeminiMath(element, options = {}) {
+        if (!element || typeof element.cloneNode !== 'function') {
+            return QAClipper.Utils.htmlToMarkdown(element, options);
+        }
+
+        const clone = element.cloneNode(true);
+        const mathSelector = 'span.math-inline, span.math-display, span.katex-display, div.math-block';
+        const mathNodes = Array.from(clone.querySelectorAll(mathSelector));
+
+        mathNodes.forEach((mathNode) => {
+            // Process only top-level math containers to avoid duplicate replacements.
+            const ancestorMath = mathNode.parentElement && mathNode.parentElement.closest(mathSelector);
+            if (ancestorMath) return;
+
+            const latex = extractLatexFromKatex(mathNode);
+            if (!latex || !latex.trim()) return;
+
+            const replacement = document.createTextNode(latex);
+            mathNode.parentNode.replaceChild(replacement, mathNode);
+        });
+
+        return QAClipper.Utils.htmlToMarkdown(clone, options);
     }
 
 
@@ -210,7 +241,7 @@
             });
             
             // Get direct text content
-            const directContent = QAClipper.Utils.htmlToMarkdown(liClone, {
+            const directContent = htmlToMarkdownWithGeminiMath(liClone, {
                 ignoreTags: ['ul', 'ol', 'blockquote', 'code-block', 'pre', 'response-element']
             }).trim();
             
@@ -389,7 +420,7 @@
             Array.from(itemClone.querySelectorAll('ul, ol')).forEach(el => { 
                  if (el.parentNode) el.parentNode.removeChild(el);
             });
-            const directContent = QAClipper.Utils.htmlToMarkdown(itemClone, { ignoreTags: ['ul', 'ol'] }).trim();
+            const directContent = htmlToMarkdownWithGeminiMath(itemClone, { ignoreTags: ['ul', 'ol'] }).trim();
     
             // Add the line with blockquote prefix and indentation
             const linePrefix = `> ${indent}${marker} `;
@@ -513,7 +544,7 @@
                 }
                 else {
                     // Handle paragraphs and other elements
-                    const content = QAClipper.Utils.htmlToMarkdown(node, { 
+                    const content = htmlToMarkdownWithGeminiMath(node, { 
                         skipElementCheck: (el) => processedElements.has(el),
                         ignoreTags: ['blockquote', 'ul', 'ol', 'response-element', 'code-block'] 
                     }).trim(); 
@@ -2007,7 +2038,7 @@
                 columnCount = headerCells.length;
                 if (columnCount > 0) {
                     const headerContent = headerCells.map(cell =>
-                        QAClipper.Utils.htmlToMarkdown(cell, { ignoreTags: ['table'] })
+                        htmlToMarkdownWithGeminiMath(cell, { ignoreTags: ['table'] })
                         .trim().replace(/\|/g, '\\|').replace(/\n+/g, ' ')
                     );
                     markdownRows.push(`| ${headerContent.join(' | ')} |`);
@@ -2030,7 +2061,7 @@
                 if (potentialHeaderCells.length > 0) {
                      columnCount = potentialHeaderCells.length;
                      const headerContent = potentialHeaderCells.map(th =>
-                         QAClipper.Utils.htmlToMarkdown(th, { ignoreTags: ['table'] })
+                         htmlToMarkdownWithGeminiMath(th, { ignoreTags: ['table'] })
                          .trim().replace(/\|/g, '\\|').replace(/\n+/g, ' ')
                      );
                      markdownRows.push(`| ${headerContent.join(' | ')} |`);
@@ -2042,7 +2073,7 @@
                     if (firstRowTds.length > 0) {
                         columnCount = firstRowTds.length;
                         const headerContent = firstRowTds.map(td =>
-                           QAClipper.Utils.htmlToMarkdown(td, { ignoreTags: ['table'] })
+                           htmlToMarkdownWithGeminiMath(td, { ignoreTags: ['table'] })
                            .trim().replace(/\|/g, '\\|').replace(/\n+/g, ' ')
                         );
                         markdownRows.push(`| ${headerContent.join(' | ')} |`);
@@ -2075,7 +2106,7 @@
                 const cells = Array.from(row.querySelectorAll(':scope > td'));
                 if (cells.length === columnCount) {
                     const cellContent = cells.map(td =>
-                        QAClipper.Utils.htmlToMarkdown(td, { ignoreTags: ['table'] })
+                        htmlToMarkdownWithGeminiMath(td, { ignoreTags: ['table'] })
                         .trim().replace(/\|/g, '\\|').replace(/\n+/g, ' ')
                     );
                     markdownRows.push(`| ${cellContent.join(' | ')} |`);
@@ -2119,7 +2150,7 @@
                 
                 // Handle paragraphs
                 if (tagName === 'p') {
-                    const pContent = QAClipper.Utils.htmlToMarkdown(node).trim();
+                    const pContent = htmlToMarkdownWithGeminiMath(node).trim();
                     if (pContent) {
                         pContent.split('\n').forEach(line => {
                             resultLines.push(`> ${line}`);
@@ -2157,7 +2188,7 @@
                             }
                         });
                         
-                        const directContent = QAClipper.Utils.htmlToMarkdown(itemClone).trim();
+                        const directContent = htmlToMarkdownWithGeminiMath(itemClone).trim();
                         
                         // Add direct content with proper formatting
                         if (directContent) {
@@ -2188,7 +2219,7 @@
                 }
                 // Default handling for other elements
                 else {
-                    const content = QAClipper.Utils.htmlToMarkdown(node).trim();
+                    const content = htmlToMarkdownWithGeminiMath(node).trim();
                     if (content) {
                         content.split('\n').forEach(line => {
                             resultLines.push(`> ${line}`);
@@ -2235,7 +2266,7 @@
                 }
             });
             
-            const directContent = QAClipper.Utils.htmlToMarkdown(itemClone).trim();
+            const directContent = htmlToMarkdownWithGeminiMath(itemClone).trim();
             
             // Add properly indented item
             if (directContent) {
@@ -2319,9 +2350,9 @@
     // --- Main Configuration Object ---
           const geminiConfig = {
         platformName: 'Gemini',
-        version: 52, // v52: Fix thinking elements selector for AI response extraction
+        version: 53, // v53: Add Gemini share response-container support
       selectors: {
-        turnContainer: 'user-query, model-response',
+        turnContainer: 'user-query, model-response, share-turn-viewer response-container',
         userMessageContainer: 'user-query', userText: '.query-text',
         userImageContainer: 'user-query-file-preview', userImageLink: 'a[href^="https://lens.google.com/uploadbyurl?url="]',
         userFileContainer: '.file-preview-container', userFileItem: '.file-upload-link', userFileName: '.new-file-name', userFileType: '.new-file-type',
@@ -2338,7 +2369,20 @@
       },
 
       // --- Extraction Functions ---
-      getRole: (turnElement) => {if(!turnElement||typeof turnElement.tagName!=='string')return null;const t=turnElement.tagName.toLowerCase();if(t==='user-query')return 'user';if(t==='model-response')return 'assistant';return null; },
+      getRole: (turnElement) => {
+          if (!turnElement || typeof turnElement.tagName !== 'string') return null;
+
+          const tagName = turnElement.tagName.toLowerCase();
+          if (tagName === 'user-query') return 'user';
+          if (tagName === 'model-response') return 'assistant';
+
+          // Gemini share pages use <response-container> instead of <model-response>.
+          if (tagName === 'response-container' && turnElement.closest('share-turn-viewer')) {
+              return 'assistant';
+          }
+
+          return null;
+      },
       extractUserText: (turnElement) => {
           const textElement = turnElement.querySelector(':scope .query-text');
           if (!textElement) return null;
@@ -2565,7 +2609,7 @@
                       QAClipper.Utils.addTextItem(contentItems, tableMarkdown);
                   } else {
                       // Fallback for tables that couldn't be parsed
-                      const fallbackText = QAClipper.Utils.htmlToMarkdown(element, {
+                      const fallbackText = htmlToMarkdownWithGeminiMath(element, {
                           skipElementCheck: (el) => el.tagName.toLowerCase() === 'table'
                       }).trim();
                       if (fallbackText) {
@@ -2652,7 +2696,7 @@
               else if (isHeading) {
                   const level = parseInt(tagNameLower.charAt(1));
                   const headingMarkup = '#'.repeat(level);
-                  const headingText = QAClipper.Utils.htmlToMarkdown(element, { skipElementCheck: shouldSkipElement }).trim(); // Process content
+                  const headingText = htmlToMarkdownWithGeminiMath(element, { skipElementCheck: shouldSkipElement }).trim(); // Process content
                   if (headingText) {
                       QAClipper.Utils.addTextItem(contentItems, `${headingMarkup} ${headingText}`);
                   }
@@ -2664,7 +2708,7 @@
                   // Paragraphs are processed last; only add their *direct* text content
                   // if they weren't part of a larger structure already processed.
                   // Use htmlToMarkdown but *only* if no block elements were inside it.
-                  const blockMarkdown = QAClipper.Utils.htmlToMarkdown(element, {
+                  const blockMarkdown = htmlToMarkdownWithGeminiMath(element, {
                      // v32: Crucially, skipElementCheck prevents double-processing of elements handled above
                      skipElementCheck: (el) => processedElements.has(el) || shouldSkipElement(el)
                   }).trim();
@@ -2706,7 +2750,7 @@
             }
             else {
                 // Process non-list content
-                const content = QAClipper.Utils.htmlToMarkdown(child).trim();
+                const content = htmlToMarkdownWithGeminiMath(child).trim();
                 if (content) {
                     content.split('\n').forEach(line => {
                         resultLines.push(`> ${line}`);
@@ -2775,7 +2819,7 @@
             });
             
             // Get direct content
-            const directContent = QAClipper.Utils.htmlToMarkdown(itemClone).trim();
+            const directContent = htmlToMarkdownWithGeminiMath(itemClone).trim();
             
             // Add direct content line
             if (directContent) {
