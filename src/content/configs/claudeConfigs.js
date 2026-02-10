@@ -1,8 +1,8 @@
-// claudeConfig.js (v12 - Skip thinking/reasoning blocks, fix table extraction)
+// claudeConfig.js (v13 - Handle Claude Opus 4.6 reasoning UI, keep full assistant response extraction)
 
 (function() {
   // Initialization check to prevent re-running the script if already loaded
-  if (window.claudeConfig && window.claudeConfig.version >= 12) {
+  if (window.claudeConfig && window.claudeConfig.version >= 13) {
     // console.log("Claude config already initialized (v" + window.claudeConfig.version + "), skipping.");
     return;
   }
@@ -32,6 +32,34 @@
     const toggleButton = element.querySelector('button.group\\/row');
 
     return toggleButton !== null;
+  }
+
+  /**
+   * Checks if a content grid belongs to Claude's reasoning/thinking UI section.
+   * New Claude layouts can include multiple `standard-markdown` blocks per response:
+   * one (or more) for reasoning and one for the final answer. We only want the final answer.
+   * @param {HTMLElement} gridElement - Candidate markdown grid element.
+   * @param {HTMLElement} assistantContainer - Assistant response root container.
+   * @returns {boolean} - True if this grid is part of reasoning UI.
+   */
+  function isReasoningContentGrid(gridElement, assistantContainer) {
+    if (!gridElement || !assistantContainer) return false;
+
+    let current = gridElement;
+    while (current && current !== assistantContainer) {
+      // Legacy reasoning card detection
+      if (isThinkingBlock(current)) return true;
+
+      // Claude Opus 4.6 reasoning branch: row-start-1 contains status toggle + reasoning markdown
+      if (current.classList?.contains('row-start-1') &&
+          current.querySelector('button.group\\/status')) {
+        return true;
+      }
+
+      current = current.parentElement;
+    }
+
+    return false;
   }
 
   /**
@@ -941,7 +969,7 @@
   // --- Main Configuration Object ---
   const claudeConfig = {
     platformName: 'Claude',
-    version: 12, // Skip thinking/reasoning blocks, fix table extraction
+    version: 13, // Handle Opus 4.6 reasoning UI, keep full assistant response extraction
     selectors: {
       // Container for a single turn (user or assistant)
       turnContainer: 'div[data-test-render-count]',
@@ -1145,6 +1173,7 @@
     extractAssistantContent: (turnElement) => {
       const contentItems = [];
       const selectors = claudeConfig.selectors;
+      const contentGridSelector = 'div.standard-markdown, div.grid-cols-1.grid.gap-2\\.5, div[class*="grid-cols-1"][class*="grid"][class*="gap-"]';
       const assistantContainer = turnElement.querySelector(selectors.assistantMessageContainer);
       
       if (!assistantContainer) {
@@ -1169,24 +1198,49 @@
           }
 
           if (tagNameLower === 'div') {
-              // Check for artifact containers first
-              const artifactCell = child.querySelector(selectors.artifactButton);
-              if (artifactCell) {
-                  const item = processArtifactButton(artifactCell);
-                  if (item) contentItems.push(item);
-                  return;
+              // Collect candidate blocks in DOM order so text + artifact can coexist in one container.
+              const candidateBlocks = [];
+              if (child.matches(contentGridSelector) || child.matches(selectors.artifactButton)) {
+                  candidateBlocks.push(child);
               }
-              
-              // Look for content grids within this div
-              // Match standard-markdown class or grid layouts with various gap sizes (gap-2, gap-2.5, gap-4, etc.)
-              const contentGrid = child.querySelector('div.standard-markdown, div.grid-cols-1.grid.gap-2\\.5, div[class*="grid-cols-1"][class*="grid"][class*="gap-"]');
-              if (contentGrid) {
-                  // Process children of the content grid
-                  const gridChildren = Array.from(contentGrid.children);
-                  gridChildren.forEach((gridChild) => {
-                      processContentElement(gridChild, contentItems, selectors);
-                  });
-              } else {
+              candidateBlocks.push(...child.querySelectorAll(`${contentGridSelector}, ${selectors.artifactButton}`));
+
+              // De-duplicate while preserving order
+              const seen = new Set();
+              const orderedBlocks = candidateBlocks.filter((element) => {
+                  if (seen.has(element)) return false;
+                  seen.add(element);
+                  return true;
+              });
+
+              let handledSubBlocks = false;
+
+              orderedBlocks.forEach((block) => {
+                  if (block.matches(selectors.artifactButton)) {
+                      const item = processArtifactButton(block);
+                      if (item) contentItems.push(item);
+                      handledSubBlocks = true;
+                      return;
+                  }
+
+                  if (isReasoningContentGrid(block, assistantContainer)) {
+                      return;
+                  }
+
+                  // Process children of each non-reasoning content grid
+                  const gridChildren = Array.from(block.children);
+                  if (gridChildren.length > 0) {
+                      gridChildren.forEach((gridChild) => {
+                          processContentElement(gridChild, contentItems, selectors);
+                      });
+                      handledSubBlocks = true;
+                  } else {
+                      processContentElement(block, contentItems, selectors);
+                      handledSubBlocks = true;
+                  }
+              });
+
+              if (orderedBlocks.length === 0 && !handledSubBlocks) {
                   // If no grid found, process this div directly
                   processContentElement(child, contentItems, selectors);
               }
@@ -1196,7 +1250,7 @@
           }
       });
 
-      // console.log("[Claude Extractor v8] Final assistant contentItems:", JSON.stringify(contentItems, null, 2));
+      // console.log("[Claude Extractor v13] Final assistant contentItems:", JSON.stringify(contentItems, null, 2));
       return contentItems;
     }, // End extractAssistantContent
 
@@ -1204,6 +1258,6 @@
 
   // Assign to window object
   window.claudeConfig = claudeConfig;
-  console.log("claudeConfig.js initialized (v" + claudeConfig.version + ") - skip thinking blocks, fix table extraction");
+  console.log("claudeConfig.js initialized (v" + claudeConfig.version + ") - handle Opus 4.6 reasoning UI and extract full assistant response");
 
 })(); // End of IIFE
