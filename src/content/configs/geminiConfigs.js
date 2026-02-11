@@ -1,9 +1,9 @@
-// geminiConfigs.js (v53 - Add Gemini share response-container support)
+// geminiConfigs.js (v54 - Preserve Gemini user-query markdown line structure)
 
 (function() {
     // Initialization check
-    // v53: Add Gemini share response-container support while preserving normal chat extraction
-    if (window.geminiConfig && window.geminiConfig.version >= 53) { return; }
+    // v54: Preserve user-query markdown line structure on Gemini share pages
+    if (window.geminiConfig && window.geminiConfig.version >= 54) { return; }
 
     // --- Helper Functions ---
 
@@ -2350,7 +2350,7 @@
     // --- Main Configuration Object ---
           const geminiConfig = {
         platformName: 'Gemini',
-        version: 53, // v53: Add Gemini share response-container support
+        version: 54, // v54: Preserve user-query markdown line structure on share pages
       selectors: {
         turnContainer: 'user-query, model-response, share-turn-viewer response-container',
         userMessageContainer: 'user-query', userText: '.query-text',
@@ -2387,27 +2387,50 @@
           const textElement = turnElement.querySelector(':scope .query-text');
           if (!textElement) return null;
 
-          // v33: Get innerHTML to handle <br> and potential <p> tags manually for user text
-          let html = textElement.innerHTML;
+          // Share pages render each prompt line in query-text-line nodes.
+          // Reading those lines directly preserves user-entered markdown indentation
+          // and avoids innerText inserting extra blank lines between blocks.
+          const lineNodes = Array.from(textElement.querySelectorAll(':scope .query-text-line'));
+          if (lineNodes.length > 0) {
+              const lines = [];
 
-          // Replace <br> and </p> (potentially used for lines) with single newlines
-          html = html.replace(/<br\s*\/?>/gi, '\n');
-          html = html.replace(/<\/p>/gi, '\n');
+              lineNodes.forEach((lineNode) => {
+                  const hasNonBrChild = Array.from(lineNode.childNodes || []).some((child) => {
+                      if (child.nodeType === Node.TEXT_NODE) {
+                          return (child.textContent || '').trim().length > 0;
+                      }
+                      if (child.nodeType !== Node.ELEMENT_NODE) {
+                          return false;
+                      }
+                      return child.tagName.toLowerCase() !== 'br';
+                  });
 
-          // Remove all other HTML tags
-          html = html.replace(/<[^>]*>/g, '');
+                  const rawLine = (lineNode.textContent || '')
+                      .replace(/\u200B/g, '')
+                      .replace(/\r\n/g, '\n')
+                      .replace(/\r/g, '\n')
+                      .replace(/[ \t]+$/g, '');
 
-          // Decode HTML entities (like &nbsp;, &amp;, &lt;, &gt;)
-          // Create a temporary element to leverage the browser's decoding
-          const tempDiv = document.createElement('div');
-          tempDiv.innerHTML = html;
-          let decodedText = tempDiv.textContent || tempDiv.innerText || '';
+                  // Skip visual spacer rows (<br>) that are injected by Gemini rendering.
+                  if (!hasNonBrChild && rawLine.trim().length === 0) {
+                      return;
+                  }
 
-          // Collapse multiple consecutive newlines into one
-          decodedText = decodedText.replace(/\n\s*\n/g, '\n');
+                  lines.push(rawLine);
+              });
 
-          // Trim final result
-          return decodedText.trim() || null;
+              const text = lines.join('\n').trim();
+              if (text) return text;
+          }
+
+          // Fallback for non-share or unexpected layouts.
+          const fallback = (textElement.innerText || textElement.textContent || '')
+              .replace(/\u200B/g, '')
+              .replace(/\r\n/g, '\n')
+              .replace(/\r/g, '\n')
+              .replace(/\n{3,}/g, '\n\n')
+              .trim();
+          return fallback || null;
       },
       extractUserUploadedImages: (turnElement) => {
           const images = [];

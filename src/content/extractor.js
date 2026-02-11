@@ -150,9 +150,10 @@
 
           // 2. Iterate through each turn element
           for (const turnElement of turnElements) {
+            let role = null;
             try {
               // 3. Determine the role (user/assistant) using config.getRole(turnElement)
-              const role = config.getRole(turnElement);
+              role = config.getRole(turnElement);
 
               let turnData = {
                 turnIndex: turnIndex++,
