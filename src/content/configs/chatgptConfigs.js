@@ -1061,21 +1061,6 @@
          flushMdBlock(); // Final flush for any remaining standard blocks
      }
 
-    function isThinkingSummaryButton(element) {
-        if (!element || element.nodeType !== Node.ELEMENT_NODE || element.tagName.toLowerCase() !== 'button') {
-            return false;
-        }
-
-        const text = (element.innerText || element.textContent || '').trim().toLowerCase();
-        if (!text) return false;
-
-        return text.includes('생각함') ||
-               text.includes('thinking') ||
-               text.includes('thought for') ||
-               text.includes('reasoning') ||
-               text.includes('reasoned');
-    }
-
     function getAssistantMessageRoots(turnElement) {
         const selectors = chatgptConfig.selectors;
         const candidates = [];
@@ -1090,36 +1075,22 @@
             }
         });
 
-        const messageRoots = candidates.filter(element => {
+        return candidates.filter(element => {
             const ancestor = element.parentElement ? element.parentElement.closest(selectors.assistantMessageContainer) : null;
             return !ancestor || !turnElement.contains(ancestor);
-        });
+        }).sort((a, b) => {
+            if (a === b) return 0;
 
-        if (messageRoots.length <= 1) {
-            return messageRoots;
-        }
-
-        const thinkingButtons = Array.from(turnElement.querySelectorAll('button'))
-            .filter(isThinkingSummaryButton);
-
-        if (thinkingButtons.length === 0) {
-            return messageRoots;
-        }
-
-        const lastThinkingButton = thinkingButtons[thinkingButtons.length - 1];
-        const trailingMessageRoots = messageRoots.filter(element => {
             try {
-                return !!(lastThinkingButton.compareDocumentPosition(element) & Node.DOCUMENT_POSITION_FOLLOWING);
+                const position = a.compareDocumentPosition(b);
+                if (position & Node.DOCUMENT_POSITION_FOLLOWING) return -1;
+                if (position & Node.DOCUMENT_POSITION_PRECEDING) return 1;
             } catch (error) {
-                return false;
+                // Fall back to source order if compareDocumentPosition fails.
             }
+
+            return 0;
         });
-
-        if (trailingMessageRoots.length > 0) {
-            return trailingMessageRoots;
-        }
-
-        return [messageRoots[messageRoots.length - 1]];
     }
 
     function processAssistantTextContainer(textContainer, contentItems) {
@@ -1205,7 +1176,7 @@
     }
 
     /**
-     * v34: Selects the final assistant message block(s) after reasoning UI on shared pages.
+     * v35: Extracts all visible assistant message blocks in DOM order while skipping reasoning UI buttons.
      */
      function extractAssistantContent(turnElement) {
          const contentItems = [];
@@ -1225,8 +1196,8 @@
              if (interactiveItem) contentItems.push(interactiveItem);
          });
 
-         const selectedMessageRoots = getAssistantMessageRoots(turnElement);
-         selectedMessageRoots.forEach(messageRoot => {
+         const messageRoots = getAssistantMessageRoots(turnElement);
+         messageRoots.forEach(messageRoot => {
              if (extractAssistantMessageContent(messageRoot, contentItems)) {
                  foundAssistantMessageContent = true;
              }
@@ -1260,7 +1231,7 @@
     // --- Main Configuration Object ---
     const chatgptConfig = {
       platformName: 'ChatGPT',
-      version: 34, // v34: Handle GPT-5.4 shared turns split around reasoning UI
+      version: 35, // v35: Preserve visible assistant text across turns split by reasoning UI
       selectors: { // Updated selectors for new table structure
         turnContainer: 'article[data-testid^="conversation-turn-"]',
         turnContainerFallback: 'div[data-message-author-role]', // Fallback for edge cases without article wrapper
