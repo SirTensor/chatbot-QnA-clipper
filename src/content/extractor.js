@@ -38,7 +38,7 @@
       return 'chatgpt';
     }
     
-    console.error('Chatbot Clipper: Could not identify platform. URL:', currentUrl, 'Hostname:', hostname);
+    console.error('Chatbot Clipper: Could not identify platform for the current page.');
     return null;
   }
 
@@ -95,7 +95,10 @@
           }
         };
         
-        console.error('Chatbot Clipper: Platform identification failed', diagnosticInfo);
+        console.error('Chatbot Clipper: Platform identification failed.', {
+          documentReady: diagnosticInfo.documentReady,
+          chatgptSelectors: diagnosticInfo.chatgptSelectors
+        });
         throw new Error(`Could not identify chatbot platform. Are you on a supported site? ${window.location.hostname}`);
       }
 
@@ -175,7 +178,7 @@
                 // This function will return the array of ContentItem objects
                 turnData.contentItems = config.extractAssistantContent(turnElement);
               } else {
-                console.warn(`Chatbot Clipper: Unknown role detected for turn element:`, turnElement);
+                console.warn(`Chatbot Clipper: Unknown role detected for turn ${turnIndex}.`);
                 // Optionally try to extract some generic text content if role is unknown
                 // turnData.textContent = extractGenericText(turnElement);
               }
@@ -189,10 +192,7 @@
                 conversationTurns.push(turnData);
               }
             } catch (turnError) {
-              console.error(`Error processing turn ${turnIndex}:`, turnError);
-              console.error(`Turn element:`, turnElement);
-              console.error(`Role detected:`, role);
-              console.error(`Error stack:`, turnError.stack);
+              console.error(`Error processing turn ${turnIndex} (role: ${role || 'unknown'}):`, turnError);
               // Continue with next turn instead of failing completely
             }
           }

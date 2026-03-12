@@ -819,14 +819,14 @@
              // Final fallback: any img with valid src in this container
              targetImgElement = el.querySelector('img[src]');
              if (!targetImgElement || targetImgElement.getAttribute('src').startsWith('data:') || targetImgElement.getAttribute('src').startsWith('blob:')) {
-                 console.error("[Extractor v30] No valid image found in container:", el);
+                 console.error("[Extractor v30] No valid image found in assistant image container.");
                  return null;
              }
              console.warn("[Extractor v30] Using fallback image search (any img[src])");
          }
          const src = targetImgElement.getAttribute('src');
          if (!src || src.startsWith('data:') || src.startsWith('blob:')) {
-             console.error("[Extractor v30] Selected image has invalid src:", src);
+             console.error("[Extractor v30] Selected assistant image has an invalid source.");
              return null;
          }
          let altText = targetImgElement.getAttribute('alt')?.trim();
@@ -837,7 +837,7 @@
              return { type: 'image', src: absoluteSrc, alt: altText || "Generated Image", extractedContent: extractedContent };
          }
          catch (e) {
-             console.error("[Extractor v30] Error parsing assistant image URL:", e, src);
+             console.error("[Extractor v30] Error parsing assistant image URL:", e);
              return null;
          }
      }
@@ -1385,7 +1385,7 @@
                       const absoluteSrc = new URL(src, window.location.origin).href;
                       images.push({ type: 'image', sourceUrl: absoluteSrc, isPreviewOnly: false, extractedContent: extractedContent });
                   } catch (e) {
-                      console.error("[Extractor] Error parsing user image URL:", e, src);
+                      console.error("[Extractor] Error parsing user image URL:", e);
                   }
               }
           });

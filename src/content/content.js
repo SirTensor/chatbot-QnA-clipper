@@ -43,7 +43,7 @@
       // Ensure the necessary functions are loaded
       if (!window.extractConversation) {
         const errorMsg = "Core extraction script (extractor.js) not loaded correctly. Cannot extract.";
-        console.error(errorMsg, diagnosticData);
+        console.error(errorMsg);
         sendResponse({ error: errorMsg, diagnostics: diagnosticData });
         return true; // Indicate async response
       }
@@ -126,12 +126,7 @@
           if (isNoContentError) {
             // console.warn(`Extractor reported no content:`, error.message, diagnosticData);
           } else {
-            console.error('Error during extraction:', {
-              error: error,
-              message: error.message,
-              stack: error.stack,
-              diagnostics: diagnosticData
-            });
+            console.error('Error during extraction:', error);
           }
 
           const errorMessage = `${error.message || 'Extraction failed'} ` +

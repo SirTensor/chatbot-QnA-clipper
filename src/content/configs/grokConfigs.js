@@ -408,7 +408,7 @@
                       extractedContent: altText
                   });
               } catch (e) {
-                  console.error("[Grok Extractor] Error processing image URL:", e, src);
+                  console.error("[Grok Extractor] Error processing image URL:", e);
               }
           }
       });
@@ -1156,7 +1156,7 @@
     if (previewUrl.includes('assets.grok.com') && previewUrl.includes('/preview-image')) {
         return previewUrl.replace('/preview-image', '/content');
     }
-    console.warn("[Grok Extractor] User image preview URL doesn't match expected pattern:", previewUrl);
+    console.warn("[Grok Extractor] User image preview URL did not match the expected pattern.");
     return null;
   }
 

@@ -708,7 +708,7 @@ async function extractQA() {
 
       if (isNoContentError) {
         // Handle as an informational scenario
-        console.warn(`No conversation content on tab ${currentTabId} (${tabUrl}):`, response.error);
+        console.warn(`No conversation content on tab ${currentTabId}:`, response.error);
         await showToast(currentTabId, getMessage('toastNoConversation'), 3000);
         sendMessageToPopup({
           action: 'extraction-complete',
@@ -717,7 +717,7 @@ async function extractQA() {
         });
       } else {
         // Handle as a true error
-        console.error(`Content script error on tab ${currentTabId} (${tabUrl}):`, response.error, response.diagnostics || '');
+        console.error(`Content script error on tab ${currentTabId}:`, response.error);
         const displayError = response.error.length > 100 ? response.error.substring(0, 97) + '...' : response.error;
         await showToast(currentTabId, getMessage('statusError', displayError), 4000);
         sendMessageToPopup({

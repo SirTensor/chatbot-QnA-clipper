@@ -2455,7 +2455,7 @@
                               return; // This container is processed
                           }
                       } catch (e) { 
-                          console.error("[Extractor] Error parsing user image URL:", e, href); 
+                          console.error("[Extractor] Error parsing user image URL:", e); 
                       }
                   }
               }
