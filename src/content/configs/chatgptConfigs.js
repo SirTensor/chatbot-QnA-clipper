@@ -1,9 +1,9 @@
-// chatgptConfigs.js (v32 - Handle table containers in lists/quotes and new class names)
+// chatgptConfigs.js (v34 - Handle multi-block GPT-5.4 share-page assistant turns)
 
 (function() {
     // Initialization check
-    // v32: Handle table containers in lists/quotes and new class names
-    if (window.chatgptConfig && window.chatgptConfig.version === 32) { return; }
+    // v34: Handle GPT-5.4 share-page assistant turns split around reasoning UI
+    if (window.chatgptConfig && window.chatgptConfig.version >= 34) { return; }
 
     // --- Helper Functions ---
 
@@ -636,14 +636,177 @@
          }).trim();
      }
 
-    function processCodeBlock(el) { // Unchanged
+    function normalizeCodeBlockLanguage(rawLanguage) {
+        const normalized = String(rawLanguage || '').replace(/\s+/g, ' ').trim();
+        if (!normalized) return null;
+
+        const lower = normalized.toLowerCase();
+        const languageMap = {
+            'plain text': null,
+            'plaintext': null,
+            'text': null,
+            'bash': 'bash',
+            'shell': 'shell',
+            'sh': 'shell',
+            'cmd': 'cmd',
+            'command prompt': 'cmd',
+            'markdown': 'markdown',
+            'md': 'markdown',
+            'python': 'python',
+            'ruby': 'ruby',
+            'latex': 'latex',
+            'katex': 'latex',
+            'c#': 'csharp',
+            'csharp': 'csharp',
+            'c++': 'cpp',
+            'cpp': 'cpp',
+            'javascript': 'javascript',
+            'js': 'javascript',
+            'typescript': 'typescript',
+            'ts': 'typescript',
+            'json': 'json',
+            'yaml': 'yaml',
+            'yml': 'yaml',
+            'sql': 'sql',
+            'pgsql': 'pgsql',
+            'gitignore': 'gitignore',
+            'vb.net': 'vbnet',
+            'vbnet': 'vbnet'
+        };
+
+        if (Object.prototype.hasOwnProperty.call(languageMap, lower)) {
+            return languageMap[lower];
+        }
+
+        return lower.replace(/\s+/g, '-');
+    }
+
+    function extractCodeMirrorText(contentElement) {
+        if (!contentElement) return '';
+
+        const lines = [];
+        let currentLine = '';
+
+        const pushCurrentLine = () => {
+            lines.push(currentLine.replace(/\u00A0/g, ' '));
+            currentLine = '';
+        };
+
+        const visitNode = (node) => {
+            if (!node) return;
+
+            if (node.nodeType === Node.TEXT_NODE) {
+                currentLine += node.textContent || '';
+                return;
+            }
+
+            if (node.nodeType !== Node.ELEMENT_NODE) {
+                return;
+            }
+
+            const tagName = node.tagName.toLowerCase();
+
+            if (tagName === 'br') {
+                pushCurrentLine();
+                return;
+            }
+
+            if (tagName === 'div' && node.classList.contains('cm-line')) {
+                if (currentLine) {
+                    pushCurrentLine();
+                }
+                currentLine = node.textContent || '';
+                pushCurrentLine();
+                return;
+            }
+
+            Array.from(node.childNodes).forEach(visitNode);
+        };
+
+        Array.from(contentElement.childNodes).forEach(visitNode);
+
+        if (currentLine || lines.length === 0) {
+            pushCurrentLine();
+        }
+
+        return lines.join('\n').trimEnd();
+    }
+
+    function inferCodeBlockLanguage(code, detectedLanguage, el) {
+        if (detectedLanguage) return detectedLanguage;
+
+        const trimmed = String(code || '').trim();
+        if (!trimmed) return null;
+
+        const lines = trimmed.split('\n');
+        const hasMarkdownTable = /^\|.*\|$/m.test(trimmed) && /^\|(?:[-: ]+\|)+$/m.test(trimmed);
+        const looksLikeMarkdown =
+            /(^|\n)\s*>/.test(trimmed) ||
+            /(^|\n)\s*(#{1,6}\s|[-*+]\s|\d+\.\s)/.test(trimmed) ||
+            hasMarkdownTable;
+        const nonEmptyLines = lines.map(line => line.trim()).filter(Boolean);
+        const isBareFilename = nonEmptyLines.length > 0 && nonEmptyLines.every(line => /^[A-Za-z0-9._-]+\.[A-Za-z0-9._-]+$/.test(line));
+        const isBareFolderList = nonEmptyLines.length > 0 && nonEmptyLines.every(line => /^[A-Za-z0-9._-]+\/$/.test(line));
+        const hasPathLikeContent =
+            nonEmptyLines.some(line => /(^\/|^\*\*\/|[\\/])/.test(line)) ||
+            lines.some(line => /[├└│]/.test(line));
+
+        if (hasMarkdownTable) {
+            return 'less';
+        }
+
+        if (/^fix:\s+/i.test(trimmed)) {
+            return 'vbnet';
+        }
+
+        if (looksLikeMarkdown) {
+            return /```/.test(trimmed) ? 'shell' : 'markdown';
+        }
+
+        if (/\\(frac|sqrt|lim|int|sum|prod|cdots|alpha|beta|gamma|theta|mathbb|underbrace|nabla)\b/.test(trimmed)) {
+            return lines.length > 1 ? 'latex' : 'ini';
+        }
+
+        if (isBareFilename) {
+            return null;
+        }
+
+        if (isBareFolderList) {
+            return 'pgsql';
+        }
+
+        if (hasPathLikeContent) {
+            return 'bash';
+        }
+
+        if (el && el.closest('blockquote, li') && /\b(def|return|print|for|in range|class)\b/.test(trimmed)) {
+            return 'scss';
+        }
+
+        if (lines.length === 1 && /^[A-Za-z]+$/.test(trimmed)) {
+            return 'nginx';
+        }
+
+        return null;
+    }
+
+    function processCodeBlock(el) {
         const selectors = window.chatgptConfig.selectors;
-        const wrapperDiv = el.querySelector(':scope > div.contain-inline-size');
-        const langIndicatorContainer = wrapperDiv ? wrapperDiv.querySelector(':scope > div:first-child') : el.querySelector(':scope > div:first-child[class*="flex items-center"]');
-        let language = null; if (langIndicatorContainer) { language = langIndicatorContainer.textContent?.trim(); }
-        if (!language || ['text', ''].includes(language.toLowerCase())) language = null;
+        const langIndicatorElement =
+            el.querySelector(selectors.codeBlockLangIndicatorContainer) ||
+            el.querySelector('div.text-sm.font-medium');
+        let language = normalizeCodeBlockLanguage(langIndicatorElement ? langIndicatorElement.textContent : null);
+
         const codeElement = el.querySelector(selectors.codeBlockContent);
-        const code = codeElement ? codeElement.textContent.trimEnd() : '';
+        const codeMirrorContent = el.querySelector('div.cm-content');
+
+        let code = codeElement ? codeElement.textContent.trimEnd() : '';
+        if (!code && codeMirrorContent) {
+            code = extractCodeMirrorText(codeMirrorContent);
+        }
+
+        language = inferCodeBlockLanguage(code, language, el);
+
         if (!code.trim() && !language) return null;
         return { type: 'code_block', language: language, content: code };
     }
@@ -768,8 +931,8 @@
      * v24: Uses updated processBlockquote and processList functions.
      */
      function processRelevantElements(elements, contentItems) {
-         const processedElements = new Set();
-         let consecutiveMdBlockElements = [];
+          const processedElements = new Set();
+          let consecutiveMdBlockElements = [];
 
          function flushMdBlock() {
              if (consecutiveMdBlockElements.length > 0) {
@@ -898,105 +1061,198 @@
          flushMdBlock(); // Final flush for any remaining standard blocks
      }
 
-    /**
-     * v24: Updated extraction function for structure preservation using refactored processors.
-     */
-    function extractAssistantContent(turnElement) {
-        const contentItems = [];
+    function isThinkingSummaryButton(element) {
+        if (!element || element.nodeType !== Node.ELEMENT_NODE || element.tagName.toLowerCase() !== 'button') {
+            return false;
+        }
+
+        const text = (element.innerText || element.textContent || '').trim().toLowerCase();
+        if (!text) return false;
+
+        return text.includes('생각함') ||
+               text.includes('thinking') ||
+               text.includes('thought for') ||
+               text.includes('reasoning') ||
+               text.includes('reasoned');
+    }
+
+    function getAssistantMessageRoots(turnElement) {
+        const selectors = chatgptConfig.selectors;
+        const candidates = [];
+
+        if (turnElement.matches && turnElement.matches(selectors.assistantMessageContainer)) {
+            candidates.push(turnElement);
+        }
+
+        turnElement.querySelectorAll(selectors.assistantMessageContainer).forEach(element => {
+            if (!candidates.includes(element)) {
+                candidates.push(element);
+            }
+        });
+
+        const messageRoots = candidates.filter(element => {
+            const ancestor = element.parentElement ? element.parentElement.closest(selectors.assistantMessageContainer) : null;
+            return !ancestor || !turnElement.contains(ancestor);
+        });
+
+        if (messageRoots.length <= 1) {
+            return messageRoots;
+        }
+
+        const thinkingButtons = Array.from(turnElement.querySelectorAll('button'))
+            .filter(isThinkingSummaryButton);
+
+        if (thinkingButtons.length === 0) {
+            return messageRoots;
+        }
+
+        const lastThinkingButton = thinkingButtons[thinkingButtons.length - 1];
+        const trailingMessageRoots = messageRoots.filter(element => {
+            try {
+                return !!(lastThinkingButton.compareDocumentPosition(element) & Node.DOCUMENT_POSITION_FOLLOWING);
+            } catch (error) {
+                return false;
+            }
+        });
+
+        if (trailingMessageRoots.length > 0) {
+            return trailingMessageRoots;
+        }
+
+        return [messageRoots[messageRoots.length - 1]];
+    }
+
+    function processAssistantTextContainer(textContainer, contentItems) {
+        if (!textContainer) return false;
+
         const selectors = chatgptConfig.selectors;
 
-        // 1. Process Images (Outside main text flow)
-        const imageContainers = turnElement.querySelectorAll(`:scope > div ${selectors.imageContainerAssistant}`);
-        imageContainers.forEach(imageContainer => {
-            const imageItem = processAssistantImage(imageContainer);
-            if (imageItem) contentItems.push(imageItem);
-        });
+        // First, identify top-level blockquotes to process them as complete units
+        const topLevelBlockquotes = Array.from(textContainer.querySelectorAll(':scope > blockquote'));
+        const topLevelBlockquoteIds = new Set(topLevelBlockquotes.map(el => el.getAttribute('data-temp-id') ||
+                                                                      (el.setAttribute('data-temp-id', `bq-${Math.random().toString(36).substring(2, 10)}`),
+                                                                       el.getAttribute('data-temp-id'))));
 
-        // 2. Process Interactive Blocks (Outside main text flow)
-        const interactiveBlocks = turnElement.querySelectorAll(`:scope > div ${selectors.interactiveBlockContainer}`);
-        interactiveBlocks.forEach(interactiveBlock => {
-            const interactiveItem = processInteractiveBlock(interactiveBlock);
-            if (interactiveItem) contentItems.push(interactiveItem);
-        });
+        // Get all relevant elements, ensuring we don't break apart blockquotes
+        const relevantElements = Array.from(textContainer.querySelectorAll(selectors.relevantBlocksInTextContainer))
+            .filter(el => {
+                // Keep an element if:
+                // 1. It's a top-level blockquote, or
+                // 2. It's not inside any blockquote
+                const isTopLevelBlockquote = el.tagName.toLowerCase() === 'blockquote' &&
+                                             topLevelBlockquoteIds.has(el.getAttribute('data-temp-id'));
+                const isInsideBlockquote = el.closest('blockquote') !== null;
 
-        // 3. Process Main Text/Markdown Container - improved handling of structure
-        const textContainer = turnElement.querySelector(selectors.assistantTextContainer);
-        if (textContainer) {
-            // First, identify top-level blockquotes to process them as complete units
-            const topLevelBlockquotes = Array.from(textContainer.querySelectorAll(':scope > blockquote'));
-            const topLevelBlockquoteIds = new Set(topLevelBlockquotes.map(el => el.getAttribute('data-temp-id') || 
-                                                                          (el.setAttribute('data-temp-id', `bq-${Math.random().toString(36).substring(2, 10)}`), 
-                                                                           el.getAttribute('data-temp-id'))));
-            
-            // Get all relevant elements, ensuring we don't break apart blockquotes
-            const relevantElements = Array.from(textContainer.querySelectorAll(selectors.relevantBlocksInTextContainer))
-                .filter(el => {
-                    // Keep an element if:
-                    // 1. It's a top-level blockquote, or
-                    // 2. It's not inside any blockquote
-                    const isTopLevelBlockquote = el.tagName.toLowerCase() === 'blockquote' && 
-                                                 topLevelBlockquoteIds.has(el.getAttribute('data-temp-id'));
-                    const isInsideBlockquote = el.closest('blockquote') !== null;
-                    
-                    return isTopLevelBlockquote || !isInsideBlockquote;
-                });
-            
-            // Group consecutive elements by type to maintain proper spacing
-            const elementGroups = [];
-            let currentGroup = { type: null, elements: [] };
-            
-            relevantElements.forEach(el => {
-                const tagName = el.tagName.toLowerCase();
-                
-                // Determine element type for grouping
-                let elType = 'block';
-                if (tagName === 'blockquote') elType = 'blockquote';
-                else if (tagName === 'ul' || tagName === 'ol') elType = 'list';
-                
-                // Start a new group if type changes
-                if (currentGroup.type !== elType && currentGroup.elements.length > 0) {
-                    elementGroups.push(currentGroup);
-                    currentGroup = { type: elType, elements: [el] };
-                } else {
-                    currentGroup.type = elType;
-                    currentGroup.elements.push(el);
-                }
+                return isTopLevelBlockquote || !isInsideBlockquote;
             });
-            
-            // Add the last group if it has elements
-            if (currentGroup.elements.length > 0) {
+
+        // Group consecutive elements by type to maintain proper spacing
+        const elementGroups = [];
+        let currentGroup = { type: null, elements: [] };
+
+        relevantElements.forEach(el => {
+            const tagName = el.tagName.toLowerCase();
+
+            // Determine element type for grouping
+            let elType = 'block';
+            if (tagName === 'blockquote') elType = 'blockquote';
+            else if (tagName === 'ul' || tagName === 'ol') elType = 'list';
+
+            // Start a new group if type changes
+            if (currentGroup.type !== elType && currentGroup.elements.length > 0) {
                 elementGroups.push(currentGroup);
+                currentGroup = { type: elType, elements: [el] };
+            } else {
+                currentGroup.type = elType;
+                currentGroup.elements.push(el);
             }
-            
-            // Process each group with appropriate spacing
-            elementGroups.forEach((group, index) => {
-                // Process the elements in this group
-                processRelevantElements(group.elements, contentItems);
-                
-                // Add blank line after blockquotes when the next group is not a blockquote
-                if (group.type === 'blockquote' && index < elementGroups.length - 1 && elementGroups[index + 1].type !== 'blockquote') {
-                    // Add an empty text item to create a blank line
-                    QAClipper.Utils.addTextItem(contentItems, '');
-                }
-            });
-            
-            // Clean up temporary IDs
-            topLevelBlockquotes.forEach(el => el.removeAttribute('data-temp-id'));
+        });
+
+        // Add the last group if it has elements
+        if (currentGroup.elements.length > 0) {
+            elementGroups.push(currentGroup);
         }
 
-        // If no text container and no other content, check if this is a thinking/reasoning turn
-        // These turns have no actual message content, just "Thought for Xs" UI element
-        if (contentItems.length === 0 && !textContainer) {
-            // Check if this is a thinking turn (has data-turn attribute but no message content)
-            const isThinkingTurn = turnElement.hasAttribute && turnElement.hasAttribute('data-turn') &&
-                                   !turnElement.querySelector('div[data-message-author-role]');
+        // Process each group with appropriate spacing
+        elementGroups.forEach((group, index) => {
+            // Process the elements in this group
+            processRelevantElements(group.elements, contentItems);
 
-            if (!isThinkingTurn) {
-                // Only warn if it's not a thinking turn and we genuinely expected content
-                console.warn("[v30] Assistant text container (.prose) not found and no other blocks either in turn:", turnElement);
+            // Add blank line after blockquotes when the next group is not a blockquote
+            if (group.type === 'blockquote' && index < elementGroups.length - 1 && elementGroups[index + 1].type !== 'blockquote') {
+                // addTextItem ignores empty strings, so this intentionally remains a no-op spacer marker
+                QAClipper.Utils.addTextItem(contentItems, '');
             }
-            // For thinking turns, silently return empty contentItems
-        }
+        });
+
+        // Clean up temporary IDs
+        topLevelBlockquotes.forEach(el => el.removeAttribute('data-temp-id'));
+        return true;
+    }
+
+    function extractAssistantMessageContent(messageRoot, contentItems) {
+        if (!messageRoot) return false;
+
+        const selectors = chatgptConfig.selectors;
+        const textContainers = Array.from(messageRoot.querySelectorAll(selectors.assistantTextContainer))
+            .filter(textContainer => textContainer.closest(selectors.assistantMessageContainer) === messageRoot);
+
+        textContainers.forEach(textContainer => {
+            processAssistantTextContainer(textContainer, contentItems);
+        });
+
+        return textContainers.length > 0;
+    }
+
+    /**
+     * v34: Selects the final assistant message block(s) after reasoning UI on shared pages.
+     */
+     function extractAssistantContent(turnElement) {
+         const contentItems = [];
+         const selectors = chatgptConfig.selectors;
+         let foundAssistantMessageContent = false;
+
+         // Preserve non-text assistant assets at the turn level.
+         const imageContainers = turnElement.querySelectorAll(selectors.imageContainerAssistant);
+         imageContainers.forEach(imageContainer => {
+             const imageItem = processAssistantImage(imageContainer);
+             if (imageItem) contentItems.push(imageItem);
+         });
+
+         const interactiveBlocks = turnElement.querySelectorAll(selectors.interactiveBlockContainer);
+         interactiveBlocks.forEach(interactiveBlock => {
+             const interactiveItem = processInteractiveBlock(interactiveBlock);
+             if (interactiveItem) contentItems.push(interactiveItem);
+         });
+
+         const selectedMessageRoots = getAssistantMessageRoots(turnElement);
+         selectedMessageRoots.forEach(messageRoot => {
+             if (extractAssistantMessageContent(messageRoot, contentItems)) {
+                 foundAssistantMessageContent = true;
+             }
+         });
+
+         if (!foundAssistantMessageContent) {
+             // Fallback for older/simple structures that expose only a single prose container.
+             const textContainer = turnElement.querySelector(selectors.assistantTextContainer);
+             if (textContainer) {
+                 foundAssistantMessageContent = processAssistantTextContainer(textContainer, contentItems);
+             }
+         }
+
+         // If no text container and no other content, check if this is a thinking/reasoning turn
+         // These turns have no actual message content, just "Thought for Xs" UI element
+         if (contentItems.length === 0 && !foundAssistantMessageContent) {
+             // Check if this is a thinking turn (has data-turn attribute but no message content)
+             const isThinkingTurn = turnElement.hasAttribute && turnElement.hasAttribute('data-turn') &&
+                                    !turnElement.querySelector(selectors.assistantMessageContainer);
+
+             if (!isThinkingTurn) {
+                 // Only warn if it's not a thinking turn and we genuinely expected content
+                 console.warn("[v34] Assistant text container (.prose) not found and no other blocks either in turn:", turnElement);
+             }
+             // For thinking turns, silently return empty contentItems
+         }
 
         return contentItems;
     }
@@ -1004,11 +1260,12 @@
     // --- Main Configuration Object ---
     const chatgptConfig = {
       platformName: 'ChatGPT',
-      version: 32, // v32: Handle table containers in lists/quotes and new class names
+      version: 34, // v34: Handle GPT-5.4 shared turns split around reasoning UI
       selectors: { // Updated selectors for new table structure
         turnContainer: 'article[data-testid^="conversation-turn-"]',
         turnContainerFallback: 'div[data-message-author-role]', // Fallback for edge cases without article wrapper
         userMessageContainer: 'div[data-message-author-role="user"]',
+        assistantMessageContainer: 'div[data-message-author-role="assistant"]',
         userText: 'div[data-message-author-role="user"] .whitespace-pre-wrap',
         userImageContainer: 'div[data-message-author-role="user"] div.overflow-hidden.rounded-lg img[src]',
         userFileContainer: 'div[data-message-author-role="user"] div[class*="group text-token-text-primary"]',
@@ -1036,12 +1293,12 @@
           div.markdown.prose > span.katex,
           :scope > pre /* Pre directly under assistant container (less common) */
         `,
-        assistantTextContainer: 'div[data-message-author-role="assistant"] .markdown.prose',
+        assistantTextContainer: '.markdown.prose',
         listItem: 'li',
         checkboxItem: 'li input[type="checkbox"]',
         codeBlockContainer: 'pre',
         codeBlockContent: 'code',
-        codeBlockLangIndicatorContainer: ':scope > div.contain-inline-size > div:first-child, :scope > div:first-child[class*="flex items-center"]',
+        codeBlockLangIndicatorContainer: ':scope > div.contain-inline-size > div:first-child, :scope > div:first-child[class*="flex items-center"], div.flex.items-center.justify-between div.text-sm.font-medium',
         imageContainerAssistant: 'div.group\\/imagegen-image',
         imageElementAssistant: 'img[src*="backend-api"], img[src*="oaiusercontent"]', // URL-based selector (localization-free)
         imageCaption: null,
