@@ -1,9 +1,9 @@
-// geminiConfigs.js (v54 - Preserve Gemini user-query markdown line structure)
+// geminiConfigs.js (v55 - Capture Gemini inline shared images)
 
 (function() {
     // Initialization check
-    // v54: Preserve user-query markdown line structure on Gemini share pages
-    if (window.geminiConfig && window.geminiConfig.version >= 54) { return; }
+    // v55: Capture inline-image attachments rendered on Gemini share pages
+    if (window.geminiConfig && window.geminiConfig.version >= 55) { return; }
 
     // --- Helper Functions ---
 
@@ -1985,9 +1985,9 @@
      */
     function processImage(el) {
         const captionSelector = geminiConfig.selectors.imageCaption || 'div.caption';
-        const imgSelector = geminiConfig.selectors.imageElementAssistant || 'img.image.loaded';
+        const imgSelector = geminiConfig.selectors.imageElementAssistant || 'img.image.loaded, img.inline-img.loaded, img.inline-img';
         let imgElement = null, captionElement = null;
-        const containerSelector = geminiConfig.selectors.imageContainerAssistant || 'single-image';
+        const containerSelector = geminiConfig.selectors.imageContainerAssistant || 'single-image, inline-image';
 
         if (el.matches(containerSelector)) {
             imgElement = el.querySelector(imgSelector);
@@ -2350,7 +2350,7 @@
     // --- Main Configuration Object ---
           const geminiConfig = {
         platformName: 'Gemini',
-        version: 54, // v54: Preserve user-query markdown line structure on share pages
+        version: 55, // v55: Capture inline-image attachments on share pages
       selectors: {
         turnContainer: 'user-query, model-response, share-turn-viewer response-container',
         userMessageContainer: 'user-query', userText: '.query-text',
@@ -2358,10 +2358,10 @@
         userFileContainer: '.file-preview-container', userFileItem: '.file-upload-link', userFileName: '.new-file-name', userFileType: '.new-file-type',
         assistantContentArea: 'div.markdown.markdown-main-panel',
         // Added all heading levels (h1-h6) to relevantBlocks and response-element for nested code blocks
-        relevantBlocks: 'p, h1, h2, h3, h4, h5, h6, ul, ol, code-block, single-image, immersive-entry-chip, table, blockquote, response-element, hr, div.math-block',
+        relevantBlocks: 'p, h1, h2, h3, h4, h5, h6, ul, ol, code-block, single-image, inline-image, immersive-entry-chip, table, blockquote, response-element, hr, div.math-block',
         listItem: 'li',
         codeBlockContent: 'pre > code', codeBlockLangIndicator: 'div.code-block-decoration > span',
-        imageContainerAssistant: 'single-image', imageElementAssistant: 'img.image.loaded', imageCaption: 'div.caption', imageElement: 'img',
+        imageContainerAssistant: 'single-image, inline-image', imageElementAssistant: 'img.image.loaded, img.inline-img.loaded, img.inline-img', imageCaption: 'div.caption', imageElement: 'img',
         sideContainer: 'code-immersive-panel', sideContainerContent: '.view-line', sideContainerLangIndicator: 'data-mode-id',
         interactiveBlockContainer: 'immersive-entry-chip',
         interactiveBlockTitle: 'div[data-test-id="artifact-text"]',
@@ -2672,6 +2672,18 @@
                       processedElements.add(codeBlock);
                       codeBlock.querySelectorAll('*').forEach(child => processedElements.add(child));
                   });
+
+                  const imageContainers = element.querySelectorAll(geminiConfig.selectors.imageContainerAssistant);
+                  imageContainers.forEach(imageContainer => {
+                      if (processedElements.has(imageContainer)) return;
+                      const imageItem = processImage(imageContainer);
+                      if (imageItem) {
+                          contentItems.push(imageItem);
+                      }
+                      processedElements.add(imageContainer);
+                      imageContainer.querySelectorAll('*').forEach(child => processedElements.add(child));
+                  });
+
                   processedElements.add(element); // Mark the response-element itself as processed
               }
               else if (isInteractiveBlock) { // v32: Explicit check using the selector
