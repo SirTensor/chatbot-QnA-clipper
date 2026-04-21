@@ -1,8 +1,8 @@
-// claudeConfig.js (v13 - Handle Claude Opus 4.6 reasoning UI, keep full assistant response extraction)
+// claudeConfig.js (v14 - Normalize Claude assistant heading depth, keep full assistant response extraction)
 
 (function() {
   // Initialization check to prevent re-running the script if already loaded
-  if (window.claudeConfig && window.claudeConfig.version >= 13) {
+  if (window.claudeConfig && window.claudeConfig.version >= 14) {
     // console.log("Claude config already initialized (v" + window.claudeConfig.version + "), skipping.");
     return;
   }
@@ -74,6 +74,42 @@
       const replacement = document.createTextNode(`~~${delText}~~`);
       delEl.parentNode.replaceChild(replacement, delEl);
     });
+  }
+
+  /**
+   * Claude assistant markdown headings render one level deeper in the DOM, with level 6 saturated.
+   * Normalize extracted markdown headings back to authored depth using line context:
+   * h2-h5 -> h1-h4, and consecutive rendered h6 lines map to h5 then h6.
+   * @param {string} markdown - Extracted markdown text.
+   * @returns {string} - Markdown text with normalized heading depth.
+   */
+  function normalizeAssistantMarkdownHeadings(markdown, state = {}) {
+    if (!markdown) return markdown;
+
+    const lines = markdown.split('\n');
+    let lastNormalizedHeadingLevel = state.lastNormalizedHeadingLevel ?? null;
+
+    const normalizedLines = lines.map((line) => {
+      const headingMatch = line.match(/^((?:>\s*)*)(#{2,6})(\s+.*)$/);
+      if (!headingMatch) {
+        return line;
+      }
+
+      const blockquotePrefix = headingMatch[1] || '';
+      const renderedLevel = headingMatch[2].length;
+      const headingSuffix = headingMatch[3];
+      let normalizedLevel = renderedLevel - 1;
+
+      if (renderedLevel === 6) {
+        normalizedLevel = lastNormalizedHeadingLevel === 5 ? 6 : 5;
+      }
+
+      lastNormalizedHeadingLevel = normalizedLevel;
+      return `${blockquotePrefix}${'#'.repeat(normalizedLevel)}${headingSuffix}`;
+    });
+
+    state.lastNormalizedHeadingLevel = lastNormalizedHeadingLevel;
+    return normalizedLines.join('\n');
   }
 
   /**
@@ -969,7 +1005,7 @@
   // --- Main Configuration Object ---
   const claudeConfig = {
     platformName: 'Claude',
-    version: 13, // Handle Opus 4.6 reasoning UI, keep full assistant response extraction
+    version: 14, // Normalize Claude assistant heading depth and keep full assistant response extraction
     selectors: {
       // Container for a single turn (user or assistant)
       turnContainer: 'div[data-test-render-count]',
@@ -1250,7 +1286,14 @@
           }
       });
 
-      // console.log("[Claude Extractor v13] Final assistant contentItems:", JSON.stringify(contentItems, null, 2));
+      const headingState = { lastNormalizedHeadingLevel: null };
+      contentItems.forEach((item) => {
+          if (item && item.type === 'text' && item.content) {
+              item.content = normalizeAssistantMarkdownHeadings(item.content, headingState);
+          }
+      });
+
+      // console.log("[Claude Extractor v14] Final assistant contentItems:", JSON.stringify(contentItems, null, 2));
       return contentItems;
     }, // End extractAssistantContent
 
@@ -1258,6 +1301,6 @@
 
   // Assign to window object
   window.claudeConfig = claudeConfig;
-  console.log("claudeConfig.js initialized (v" + claudeConfig.version + ") - handle Opus 4.6 reasoning UI and extract full assistant response");
+  console.log("claudeConfig.js initialized (v" + claudeConfig.version + ") - normalize assistant heading depth and extract full assistant response");
 
 })(); // End of IIFE
