@@ -1,9 +1,9 @@
-// chatgptConfigs.js (v34 - Handle multi-block GPT-5.4 share-page assistant turns)
+// chatgptConfigs.js (v36 - Handle section-wrapped GPT-5.4 share-page turns)
 
 (function() {
     // Initialization check
-    // v34: Handle GPT-5.4 share-page assistant turns split around reasoning UI
-    if (window.chatgptConfig && window.chatgptConfig.version >= 34) { return; }
+    // v36: Handle GPT-5.4 share-page turns wrapped in section[data-testid^="conversation-turn-"]
+    if (window.chatgptConfig && window.chatgptConfig.version >= 36) { return; }
 
     // --- Helper Functions ---
 
@@ -1231,9 +1231,9 @@
     // --- Main Configuration Object ---
     const chatgptConfig = {
       platformName: 'ChatGPT',
-      version: 35, // v35: Preserve visible assistant text across turns split by reasoning UI
+      version: 36, // v36: Support share-page turn wrappers rendered as section elements
       selectors: { // Updated selectors for new table structure
-        turnContainer: 'article[data-testid^="conversation-turn-"]',
+        turnContainer: 'article[data-testid^="conversation-turn-"], section[data-testid^="conversation-turn-"]',
         turnContainerFallback: 'div[data-message-author-role]', // Fallback for edge cases without article wrapper
         userMessageContainer: 'div[data-message-author-role="user"]',
         assistantMessageContainer: 'div[data-message-author-role="assistant"]',
