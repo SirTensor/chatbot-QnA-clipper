@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_extensionName__",
-  "version": "1.6.4",
+  "version": "1.7.0",
   "description": "__MSG_extensionDescription__",
   "default_locale": "en",
   "permissions": [
@@ -47,6 +47,13 @@
       ],
       "js": [
         "src/shared/utils.js",
+        "src/shared/messageNormalizer.js",
+        "src/content/captureCache.js",
+        "src/content/extractor.js",
+        "src/content/configs/chatgptConfigs.js",
+        "src/content/configs/geminiConfigs.js",
+        "src/content/configs/claudeConfigs.js",
+        "src/content/configs/grokConfigs.js",
         "src/content/content.js"
       ]
     }

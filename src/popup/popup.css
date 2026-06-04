@@ -21,12 +21,66 @@ button {
 button:hover {
   background-color: #45a049;
 }
+button.secondary {
+  background-color: #f1f3f4;
+  color: #333;
+  border: 1px solid #dadce0;
+}
+button.secondary:hover {
+  background-color: #e8eaed;
+}
+button.danger {
+  background-color: #d93025;
+}
+button.danger:hover {
+  background-color: #b3261e;
+}
+button[hidden] {
+  display: none;
+}
 #status {
   text-align: center;
   color: #666;
   margin-bottom: 5px;
   font-size: 13px;
   min-height: 16px;
+}
+.capture-panel {
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 8px;
+  margin: 8px 0 10px;
+  background: #fafafa;
+}
+.capture-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  margin-bottom: 5px;
+}
+.capture-row span {
+  color: #666;
+}
+.capture-row strong {
+  color: #222;
+  text-align: right;
+}
+.capture-toggle {
+  margin: 6px 0;
+  font-size: 12px;
+}
+.compact-button {
+  margin: 6px 0 0;
+  padding: 7px;
+  font-size: 12px;
+}
+.privacy-note {
+  margin: 7px 0 0;
+  color: #666;
+  font-size: 11px;
+  line-height: 1.35;
 }
 .option-group {
   margin-bottom: 8px;

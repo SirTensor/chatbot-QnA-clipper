@@ -11,6 +11,12 @@ importScripts('../shared/formatter.js');
 // Track the last shortcut trigger time to prevent duplicates
 let lastTriggerTime = 0;
 
+const INCOMPLETE_CACHE_WARNING =
+  'Copied cached messages. This chat may be incomplete if earlier messages were never rendered in this tab. On ChatGPT, use Full Scan for the most complete result.';
+
+const NON_CHATGPT_INCOMPLETE_WARNING =
+  'Copied cached messages. This chat may be incomplete if earlier messages were never rendered in this tab. Scroll through the conversation to capture more messages.';
+
 // --- i18n Helper Function ---
 
 /**
@@ -288,6 +294,113 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 
+  if (request.action === 'get-capture-status') {
+    (async () => {
+      try {
+        const { response } = await sendContentRequestToActiveTab({ action: 'getCaptureStatusV3' });
+        sendResponse(response || { success: false, error: 'No status response' });
+      } catch (error) {
+        sendResponse({
+          success: false,
+          error: error.message || 'Unable to get capture status',
+          status: {
+            platform: 'unknown',
+            capturedCount: 0,
+            passiveEnabled: true,
+            fullScanAvailable: false,
+            scanRunning: false
+          }
+        });
+      }
+    })();
+    return true;
+  }
+
+  if (request.action === 'set-passive-capture-enabled') {
+    (async () => {
+      try {
+        const enabled = request.enabled !== false;
+        await savePassiveCaptureEnabled(enabled);
+        const { response } = await sendContentRequestToActiveTab({
+          action: 'setPassiveCaptureEnabledV3',
+          enabled
+        });
+        sendResponse(response || { success: true });
+      } catch (error) {
+        sendResponse({ success: false, error: error.message || 'Unable to update capture setting' });
+      }
+    })();
+    return true;
+  }
+
+  if (request.action === 'clear-capture-cache') {
+    (async () => {
+      try {
+        const { response } = await sendContentRequestToActiveTab({ action: 'clearCaptureCacheV3' });
+        sendResponse(response || { success: true });
+      } catch (error) {
+        sendResponse({ success: false, error: error.message || 'Unable to clear captured content' });
+      }
+    })();
+    return true;
+  }
+
+  if (request.action === 'start-full-scan') {
+    (async () => {
+      try {
+        const formatSettings = await getStoredFormatSettings();
+        const { tab, response } = await sendContentRequestToActiveTab({
+          action: 'startChatGPTFullScanV3',
+          settings: formatSettings
+        });
+
+        if (!response || response.success === false) {
+          const message = response && response.stopped
+            ? 'Full Scan stopped.'
+            : (response && response.error) || 'Full Scan failed.';
+          sendMessageToPopup({
+            action: 'full-scan-complete',
+            success: false,
+            message,
+            status: response && response.status
+          });
+          sendResponse({ success: false, stopped: !!(response && response.stopped), error: message, status: response && response.status });
+          return;
+        }
+
+        const copyResult = await copyExtractionResponse(tab.id, response, formatSettings);
+        sendMessageToPopup({
+          action: 'full-scan-complete',
+          success: copyResult.success,
+          message: copyResult.message || copyResult.error,
+          status: copyResult.status
+        });
+        sendResponse(copyResult);
+      } catch (error) {
+        const message = error.message || 'Full Scan failed.';
+        sendMessageToPopup({
+          action: 'full-scan-complete',
+          success: false,
+          message
+        });
+        sendResponse({ success: false, error: message });
+      }
+    })();
+    return true;
+  }
+
+  if (request.action === 'stop-full-scan') {
+    (async () => {
+      try {
+        const { response } = await sendContentRequestToActiveTab({ action: 'stopChatGPTFullScanV3' });
+        sendResponse(response || { success: true });
+      } catch (error) {
+        sendResponse({ success: false, error: error.message || 'Unable to stop Full Scan' });
+      }
+    })();
+    return true;
+  }
+
   // Handle other messages if necessary
   // console.log("Received unhandled message:", request);
   return false; // Indicate synchronous response or no handler found
@@ -383,7 +496,10 @@ async function ensureContentScriptLoaded(tabId) {
             status.chatgptConfigLoaded && 
             status.geminiConfigLoaded &&
             status.claudeConfigLoaded &&
-            status.grokConfigLoaded) {
+            status.grokConfigLoaded &&
+            status.messageNormalizerLoaded &&
+            status.captureCacheLoaded &&
+            status.contentVersion >= 3) {
           // console.log(`All required scripts confirmed loaded on tab ${tabId}`);
           return true;
         } else {
@@ -405,7 +521,7 @@ async function ensureContentScriptLoaded(tabId) {
     }
 
     // 2. Determine scripts to inject
-    // Get core content scripts from manifest
+    // Get content scripts from manifest
     const manifest = chrome.runtime.getManifest();
     const contentScriptDefs = manifest.content_scripts;
     if (!contentScriptDefs || !Array.isArray(contentScriptDefs) || contentScriptDefs.length === 0 || !contentScriptDefs[0].js) {
@@ -413,21 +529,22 @@ async function ensureContentScriptLoaded(tabId) {
       return false;
     }
     
-    // Only inject content.js if it's not already loaded
-    const coreContentScripts = contentScriptLoaded ? [] : contentScriptDefs[0].js;
-    
-    // Always inject these scripts to ensure they're available
-    const utilityScripts = ['src/shared/utils.js']; // utils.js must be loaded first as other scripts depend on it
-    const extractorScripts = ['src/content/extractor.js']; // extractor.js should be loaded before platform configs
-    const platformScripts = ['src/content/configs/chatgptConfigs.js', 'src/content/configs/geminiConfigs.js', 'src/content/configs/claudeConfigs.js', 'src/content/configs/grokConfigs.js']; // Platform configs
-    
-    // Combine scripts in a specific order to respect dependencies
-    const allScriptsToInject = [
-      ...coreContentScripts,       // content.js if needed
-      ...utilityScripts,           // utils.js first for dependencies
-      ...extractorScripts,         // extractor.js next
-      ...platformScripts           // platform configs last
+    const manifestScripts = contentScriptDefs[0].js;
+
+    // Always inject these scripts in dependency order when an older content script is already present.
+    const requiredScripts = [
+      'src/shared/utils.js',
+      'src/shared/messageNormalizer.js',
+      'src/content/captureCache.js',
+      'src/content/extractor.js',
+      'src/content/configs/chatgptConfigs.js',
+      'src/content/configs/geminiConfigs.js',
+      'src/content/configs/claudeConfigs.js',
+      'src/content/configs/grokConfigs.js',
+      'src/content/content.js'
     ];
+
+    const allScriptsToInject = contentScriptLoaded ? requiredScripts : manifestScripts;
 
     // Log injection plan
     // console.log(`Ensuring scripts are loaded in tab ${tabId} in this order:`, allScriptsToInject.join(', '));
@@ -458,7 +575,13 @@ async function ensureContentScriptLoaded(tabId) {
         }
         
         // For critical scripts, failing is a fatal error
-        const criticalScripts = ['src/content/content.js', 'src/shared/utils.js', 'src/content/extractor.js'];
+        const criticalScripts = [
+          'src/content/content.js',
+          'src/shared/utils.js',
+          'src/shared/messageNormalizer.js',
+          'src/content/captureCache.js',
+          'src/content/extractor.js'
+        ];
         if (criticalScripts.includes(script)) {
           throw new Error(`Critical script injection failed (${script}): ${injectionError.message}`);
         } else {
@@ -509,6 +632,103 @@ async function copyToClipboard(tabId, text) {
     // but since we're not implementing it in this update, just return false
     return false;
   }
+}
+
+async function getStoredFormatSettings() {
+  const data = await chrome.storage.local.get('formatSettings');
+  return { ...getDefaultFormatSettings(), ...(data.formatSettings || {}) };
+}
+
+async function getActiveWebTab() {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab || !tab.id) {
+    throw new Error(getMessage('errorNoActiveTab'));
+  }
+
+  if (!tab.url || (!tab.url.startsWith('http:') && !tab.url.startsWith('https:'))) {
+    const error = new Error(getMessage('errorUnsupportedPage'));
+    error.unsupportedPage = true;
+    error.tab = tab;
+    throw error;
+  }
+
+  return tab;
+}
+
+async function sendContentRequestToActiveTab(message) {
+  const tab = await getActiveWebTab();
+  const scriptsLoaded = await ensureContentScriptLoaded(tab.id);
+  if (!scriptsLoaded) {
+    throw new Error(getMessage('errorScriptsNotLoaded'));
+  }
+
+  const response = await new Promise((resolve, reject) => {
+    chrome.tabs.sendMessage(tab.id, message, (result) => {
+      if (chrome.runtime.lastError) {
+        reject(chrome.runtime.lastError);
+      } else {
+        resolve(result);
+      }
+    });
+  });
+
+  return { tab, response };
+}
+
+async function savePassiveCaptureEnabled(enabled) {
+  const data = await chrome.storage.local.get('captureSettings');
+  const captureSettings = {
+    ...(data.captureSettings || {}),
+    passiveCaptureEnabled: enabled !== false
+  };
+  await chrome.storage.local.set({ captureSettings });
+  return captureSettings;
+}
+
+function getIncompleteMessage(platform) {
+  return platform === 'chatgpt' ? INCOMPLETE_CACHE_WARNING : NON_CHATGPT_INCOMPLETE_WARNING;
+}
+
+async function copyExtractionResponse(tabId, response, formatSettings) {
+  if (!response || !response.data || !Array.isArray(response.data.conversationTurns)) {
+    throw new Error(getMessage('errorInvalidData'));
+  }
+
+  const formattedText = formatter.formatData(response.data, formatSettings);
+  const copySuccess = await copyToClipboard(tabId, formattedText);
+
+  if (copySuccess) {
+    const mayBeIncomplete = response.status && response.status.mayBeIncomplete;
+    const message = mayBeIncomplete ? getIncompleteMessage(response.data.platform) : getMessage('toastCopied');
+
+    await showToast(tabId, message, mayBeIncomplete ? 5000 : 2000);
+    sendMessageToPopup({
+      action: 'extraction-complete',
+      success: true,
+      message,
+      status: response.status
+    });
+
+    return { success: true, message, status: response.status };
+  }
+
+  await showToast(tabId, getMessage('toastClipboardFailed'), 4000);
+  sendMessageToPopup({
+    action: 'clipboard-failed',
+    text: formattedText
+  });
+  sendMessageToPopup({
+    action: 'extraction-complete',
+    success: false,
+    message: getMessage('errorClipboardManual'),
+    status: response.status
+  });
+
+  return {
+    success: false,
+    error: getMessage('errorClipboardManual'),
+    status: response.status
+  };
 }
 
 // Main extraction function - called when user triggers extraction
@@ -657,17 +877,16 @@ async function extractQA() {
     }
 
     // Get the format settings
-    const data = await chrome.storage.local.get('formatSettings');
-    const formatSettings = { ...getDefaultFormatSettings(), ...(data.formatSettings || {}) };
+    const formatSettings = await getStoredFormatSettings();
     // console.log('Using format settings:', formatSettings);
 
-    // Send message to content script to extract raw data
+    // Send message to content script to compose from the temporary capture cache.
     let response;
     try {
         // Create our own timeout promise instead of using the unsupported timeout parameter
         const extractionPromise = new Promise((resolve, reject) => {
             chrome.tabs.sendMessage(currentTabId, {
-              action: 'extractRawData',
+              action: 'extractCachedConversationV3',
               settings: formatSettings // Pass settings to content script
             }, (result) => {
                 if (chrome.runtime.lastError) {
@@ -696,7 +915,7 @@ async function extractQA() {
               throw new Error(getMessage('errorConnectionLost'));
          } else {
              // Assume other errors might be timeouts or unexpected issues
-             console.error(`Error sending/receiving extractRawData message on tab ${currentTabId}:`, commsError);
+             console.error(`Error sending/receiving extractCachedConversationV3 message on tab ${currentTabId}:`, commsError);
              throw new Error(getMessage('errorTimeout'));
          }
     }
@@ -762,11 +981,18 @@ async function extractQA() {
 
       // Show success or error toast and notify popup
       if (copySuccess) {
-        await showToast(currentTabId, getMessage('toastCopied'));
+        const mayBeIncomplete = response.status && response.status.mayBeIncomplete;
+        const incompleteMessage = response.data.platform === 'chatgpt'
+          ? INCOMPLETE_CACHE_WARNING
+          : NON_CHATGPT_INCOMPLETE_WARNING;
+        const successMessage = mayBeIncomplete ? incompleteMessage : getMessage('toastCopied');
+
+        await showToast(currentTabId, successMessage, mayBeIncomplete ? 5000 : 2000);
         sendMessageToPopup({
           action: 'extraction-complete',
           success: true,
-          message: getMessage('toastCopied')
+          message: successMessage,
+          status: response.status
         });
       } else {
         // Clipboard failure handling (remains the same, but text might be larger)

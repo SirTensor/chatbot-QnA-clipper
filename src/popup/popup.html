@@ -12,6 +12,25 @@
     
     <button id="copyButton" data-i18n="copyButton">Copy Q&A to Clipboard</button>
     <div id="status"></div>
+
+    <div class="capture-panel" aria-live="polite" hidden>
+      <div class="capture-row">
+        <span>Platform</span>
+        <strong id="platformName">Unknown</strong>
+      </div>
+      <div class="capture-row">
+        <span>Captured</span>
+        <strong id="capturedCount">0 messages</strong>
+      </div>
+      <label for="preserveToggle" class="checkbox-row capture-toggle">
+        <span class="checkbox-text">Preserve while scrolling</span>
+        <input type="checkbox" id="preserveToggle" checked>
+      </label>
+      <button id="clearCacheButton" class="secondary compact-button" type="button">Clear captured content</button>
+      <button id="fullScanButton" class="secondary compact-button" type="button" hidden>Full Scan then Copy</button>
+      <button id="stopScanButton" class="danger compact-button" type="button" hidden>Stop Scan</button>
+      <p class="privacy-note">Captured messages are kept temporarily for this tab/session. They are not synced or uploaded.</p>
+    </div>
     
     <div class="option-group">
       <label for="headerLevel" data-i18n="headerLevelLabel">Header Level:</label>

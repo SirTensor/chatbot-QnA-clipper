@@ -216,5 +216,6 @@
 
   // Expose to window scope so content.js can call it
   window.extractConversation = extractConversation;
+  window.qaClipperIdentifyPlatform = identifyPlatform;
   // console.log("extractConversation initialized successfully");
 })(); 
