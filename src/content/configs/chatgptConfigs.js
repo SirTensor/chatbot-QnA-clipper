@@ -1,9 +1,9 @@
-// chatgptConfigs.js (v36 - Handle section-wrapped GPT-5.4 share-page turns)
+// chatgptConfigs.js (v37 - Skip transient empty assistant turns without warning)
 
 (function() {
     // Initialization check
-    // v36: Handle GPT-5.4 share-page turns wrapped in section[data-testid^="conversation-turn-"]
-    if (window.chatgptConfig && window.chatgptConfig.version >= 36) { return; }
+    // v37: Avoid extension error-page noise from transient empty ChatGPT assistant turns.
+    if (window.chatgptConfig && window.chatgptConfig.version >= 37) { return; }
 
     // --- Helper Functions ---
 
@@ -1211,19 +1211,8 @@
              }
          }
 
-         // If no text container and no other content, check if this is a thinking/reasoning turn
-         // These turns have no actual message content, just "Thought for Xs" UI element
-         if (contentItems.length === 0 && !foundAssistantMessageContent) {
-             // Check if this is a thinking turn (has data-turn attribute but no message content)
-             const isThinkingTurn = turnElement.hasAttribute && turnElement.hasAttribute('data-turn') &&
-                                    !turnElement.querySelector(selectors.assistantMessageContainer);
-
-             if (!isThinkingTurn) {
-                 // Only warn if it's not a thinking turn and we genuinely expected content
-                 console.warn("[v34] Assistant text container (.prose) not found and no other blocks either in turn:", turnElement);
-             }
-             // For thinking turns, silently return empty contentItems
-         }
+         // ChatGPT can briefly render assistant turn wrappers before markdown/content exists.
+         // Returning an empty list is enough; the caller already skips empty turns.
 
         return contentItems;
     }
@@ -1231,7 +1220,7 @@
     // --- Main Configuration Object ---
     const chatgptConfig = {
       platformName: 'ChatGPT',
-      version: 36, // v36: Support share-page turn wrappers rendered as section elements
+      version: 37, // v37: Skip transient empty assistant turns without warning
       selectors: { // Updated selectors for new table structure
         turnContainer: 'article[data-testid^="conversation-turn-"], section[data-testid^="conversation-turn-"]',
         turnContainerFallback: 'div[data-message-author-role]', // Fallback for edge cases without article wrapper
