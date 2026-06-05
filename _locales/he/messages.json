@@ -428,11 +428,11 @@
     "description": "Status shown when Full Scan cannot be stopped"
   },
   "warningCachedIncompleteChatgpt": {
-    "message": "הודעות מהמטמון הועתקו. ייתכן שחלק מההודעות הקודמות חסרות. להעתקה מלאה יותר, גלול פעם אחת בכל הצ׳אט או הפעל סריקה מלאה.",
+    "message": "הודעות מהמטמון הועתקו. ייתכן שחלק מההודעות חסרות. להעתקה מלאה יותר, גלול פעם אחת בכל הצ׳אט או הפעל סריקה מלאה.",
     "description": "Warning shown when copied ChatGPT cached messages may be incomplete"
   },
   "warningCachedIncompleteManualScroll": {
-    "message": "הודעות מהמטמון הועתקו. ייתכן שחלק מההודעות הקודמות חסרות. להעתקה מלאה יותר, גלול פעם אחת בכל הצ׳אט או הפעל סריקה מלאה.",
+    "message": "הודעות מהמטמון הועתקו. ייתכן שחלק מההודעות חסרות. להעתקה מלאה יותר, גלול פעם אחת בכל הצ׳אט או הפעל סריקה מלאה.",
     "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
   },
   "platformUnknown": {

@@ -428,11 +428,11 @@
     "description": "Status shown when Full Scan cannot be stopped"
   },
   "warningCachedIncompleteChatgpt": {
-    "message": "Berichten uit de cache gekopieerd. Sommige eerdere berichten ontbreken mogelijk. Voor een completere kopie scrol je één keer door de hele chat of voer je de volledige scan uit.",
+    "message": "Berichten uit de cache gekopieerd. Sommige berichten ontbreken mogelijk. Voor een completere kopie scrol je één keer door de hele chat of voer je de volledige scan uit.",
     "description": "Warning shown when copied ChatGPT cached messages may be incomplete"
   },
   "warningCachedIncompleteManualScroll": {
-    "message": "Berichten uit de cache gekopieerd. Sommige eerdere berichten ontbreken mogelijk. Voor een completere kopie scrol je één keer door de hele chat of voer je de volledige scan uit.",
+    "message": "Berichten uit de cache gekopieerd. Sommige berichten ontbreken mogelijk. Voor een completere kopie scrol je één keer door de hele chat of voer je de volledige scan uit.",
     "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
   },
   "platformUnknown": {

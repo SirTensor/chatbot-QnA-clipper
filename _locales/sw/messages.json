@@ -428,11 +428,11 @@
     "description": "Status shown when Full Scan cannot be stopped"
   },
   "warningCachedIncompleteChatgpt": {
-    "message": "Ujumbe uliowekwa kwenye akiba umenakiliwa. Baadhi ya ujumbe wa awali unaweza kukosekana. Kwa nakala kamili zaidi, pitia gumzo lote mara moja au endesha Skani Kamili.",
+    "message": "Ujumbe uliowekwa kwenye akiba umenakiliwa. Baadhi ya ujumbe unaweza kukosekana. Kwa nakala kamili zaidi, pitia gumzo lote mara moja au endesha Skani Kamili.",
     "description": "Warning shown when copied ChatGPT cached messages may be incomplete"
   },
   "warningCachedIncompleteManualScroll": {
-    "message": "Ujumbe uliowekwa kwenye akiba umenakiliwa. Baadhi ya ujumbe wa awali unaweza kukosekana. Kwa nakala kamili zaidi, pitia gumzo lote mara moja au endesha Skani Kamili.",
+    "message": "Ujumbe uliowekwa kwenye akiba umenakiliwa. Baadhi ya ujumbe unaweza kukosekana. Kwa nakala kamili zaidi, pitia gumzo lote mara moja au endesha Skani Kamili.",
     "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
   },
   "platformUnknown": {

@@ -428,11 +428,11 @@
     "description": "Status shown when Full Scan cannot be stopped"
   },
   "warningCachedIncompleteChatgpt": {
-    "message": "پیام‌های کش‌شده کپی شدند. ممکن است برخی پیام‌های قبلی جا افتاده باشند. برای نسخه کامل‌تر، کل گفتگو را یک بار اسکرول کنید یا اسکن کامل را اجرا کنید.",
+    "message": "پیام‌های کش‌شده کپی شدند. ممکن است برخی پیام‌ها جا افتاده باشند. برای نسخه کامل‌تر، کل گفتگو را یک بار اسکرول کنید یا اسکن کامل را اجرا کنید.",
     "description": "Warning shown when copied ChatGPT cached messages may be incomplete"
   },
   "warningCachedIncompleteManualScroll": {
-    "message": "پیام‌های کش‌شده کپی شدند. ممکن است برخی پیام‌های قبلی جا افتاده باشند. برای نسخه کامل‌تر، کل گفتگو را یک بار اسکرول کنید یا اسکن کامل را اجرا کنید.",
+    "message": "پیام‌های کش‌شده کپی شدند. ممکن است برخی پیام‌ها جا افتاده باشند. برای نسخه کامل‌تر، کل گفتگو را یک بار اسکرول کنید یا اسکن کامل را اجرا کنید.",
     "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
   },
   "platformUnknown": {

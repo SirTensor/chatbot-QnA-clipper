@@ -428,11 +428,11 @@
     "description": "Status shown when Full Scan cannot be stopped"
   },
   "warningCachedIncompleteChatgpt": {
-    "message": "Zwischengespeicherte Nachrichten kopiert. Einige frühere Nachrichten fehlen möglicherweise. Für eine vollständigere Kopie scrolle einmal durch den gesamten Chat oder starte den Vollscan.",
+    "message": "Zwischengespeicherte Nachrichten kopiert. Einige Nachrichten fehlen möglicherweise. Für eine vollständigere Kopie scrolle einmal durch den gesamten Chat oder starte den Vollscan.",
     "description": "Warning shown when copied ChatGPT cached messages may be incomplete"
   },
   "warningCachedIncompleteManualScroll": {
-    "message": "Zwischengespeicherte Nachrichten kopiert. Einige frühere Nachrichten fehlen möglicherweise. Für eine vollständigere Kopie scrolle einmal durch den gesamten Chat oder starte den Vollscan.",
+    "message": "Zwischengespeicherte Nachrichten kopiert. Einige Nachrichten fehlen möglicherweise. Für eine vollständigere Kopie scrolle einmal durch den gesamten Chat oder starte den Vollscan.",
     "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
   },
   "platformUnknown": {

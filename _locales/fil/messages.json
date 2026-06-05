@@ -428,11 +428,11 @@
     "description": "Status shown when Full Scan cannot be stopped"
   },
   "warningCachedIncompleteChatgpt": {
-    "message": "Nakopya ang mga naka-cache na mensahe. Maaaring may nawawalang ilang naunang mensahe. Para sa mas kumpletong kopya, i-scroll ang buong chat nang isang beses o patakbuhin ang Full Scan.",
+    "message": "Nakopya ang mga naka-cache na mensahe. Maaaring may nawawalang ilang mensahe. Para sa mas kumpletong kopya, i-scroll ang buong chat nang isang beses o patakbuhin ang Full Scan.",
     "description": "Warning shown when copied ChatGPT cached messages may be incomplete"
   },
   "warningCachedIncompleteManualScroll": {
-    "message": "Nakopya ang mga naka-cache na mensahe. Maaaring may nawawalang ilang naunang mensahe. Para sa mas kumpletong kopya, i-scroll ang buong chat nang isang beses o patakbuhin ang Full Scan.",
+    "message": "Nakopya ang mga naka-cache na mensahe. Maaaring may nawawalang ilang mensahe. Para sa mas kumpletong kopya, i-scroll ang buong chat nang isang beses o patakbuhin ang Full Scan.",
     "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
   },
   "platformUnknown": {

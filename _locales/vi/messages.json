@@ -428,11 +428,11 @@
     "description": "Status shown when Full Scan cannot be stopped"
   },
   "warningCachedIncompleteChatgpt": {
-    "message": "Đã sao chép tin nhắn trong bộ nhớ tạm. Một số tin nhắn cũ có thể bị thiếu. Để có bản sao đầy đủ hơn, hãy cuộn qua toàn bộ cuộc trò chuyện một lần hoặc chạy Quét toàn bộ.",
+    "message": "Đã sao chép tin nhắn trong bộ nhớ tạm. Một số tin nhắn có thể bị thiếu. Để có bản sao đầy đủ hơn, hãy cuộn qua toàn bộ cuộc trò chuyện một lần hoặc chạy Quét toàn bộ.",
     "description": "Warning shown when copied ChatGPT cached messages may be incomplete"
   },
   "warningCachedIncompleteManualScroll": {
-    "message": "Đã sao chép tin nhắn trong bộ nhớ tạm. Một số tin nhắn cũ có thể bị thiếu. Để có bản sao đầy đủ hơn, hãy cuộn qua toàn bộ cuộc trò chuyện một lần hoặc chạy Quét toàn bộ.",
+    "message": "Đã sao chép tin nhắn trong bộ nhớ tạm. Một số tin nhắn có thể bị thiếu. Để có bản sao đầy đủ hơn, hãy cuộn qua toàn bộ cuộc trò chuyện một lần hoặc chạy Quét toàn bộ.",
     "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
   },
   "platformUnknown": {

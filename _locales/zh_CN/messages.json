@@ -428,11 +428,11 @@
     "description": "Status shown when Full Scan cannot be stopped"
   },
   "warningCachedIncompleteChatgpt": {
-    "message": "已复制缓存消息。部分较早的消息可能缺失。若要获得更完整的副本，请完整滚动一次聊天，或运行完整扫描。",
+    "message": "已复制缓存消息。部分消息可能缺失。若要获得更完整的副本，请完整滚动一次聊天，或运行完整扫描。",
     "description": "Warning shown when copied ChatGPT cached messages may be incomplete"
   },
   "warningCachedIncompleteManualScroll": {
-    "message": "已复制缓存消息。部分较早的消息可能缺失。若要获得更完整的副本，请完整滚动一次聊天，或运行完整扫描。",
+    "message": "已复制缓存消息。部分消息可能缺失。若要获得更完整的副本，请完整滚动一次聊天，或运行完整扫描。",
     "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
   },
   "platformUnknown": {

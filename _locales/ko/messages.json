@@ -428,11 +428,11 @@
     "description": "Status shown when Full Scan cannot be stopped"
   },
   "warningCachedIncompleteChatgpt": {
-    "message": "캐시된 메시지를 복사했습니다. 일부 이전 메시지가 누락되었을 수 있습니다. 더 완전하게 복사하려면 전체 대화를 한 번 스크롤하거나 전체 스캔을 실행하세요.",
+    "message": "캐시된 메시지를 복사했습니다. 일부 메시지가 누락되었을 수 있습니다. 더 완전하게 복사하려면 전체 대화를 한 번 스크롤하거나 전체 스캔을 실행하세요.",
     "description": "Warning shown when copied ChatGPT cached messages may be incomplete"
   },
   "warningCachedIncompleteManualScroll": {
-    "message": "캐시된 메시지를 복사했습니다. 일부 이전 메시지가 누락되었을 수 있습니다. 더 완전하게 복사하려면 전체 대화를 한 번 스크롤하거나 전체 스캔을 실행하세요.",
+    "message": "캐시된 메시지를 복사했습니다. 일부 메시지가 누락되었을 수 있습니다. 더 완전하게 복사하려면 전체 대화를 한 번 스크롤하거나 전체 스캔을 실행하세요.",
     "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
   },
   "platformUnknown": {

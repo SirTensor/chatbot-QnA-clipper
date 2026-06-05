@@ -428,11 +428,11 @@
     "description": "Status shown when Full Scan cannot be stopped"
   },
   "warningCachedIncompleteChatgpt": {
-    "message": "कैश किए गए संदेश कॉपी किए गए। कुछ पुराने संदेश छूट सकते हैं। अधिक पूर्ण कॉपी के लिए पूरी चैट को एक बार स्क्रॉल करें या पूरा स्कैन चलाएँ।",
+    "message": "कैश किए गए संदेश कॉपी किए गए। कुछ संदेश छूट सकते हैं। अधिक पूर्ण कॉपी के लिए पूरी चैट को एक बार स्क्रॉल करें या पूरा स्कैन चलाएँ।",
     "description": "Warning shown when copied ChatGPT cached messages may be incomplete"
   },
   "warningCachedIncompleteManualScroll": {
-    "message": "कैश किए गए संदेश कॉपी किए गए। कुछ पुराने संदेश छूट सकते हैं। अधिक पूर्ण कॉपी के लिए पूरी चैट को एक बार स्क्रॉल करें या पूरा स्कैन चलाएँ।",
+    "message": "कैश किए गए संदेश कॉपी किए गए। कुछ संदेश छूट सकते हैं। अधिक पूर्ण कॉपी के लिए पूरी चैट को एक बार स्क्रॉल करें या पूरा स्कैन चलाएँ।",
     "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
   },
   "platformUnknown": {

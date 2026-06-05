@@ -428,11 +428,11 @@
     "description": "Status shown when Full Scan cannot be stopped"
   },
   "warningCachedIncompleteChatgpt": {
-    "message": "Pesan cache disalin. Beberapa pesan sebelumnya mungkin hilang. Untuk salinan yang lebih lengkap, gulir seluruh chat sekali atau jalankan Pindai Penuh.",
+    "message": "Pesan cache disalin. Beberapa pesan mungkin hilang. Untuk salinan yang lebih lengkap, gulir seluruh chat sekali atau jalankan Pindai Penuh.",
     "description": "Warning shown when copied ChatGPT cached messages may be incomplete"
   },
   "warningCachedIncompleteManualScroll": {
-    "message": "Pesan cache disalin. Beberapa pesan sebelumnya mungkin hilang. Untuk salinan yang lebih lengkap, gulir seluruh chat sekali atau jalankan Pindai Penuh.",
+    "message": "Pesan cache disalin. Beberapa pesan mungkin hilang. Untuk salinan yang lebih lengkap, gulir seluruh chat sekali atau jalankan Pindai Penuh.",
     "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
   },
   "platformUnknown": {

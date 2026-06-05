@@ -428,11 +428,11 @@
     "description": "Status shown when Full Scan cannot be stopped"
   },
   "warningCachedIncompleteChatgpt": {
-    "message": "تم نسخ الرسائل المخزنة مؤقتًا. قد تكون بعض الرسائل السابقة مفقودة. للحصول على نسخة أكثر اكتمالًا، مرّر عبر المحادثة كاملة مرة واحدة أو شغّل الفحص الكامل.",
+    "message": "تم نسخ الرسائل المخزنة مؤقتًا. قد تكون بعض الرسائل مفقودة. للحصول على نسخة أكثر اكتمالًا، مرّر عبر المحادثة كاملة مرة واحدة أو شغّل الفحص الكامل.",
     "description": "Warning shown when copied ChatGPT cached messages may be incomplete"
   },
   "warningCachedIncompleteManualScroll": {
-    "message": "تم نسخ الرسائل المخزنة مؤقتًا. قد تكون بعض الرسائل السابقة مفقودة. للحصول على نسخة أكثر اكتمالًا، مرّر عبر المحادثة كاملة مرة واحدة أو شغّل الفحص الكامل.",
+    "message": "تم نسخ الرسائل المخزنة مؤقتًا. قد تكون بعض الرسائل مفقودة. للحصول على نسخة أكثر اكتمالًا، مرّر عبر المحادثة كاملة مرة واحدة أو شغّل الفحص الكامل.",
     "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
   },
   "platformUnknown": {
