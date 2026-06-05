@@ -436,8 +436,8 @@
     "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
   },
   "warningCopiedCacheChanged": {
-    "message": "Деякі повідомлення завантажилися після копіювання. Скопіюйте ще раз, щоб включити їх.",
-    "description": "Warning shown when additional cached conversation content is found after a successful copy"
+    "message": "Скопійовано не всі повідомлення. Скопіюйте ще раз, щоб включити їх.",
+    "description": "Warning shown when a successful copy is later found to have missed cached conversation content"
   },
   "platformUnknown": {
     "message": "Невідомо",

@@ -436,8 +436,8 @@
     "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
   },
   "warningCopiedCacheChanged": {
-    "message": "कॉपी करने के बाद कुछ संदेश लोड हुए। उन्हें शामिल करने के लिए फिर से कॉपी करें।",
-    "description": "Warning shown when additional cached conversation content is found after a successful copy"
+    "message": "कुछ संदेश कॉपी नहीं हुए। उन्हें शामिल करने के लिए फिर से कॉपी करें।",
+    "description": "Warning shown when a successful copy is later found to have missed cached conversation content"
   },
   "platformUnknown": {
     "message": "अज्ञात",

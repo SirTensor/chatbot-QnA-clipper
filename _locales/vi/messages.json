@@ -436,8 +436,8 @@
     "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
   },
   "warningCopiedCacheChanged": {
-    "message": "Một số tin nhắn đã tải sau khi sao chép. Hãy sao chép lại để bao gồm chúng.",
-    "description": "Warning shown when additional cached conversation content is found after a successful copy"
+    "message": "Một số tin nhắn chưa được sao chép. Hãy sao chép lại để đưa chúng vào.",
+    "description": "Warning shown when a successful copy is later found to have missed cached conversation content"
   },
   "platformUnknown": {
     "message": "Không rõ",

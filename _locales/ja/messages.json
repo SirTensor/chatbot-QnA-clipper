@@ -436,8 +436,8 @@
     "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
   },
   "warningCopiedCacheChanged": {
-    "message": "コピー後に一部のメッセージが読み込まれました。含めるにはもう一度コピーしてください。",
-    "description": "Warning shown when additional cached conversation content is found after a successful copy"
+    "message": "すべてのメッセージがコピーされたわけではありません。含めるにはもう一度コピーしてください。",
+    "description": "Warning shown when a successful copy is later found to have missed cached conversation content"
   },
   "platformUnknown": {
     "message": "不明",

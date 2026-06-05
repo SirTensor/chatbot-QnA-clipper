@@ -436,8 +436,8 @@
     "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
   },
   "warningCopiedCacheChanged": {
-    "message": "복사 후 일부 메시지가 로드되었습니다. 포함하려면 다시 복사하세요.",
-    "description": "Warning shown when additional cached conversation content is found after a successful copy"
+    "message": "일부 메시지가 복사되지 않았습니다. 포함하려면 다시 복사하세요.",
+    "description": "Warning shown when a successful copy is later found to have missed cached conversation content"
   },
   "platformUnknown": {
     "message": "알 수 없음",

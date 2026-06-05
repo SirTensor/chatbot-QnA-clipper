@@ -866,7 +866,7 @@ function getPostCopyCacheWarningMessage() {
   const key = 'warningCopiedCacheChanged';
   const message = getMessage(key);
   return message === key
-    ? 'Some messages loaded after copying. Copy again to include them.'
+    ? 'Not all messages were copied. Copy again to include them.'
     : message;
 }
 

@@ -436,8 +436,8 @@
     "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
   },
   "warningCopiedCacheChanged": {
-    "message": "חלק מההודעות נטענו לאחר ההעתקה. יש להעתיק שוב כדי לכלול אותן.",
-    "description": "Warning shown when additional cached conversation content is found after a successful copy"
+    "message": "לא כל ההודעות הועתקו. יש להעתיק שוב כדי לכלול אותן.",
+    "description": "Warning shown when a successful copy is later found to have missed cached conversation content"
   },
   "platformUnknown": {
     "message": "לא ידוע",
