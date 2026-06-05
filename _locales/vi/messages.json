@@ -7,7 +7,6 @@
     "message": "Trích xuất Hỏi & Đáp từ cuộc trò chuyện với chatbot và sao chép vào clipboard theo định dạng cụ thể",
     "description": "Extension description"
   },
-
   "popupTitle": {
     "message": "Chatbot Hỏi & Đáp Clipper",
     "description": "Title shown in popup header"
@@ -16,7 +15,6 @@
     "message": "Sao chép Hỏi & Đáp vào clipboard",
     "description": "Main action button text"
   },
-
   "headerLevelLabel": {
     "message": "Cấp tiêu đề:",
     "description": "Label for header level selector"
@@ -41,7 +39,6 @@
     "message": "##### (H5)",
     "description": "Header level 5 option"
   },
-
   "labelStyleLabel": {
     "message": "Kiểu nhãn:",
     "description": "Label for Q&A label style selector"
@@ -150,7 +147,6 @@
     "message": "Tanong / Sagot",
     "description": "Filipino label style option"
   },
-
   "numberFormatLabel": {
     "message": "Định dạng đánh số:",
     "description": "Label for number format selector"
@@ -195,7 +191,6 @@
     "message": " : 1 (Khoảng trắng, dấu hai chấm, khoảng trắng)",
     "description": "Number format with space, colon, space"
   },
-
   "imageFormatLabel": {
     "message": "Định dạng URL ảnh:",
     "description": "Label for image format selector"
@@ -212,7 +207,6 @@
     "message": "https://... (URL thuần)",
     "description": "Plain URL image format option"
   },
-
   "imageLabelLabel": {
     "message": "Nhãn ảnh tùy chỉnh:",
     "description": "Label for custom image label input"
@@ -221,12 +215,10 @@
     "message": "URL ảnh",
     "description": "Placeholder for custom image label input"
   },
-
   "includePlatformLabel": {
     "message": "Bao gồm tên nền tảng",
     "description": "Label for include platform checkbox"
   },
-
   "excludeFileCitationsLabel": {
     "message": "Loại bỏ trích dẫn tệp (ChatGPT)",
     "description": "Label for exclude file citations checkbox"
@@ -235,7 +227,6 @@
     "message": "Loại bỏ huy hiệu tham chiếu tệp xuất hiện khi ChatGPT trích dẫn từ tệp đã tải lên",
     "description": "Tooltip for exclude file citations option"
   },
-
   "includePseudoQuotesLabel": {
     "message": "Bao gồm dấu ngoặc kép (ChatGPT)",
     "description": "Label for include quote marks checkbox"
@@ -244,7 +235,6 @@
     "message": "Trích xuất dấu ngoặc kép từ các pseudo-element CSS ::before/::after trong mục danh sách blockquote",
     "description": "Tooltip for include quote marks option"
   },
-
   "keyboardShortcutLabel": {
     "message": "Phím tắt:",
     "description": "Label for keyboard shortcut display"
@@ -261,12 +251,10 @@
     "message": "Cấu hình phím tắt trong Chrome",
     "description": "Link text to configure shortcuts"
   },
-
   "commandTriggerExtraction": {
     "message": "Sao chép Hỏi & Đáp vào clipboard",
     "description": "Command description for trigger-extraction"
   },
-
   "manualCopyTitle": {
     "message": "Không thể truy cập clipboard",
     "description": "Title for manual copy section"
@@ -283,7 +271,6 @@
     "message": "Quay lại Cài đặt",
     "description": "Back button text"
   },
-
   "statusExtracting": {
     "message": "Đang trích xuất Hỏi & Đáp...",
     "description": "Status message while extracting"
@@ -310,7 +297,6 @@
     "message": "Đã sao chép vào clipboard!",
     "description": "Status message when copy succeeds"
   },
-
   "toastCopied": {
     "message": "Hỏi & Đáp đã được sao chép vào clipboard!",
     "description": "Toast message when Q&A copied successfully"
@@ -339,7 +325,6 @@
     "message": "Lỗi khi kiểm tra quyền của tiện ích.",
     "description": "Toast message for permission check error"
   },
-
   "errorNoActiveTab": {
     "message": "Không tìm thấy tab đang hoạt động.",
     "description": "Error message when no active tab"
@@ -375,5 +360,83 @@
   "errorClipboardManual": {
     "message": "Không thể sao chép vào clipboard. Đang sử dụng tùy chọn sao chép thủ công.",
     "description": "Error message when clipboard fails in popup"
+  },
+  "capturePlatformLabel": {
+    "message": "Nền tảng",
+    "description": "Label for detected platform in capture status panel"
+  },
+  "captureCapturedLabel": {
+    "message": "Đã ghi lại",
+    "description": "Label for captured message count in capture status panel"
+  },
+  "preserveCaptureLabel": {
+    "message": "Giữ lại khi cuộn",
+    "description": "Label for passive capture toggle"
+  },
+  "clearCacheButton": {
+    "message": "Xóa nội dung đã ghi",
+    "description": "Button text to clear temporary captured content"
+  },
+  "fullScanButton": {
+    "message": "Quét toàn bộ rồi sao chép",
+    "description": "Button text to start Full Scan and copy"
+  },
+  "stopScanButton": {
+    "message": "Dừng quét",
+    "description": "Button text to stop Full Scan"
+  },
+  "capturePrivacyNote": {
+    "message": "Tin nhắn đã ghi chỉ được giữ tạm thời cho tab/phiên này. Chúng không được đồng bộ hoặc tải lên.",
+    "description": "Privacy note for temporary capture cache"
+  },
+  "captureMessageCount": {
+    "message": "Đã ghi $COUNT$ tin nhắn",
+    "description": "Captured message count text",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "12"
+      }
+    }
+  },
+  "statusCapturedCleared": {
+    "message": "Đã xóa nội dung đã ghi.",
+    "description": "Status shown after temporary captured content is cleared"
+  },
+  "statusClearCapturedError": {
+    "message": "Không thể xóa nội dung đã ghi.",
+    "description": "Status shown when temporary captured content cannot be cleared"
+  },
+  "statusFullScanRunning": {
+    "message": "Đang quét toàn bộ...",
+    "description": "Status shown while Full Scan is running"
+  },
+  "statusFullScanFailed": {
+    "message": "Quét toàn bộ thất bại.",
+    "description": "Status shown when Full Scan fails"
+  },
+  "statusStoppingFullScan": {
+    "message": "Đang dừng quét toàn bộ...",
+    "description": "Status shown while stopping Full Scan"
+  },
+  "statusFullScanStopped": {
+    "message": "Đã dừng quét toàn bộ.",
+    "description": "Status shown after Full Scan is stopped"
+  },
+  "statusStopFullScanError": {
+    "message": "Không thể dừng quét toàn bộ.",
+    "description": "Status shown when Full Scan cannot be stopped"
+  },
+  "warningCachedIncompleteChatgpt": {
+    "message": "Đã sao chép tin nhắn trong bộ nhớ tạm. Một số tin nhắn cũ có thể bị thiếu. Để có bản sao đầy đủ hơn, hãy cuộn qua toàn bộ cuộc trò chuyện một lần hoặc chạy Quét toàn bộ.",
+    "description": "Warning shown when copied ChatGPT cached messages may be incomplete"
+  },
+  "warningCachedIncompleteManualScroll": {
+    "message": "Đã sao chép tin nhắn trong bộ nhớ tạm. Một số tin nhắn cũ có thể bị thiếu. Để có bản sao đầy đủ hơn, hãy cuộn qua toàn bộ cuộc trò chuyện một lần hoặc chạy Quét toàn bộ.",
+    "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
+  },
+  "platformUnknown": {
+    "message": "Không rõ",
+    "description": "Fallback label for unknown platform"
   }
 }

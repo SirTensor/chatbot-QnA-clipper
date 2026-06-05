@@ -7,7 +7,6 @@
     "message": "チャットボットの会話からQ&Aを抽出し、指定した形式でクリップボードにコピーします",
     "description": "Extension description"
   },
-
   "popupTitle": {
     "message": "チャットボット Q&A クリッパー",
     "description": "Title shown in popup header"
@@ -16,7 +15,6 @@
     "message": "Q&Aをクリップボードにコピー",
     "description": "Main action button text"
   },
-
   "headerLevelLabel": {
     "message": "見出しレベル:",
     "description": "Label for header level selector"
@@ -41,7 +39,6 @@
     "message": "##### (H5)",
     "description": "Header level 5 option"
   },
-
   "labelStyleLabel": {
     "message": "ラベルスタイル:",
     "description": "Label for Q&A label style selector"
@@ -150,7 +147,6 @@
     "message": "Tanong / Sagot",
     "description": "Filipino label style option"
   },
-
   "numberFormatLabel": {
     "message": "番号の形式:",
     "description": "Label for number format selector"
@@ -195,7 +191,6 @@
     "message": " : 1 (スペース、コロン、スペース)",
     "description": "Number format with space, colon, space"
   },
-
   "imageFormatLabel": {
     "message": "画像URLの形式:",
     "description": "Label for image format selector"
@@ -212,7 +207,6 @@
     "message": "https://... (プレーンURL)",
     "description": "Plain URL image format option"
   },
-
   "imageLabelLabel": {
     "message": "カスタム画像ラベル:",
     "description": "Label for custom image label input"
@@ -221,12 +215,10 @@
     "message": "画像URL",
     "description": "Placeholder for custom image label input"
   },
-
   "includePlatformLabel": {
     "message": "プラットフォーム名を含める",
     "description": "Label for include platform checkbox"
   },
-
   "excludeFileCitationsLabel": {
     "message": "ファイル引用を除外 (ChatGPT)",
     "description": "Label for exclude file citations checkbox"
@@ -235,7 +227,6 @@
     "message": "ChatGPTがアップロードされたファイルを引用するときに表示されるファイル参照バッジを除外します",
     "description": "Tooltip for exclude file citations option"
   },
-
   "includePseudoQuotesLabel": {
     "message": "引用符を含める (ChatGPT)",
     "description": "Label for include quote marks checkbox"
@@ -244,7 +235,6 @@
     "message": "blockquoteリスト項目のCSS ::before/::after 擬似要素から引用符を抽出します",
     "description": "Tooltip for include quote marks option"
   },
-
   "keyboardShortcutLabel": {
     "message": "キーボードショートカット:",
     "description": "Label for keyboard shortcut display"
@@ -261,12 +251,10 @@
     "message": "Chromeでショートカットを設定",
     "description": "Link text to configure shortcuts"
   },
-
   "commandTriggerExtraction": {
     "message": "Q&Aをクリップボードにコピー",
     "description": "Command description for trigger-extraction"
   },
-
   "manualCopyTitle": {
     "message": "クリップボードアクセスに失敗しました",
     "description": "Title for manual copy section"
@@ -283,7 +271,6 @@
     "message": "設定に戻る",
     "description": "Back button text"
   },
-
   "statusExtracting": {
     "message": "Q&Aを抽出中...",
     "description": "Status message while extracting"
@@ -310,7 +297,6 @@
     "message": "クリップボードにコピーしました!",
     "description": "Status message when copy succeeds"
   },
-
   "toastCopied": {
     "message": "Q&Aをクリップボードにコピーしました!",
     "description": "Toast message when Q&A copied successfully"
@@ -339,7 +325,6 @@
     "message": "拡張機能の権限の確認中にエラーが発生しました。",
     "description": "Toast message for permission check error"
   },
-
   "errorNoActiveTab": {
     "message": "アクティブなタブが見つかりません。",
     "description": "Error message when no active tab"
@@ -375,5 +360,83 @@
   "errorClipboardManual": {
     "message": "クリップボードにコピーできません。手動コピーオプションを使用します。",
     "description": "Error message when clipboard fails in popup"
+  },
+  "capturePlatformLabel": {
+    "message": "プラットフォーム",
+    "description": "Label for detected platform in capture status panel"
+  },
+  "captureCapturedLabel": {
+    "message": "キャプチャ済み",
+    "description": "Label for captured message count in capture status panel"
+  },
+  "preserveCaptureLabel": {
+    "message": "スクロール中も保持",
+    "description": "Label for passive capture toggle"
+  },
+  "clearCacheButton": {
+    "message": "キャプチャ内容を消去",
+    "description": "Button text to clear temporary captured content"
+  },
+  "fullScanButton": {
+    "message": "フルスキャンしてコピー",
+    "description": "Button text to start Full Scan and copy"
+  },
+  "stopScanButton": {
+    "message": "スキャンを停止",
+    "description": "Button text to stop Full Scan"
+  },
+  "capturePrivacyNote": {
+    "message": "キャプチャしたメッセージはこのタブ/セッション内に一時保存されます。同期やアップロードはされません。",
+    "description": "Privacy note for temporary capture cache"
+  },
+  "captureMessageCount": {
+    "message": "$COUNT$ 件のメッセージをキャプチャ",
+    "description": "Captured message count text",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "12"
+      }
+    }
+  },
+  "statusCapturedCleared": {
+    "message": "キャプチャ内容を消去しました。",
+    "description": "Status shown after temporary captured content is cleared"
+  },
+  "statusClearCapturedError": {
+    "message": "キャプチャ内容を消去できません。",
+    "description": "Status shown when temporary captured content cannot be cleared"
+  },
+  "statusFullScanRunning": {
+    "message": "フルスキャン実行中...",
+    "description": "Status shown while Full Scan is running"
+  },
+  "statusFullScanFailed": {
+    "message": "フルスキャンに失敗しました。",
+    "description": "Status shown when Full Scan fails"
+  },
+  "statusStoppingFullScan": {
+    "message": "フルスキャンを停止中...",
+    "description": "Status shown while stopping Full Scan"
+  },
+  "statusFullScanStopped": {
+    "message": "フルスキャンを停止しました。",
+    "description": "Status shown after Full Scan is stopped"
+  },
+  "statusStopFullScanError": {
+    "message": "フルスキャンを停止できません。",
+    "description": "Status shown when Full Scan cannot be stopped"
+  },
+  "warningCachedIncompleteChatgpt": {
+    "message": "キャッシュされたメッセージをコピーしました。以前の一部のメッセージが欠けている可能性があります。より完全にコピーするには、チャット全体を一度スクロールするか、フルスキャンを実行してください。",
+    "description": "Warning shown when copied ChatGPT cached messages may be incomplete"
+  },
+  "warningCachedIncompleteManualScroll": {
+    "message": "キャッシュされたメッセージをコピーしました。以前の一部のメッセージが欠けている可能性があります。より完全にコピーするには、チャット全体を一度スクロールするか、フルスキャンを実行してください。",
+    "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
+  },
+  "platformUnknown": {
+    "message": "不明",
+    "description": "Fallback label for unknown platform"
   }
 }

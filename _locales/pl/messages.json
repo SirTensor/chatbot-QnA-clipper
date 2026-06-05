@@ -7,7 +7,6 @@
     "message": "Wyodrębnia pytania i odpowiedzi z rozmów z chatbotami i kopiuje je do schowka w określonych formatach",
     "description": "Extension description"
   },
-
   "popupTitle": {
     "message": "Chatbot Q&A Clipper",
     "description": "Title shown in popup header"
@@ -16,7 +15,6 @@
     "message": "Kopiuj Q&A do schowka",
     "description": "Main action button text"
   },
-
   "headerLevelLabel": {
     "message": "Poziom nagłówka:",
     "description": "Label for header level selector"
@@ -41,7 +39,6 @@
     "message": "##### (H5)",
     "description": "Header level 5 option"
   },
-
   "labelStyleLabel": {
     "message": "Styl etykiety:",
     "description": "Label for Q&A label style selector"
@@ -150,7 +147,6 @@
     "message": "Tanong / Sagot",
     "description": "Filipino label style option"
   },
-
   "numberFormatLabel": {
     "message": "Format numeracji:",
     "description": "Label for number format selector"
@@ -195,7 +191,6 @@
     "message": " : 1 (Spacja, dwukropek, spacja)",
     "description": "Number format with space, colon, space"
   },
-
   "imageFormatLabel": {
     "message": "Format URL obrazu:",
     "description": "Label for image format selector"
@@ -212,7 +207,6 @@
     "message": "https://... (zwykły URL)",
     "description": "Plain URL image format option"
   },
-
   "imageLabelLabel": {
     "message": "Własna etykieta obrazu:",
     "description": "Label for custom image label input"
@@ -221,12 +215,10 @@
     "message": "URL obrazu",
     "description": "Placeholder for custom image label input"
   },
-
   "includePlatformLabel": {
     "message": "Dołącz nazwę platformy",
     "description": "Label for include platform checkbox"
   },
-
   "excludeFileCitationsLabel": {
     "message": "Wyklucz cytaty plików (ChatGPT)",
     "description": "Label for exclude file citations checkbox"
@@ -235,7 +227,6 @@
     "message": "Wyklucza znaczniki referencji plików, które pojawiają się, gdy ChatGPT cytuje przesłane pliki",
     "description": "Tooltip for exclude file citations option"
   },
-
   "includePseudoQuotesLabel": {
     "message": "Dołącz cudzysłowy (ChatGPT)",
     "description": "Label for include quote marks checkbox"
@@ -244,7 +235,6 @@
     "message": "Wyodrębnia cudzysłowy z pseudoelementów CSS ::before/::after w elementach listy blockquote",
     "description": "Tooltip for include quote marks option"
   },
-
   "keyboardShortcutLabel": {
     "message": "Skrót klawiszowy:",
     "description": "Label for keyboard shortcut display"
@@ -261,12 +251,10 @@
     "message": "Konfiguruj skrót w Chrome",
     "description": "Link text to configure shortcuts"
   },
-
   "commandTriggerExtraction": {
     "message": "Kopiuj Q&A do schowka",
     "description": "Command description for trigger-extraction"
   },
-
   "manualCopyTitle": {
     "message": "Błąd dostępu do schowka",
     "description": "Title for manual copy section"
@@ -283,7 +271,6 @@
     "message": "Wróć do ustawień",
     "description": "Back button text"
   },
-
   "statusExtracting": {
     "message": "Wyodrębnianie Q&A...",
     "description": "Status message while extracting"
@@ -310,7 +297,6 @@
     "message": "Skopiowano do schowka!",
     "description": "Status message when copy succeeds"
   },
-
   "toastCopied": {
     "message": "Q&A skopiowano do schowka!",
     "description": "Toast message when Q&A copied successfully"
@@ -339,7 +325,6 @@
     "message": "Błąd sprawdzania uprawnień rozszerzenia.",
     "description": "Toast message for permission check error"
   },
-
   "errorNoActiveTab": {
     "message": "Nie znaleziono aktywnej karty.",
     "description": "Error message when no active tab"
@@ -375,5 +360,83 @@
   "errorClipboardManual": {
     "message": "Nie można skopiować do schowka. Użyj opcji ręcznego kopiowania.",
     "description": "Error message when clipboard fails in popup"
+  },
+  "capturePlatformLabel": {
+    "message": "Platforma",
+    "description": "Label for detected platform in capture status panel"
+  },
+  "captureCapturedLabel": {
+    "message": "Przechwycono",
+    "description": "Label for captured message count in capture status panel"
+  },
+  "preserveCaptureLabel": {
+    "message": "Zachowuj podczas przewijania",
+    "description": "Label for passive capture toggle"
+  },
+  "clearCacheButton": {
+    "message": "Wyczyść przechwyconą treść",
+    "description": "Button text to clear temporary captured content"
+  },
+  "fullScanButton": {
+    "message": "Pełne skanowanie i kopiowanie",
+    "description": "Button text to start Full Scan and copy"
+  },
+  "stopScanButton": {
+    "message": "Zatrzymaj skanowanie",
+    "description": "Button text to stop Full Scan"
+  },
+  "capturePrivacyNote": {
+    "message": "Przechwycone wiadomości są tymczasowo przechowywane dla tej karty/sesji. Nie są synchronizowane ani przesyłane.",
+    "description": "Privacy note for temporary capture cache"
+  },
+  "captureMessageCount": {
+    "message": "Przechwycono wiadomości: $COUNT$",
+    "description": "Captured message count text",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "12"
+      }
+    }
+  },
+  "statusCapturedCleared": {
+    "message": "Przechwycona treść wyczyszczona.",
+    "description": "Status shown after temporary captured content is cleared"
+  },
+  "statusClearCapturedError": {
+    "message": "Nie można wyczyścić przechwyconej treści.",
+    "description": "Status shown when temporary captured content cannot be cleared"
+  },
+  "statusFullScanRunning": {
+    "message": "Trwa pełne skanowanie...",
+    "description": "Status shown while Full Scan is running"
+  },
+  "statusFullScanFailed": {
+    "message": "Pełne skanowanie nie powiodło się.",
+    "description": "Status shown when Full Scan fails"
+  },
+  "statusStoppingFullScan": {
+    "message": "Zatrzymywanie pełnego skanowania...",
+    "description": "Status shown while stopping Full Scan"
+  },
+  "statusFullScanStopped": {
+    "message": "Pełne skanowanie zatrzymane.",
+    "description": "Status shown after Full Scan is stopped"
+  },
+  "statusStopFullScanError": {
+    "message": "Nie można zatrzymać pełnego skanowania.",
+    "description": "Status shown when Full Scan cannot be stopped"
+  },
+  "warningCachedIncompleteChatgpt": {
+    "message": "Skopiowano wiadomości z pamięci podręcznej. Niektóre wcześniejsze wiadomości mogą być brakować. Aby uzyskać pełniejszą kopię, przewiń cały czat raz albo uruchom pełne skanowanie.",
+    "description": "Warning shown when copied ChatGPT cached messages may be incomplete"
+  },
+  "warningCachedIncompleteManualScroll": {
+    "message": "Skopiowano wiadomości z pamięci podręcznej. Niektóre wcześniejsze wiadomości mogą być brakować. Aby uzyskać pełniejszą kopię, przewiń cały czat raz albo uruchom pełne skanowanie.",
+    "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
+  },
+  "platformUnknown": {
+    "message": "Nieznane",
+    "description": "Fallback label for unknown platform"
   }
 }

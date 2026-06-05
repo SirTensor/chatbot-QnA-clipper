@@ -7,7 +7,6 @@
     "message": "ดึงคำถามและคำตอบจากการสนทนากับแชทบอทและคัดลอกไปยังคลิปบอร์ดในรูปแบบที่กำหนด",
     "description": "Extension description"
   },
-
   "popupTitle": {
     "message": "แชทบอท คำถามและคำตอบ Clipper",
     "description": "Title shown in popup header"
@@ -16,7 +15,6 @@
     "message": "คัดลอกคำถามและคำตอบไปยังคลิปบอร์ด",
     "description": "Main action button text"
   },
-
   "headerLevelLabel": {
     "message": "ระดับหัวข้อ:",
     "description": "Label for header level selector"
@@ -41,7 +39,6 @@
     "message": "##### (H5)",
     "description": "Header level 5 option"
   },
-
   "labelStyleLabel": {
     "message": "รูปแบบป้ายกำกับ:",
     "description": "Label for Q&A label style selector"
@@ -150,7 +147,6 @@
     "message": "Tanong / Sagot",
     "description": "Filipino label style option"
   },
-
   "numberFormatLabel": {
     "message": "รูปแบบตัวเลข:",
     "description": "Label for number format selector"
@@ -195,7 +191,6 @@
     "message": " : 1 (ช่องว่าง, ทวิภาค, ช่องว่าง)",
     "description": "Number format with space, colon, space"
   },
-
   "imageFormatLabel": {
     "message": "รูปแบบ URL รูปภาพ:",
     "description": "Label for image format selector"
@@ -212,7 +207,6 @@
     "message": "https://... (URL ธรรมดา)",
     "description": "Plain URL image format option"
   },
-
   "imageLabelLabel": {
     "message": "ป้ายกำกับรูปภาพที่กำหนดเอง:",
     "description": "Label for custom image label input"
@@ -221,12 +215,10 @@
     "message": "URL รูปภาพ",
     "description": "Placeholder for custom image label input"
   },
-
   "includePlatformLabel": {
     "message": "รวมชื่อแพลตฟอร์ม",
     "description": "Label for include platform checkbox"
   },
-
   "excludeFileCitationsLabel": {
     "message": "ไม่รวมการอ้างอิงไฟล์ (ChatGPT)",
     "description": "Label for exclude file citations checkbox"
@@ -235,7 +227,6 @@
     "message": "ไม่รวมป้ายอ้างอิงไฟล์ที่ปรากฏเมื่อ ChatGPT อ้างอิงจากไฟล์ที่อัปโหลด",
     "description": "Tooltip for exclude file citations option"
   },
-
   "includePseudoQuotesLabel": {
     "message": "รวมเครื่องหมายคำพูด (ChatGPT)",
     "description": "Label for include quote marks checkbox"
@@ -244,7 +235,6 @@
     "message": "ดึงเครื่องหมายคำพูดจาก CSS ::before/::after pseudo-elements ในรายการ blockquote",
     "description": "Tooltip for include quote marks option"
   },
-
   "keyboardShortcutLabel": {
     "message": "แป้นพิมพ์ลัด:",
     "description": "Label for keyboard shortcut display"
@@ -261,12 +251,10 @@
     "message": "กำหนดค่าแป้นพิมพ์ลัดใน Chrome",
     "description": "Link text to configure shortcuts"
   },
-
   "commandTriggerExtraction": {
     "message": "คัดลอก Q&A ไปยังคลิปบอร์ด",
     "description": "Command description for trigger-extraction"
   },
-
   "manualCopyTitle": {
     "message": "การเข้าถึงคลิปบอร์ดล้มเหลว",
     "description": "Title for manual copy section"
@@ -283,7 +271,6 @@
     "message": "กลับไปที่การตั้งค่า",
     "description": "Back button text"
   },
-
   "statusExtracting": {
     "message": "กำลังดึง Q&A...",
     "description": "Status message while extracting"
@@ -310,7 +297,6 @@
     "message": "คัดลอกไปยังคลิปบอร์ดแล้ว!",
     "description": "Status message when copy succeeds"
   },
-
   "toastCopied": {
     "message": "คัดลอก Q&A ไปยังคลิปบอร์ดแล้ว!",
     "description": "Toast message when Q&A copied successfully"
@@ -339,7 +325,6 @@
     "message": "เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์ส่วนขยาย",
     "description": "Toast message for permission check error"
   },
-
   "errorNoActiveTab": {
     "message": "ไม่พบแท็บที่ใช้งานอยู่",
     "description": "Error message when no active tab"
@@ -375,5 +360,83 @@
   "errorClipboardManual": {
     "message": "ไม่สามารถคัดลอกไปยังคลิปบอร์ด ใช้ตัวเลือกคัดลอกด้วยตนเอง",
     "description": "Error message when clipboard fails in popup"
+  },
+  "capturePlatformLabel": {
+    "message": "แพลตฟอร์ม",
+    "description": "Label for detected platform in capture status panel"
+  },
+  "captureCapturedLabel": {
+    "message": "จับไว้แล้ว",
+    "description": "Label for captured message count in capture status panel"
+  },
+  "preserveCaptureLabel": {
+    "message": "เก็บไว้ระหว่างเลื่อน",
+    "description": "Label for passive capture toggle"
+  },
+  "clearCacheButton": {
+    "message": "ล้างเนื้อหาที่จับไว้",
+    "description": "Button text to clear temporary captured content"
+  },
+  "fullScanButton": {
+    "message": "สแกนทั้งหมดแล้วคัดลอก",
+    "description": "Button text to start Full Scan and copy"
+  },
+  "stopScanButton": {
+    "message": "หยุดสแกน",
+    "description": "Button text to stop Full Scan"
+  },
+  "capturePrivacyNote": {
+    "message": "ข้อความที่จับไว้จะถูกเก็บชั่วคราวสำหรับแท็บ/เซสชันนี้เท่านั้น ไม่ซิงค์หรืออัปโหลด",
+    "description": "Privacy note for temporary capture cache"
+  },
+  "captureMessageCount": {
+    "message": "จับข้อความแล้ว $COUNT$ รายการ",
+    "description": "Captured message count text",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "12"
+      }
+    }
+  },
+  "statusCapturedCleared": {
+    "message": "ล้างเนื้อหาที่จับไว้แล้ว",
+    "description": "Status shown after temporary captured content is cleared"
+  },
+  "statusClearCapturedError": {
+    "message": "ไม่สามารถล้างเนื้อหาที่จับไว้ได้",
+    "description": "Status shown when temporary captured content cannot be cleared"
+  },
+  "statusFullScanRunning": {
+    "message": "กำลังสแกนทั้งหมด...",
+    "description": "Status shown while Full Scan is running"
+  },
+  "statusFullScanFailed": {
+    "message": "สแกนทั้งหมดล้มเหลว",
+    "description": "Status shown when Full Scan fails"
+  },
+  "statusStoppingFullScan": {
+    "message": "กำลังหยุดการสแกนทั้งหมด...",
+    "description": "Status shown while stopping Full Scan"
+  },
+  "statusFullScanStopped": {
+    "message": "หยุดการสแกนทั้งหมดแล้ว",
+    "description": "Status shown after Full Scan is stopped"
+  },
+  "statusStopFullScanError": {
+    "message": "ไม่สามารถหยุดการสแกนทั้งหมดได้",
+    "description": "Status shown when Full Scan cannot be stopped"
+  },
+  "warningCachedIncompleteChatgpt": {
+    "message": "คัดลอกข้อความที่แคชไว้แล้ว ข้อความก่อนหน้าบางส่วนอาจหายไป หากต้องการสำเนาที่สมบูรณ์ขึ้น ให้เลื่อนดูทั้งแชทหนึ่งครั้ง หรือเรียกใช้การสแกนทั้งหมด",
+    "description": "Warning shown when copied ChatGPT cached messages may be incomplete"
+  },
+  "warningCachedIncompleteManualScroll": {
+    "message": "คัดลอกข้อความที่แคชไว้แล้ว ข้อความก่อนหน้าบางส่วนอาจหายไป หากต้องการสำเนาที่สมบูรณ์ขึ้น ให้เลื่อนดูทั้งแชทหนึ่งครั้ง หรือเรียกใช้การสแกนทั้งหมด",
+    "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
+  },
+  "platformUnknown": {
+    "message": "ไม่ทราบ",
+    "description": "Fallback label for unknown platform"
   }
 }

@@ -7,7 +7,6 @@
     "message": "Kinukuha ang mga tanong at sagot mula sa mga pag-uusap sa chatbot at kinokopya sa clipboard sa mga tiyak na format",
     "description": "Extension description"
   },
-
   "popupTitle": {
     "message": "Chatbot Q&A Clipper",
     "description": "Title shown in popup header"
@@ -16,7 +15,6 @@
     "message": "Kopyahin ang Q&A sa Clipboard",
     "description": "Main action button text"
   },
-
   "headerLevelLabel": {
     "message": "Antas ng Header:",
     "description": "Label for header level selector"
@@ -41,7 +39,6 @@
     "message": "##### (H5)",
     "description": "Header level 5 option"
   },
-
   "labelStyleLabel": {
     "message": "Estilo ng Label:",
     "description": "Label for Q&A label style selector"
@@ -150,7 +147,6 @@
     "message": "Tanong / Sagot",
     "description": "Filipino label style option"
   },
-
   "numberFormatLabel": {
     "message": "Format ng Numero:",
     "description": "Label for number format selector"
@@ -195,7 +191,6 @@
     "message": " : 1 (Espasyo, colon, espasyo)",
     "description": "Number format with space, colon, space"
   },
-
   "imageFormatLabel": {
     "message": "Format ng URL ng Imahe:",
     "description": "Label for image format selector"
@@ -212,7 +207,6 @@
     "message": "https://... (simpleng URL)",
     "description": "Plain URL image format option"
   },
-
   "imageLabelLabel": {
     "message": "Custom na Label ng Imahe:",
     "description": "Label for custom image label input"
@@ -221,12 +215,10 @@
     "message": "URL ng Imahe",
     "description": "Placeholder for custom image label input"
   },
-
   "includePlatformLabel": {
     "message": "Isama ang Pangalan ng Platform",
     "description": "Label for include platform checkbox"
   },
-
   "excludeFileCitationsLabel": {
     "message": "Ibukod ang mga File Citation (ChatGPT)",
     "description": "Label for exclude file citations checkbox"
@@ -235,7 +227,6 @@
     "message": "Inaalis ang mga badge ng file reference na lumalabas kapag nagko-quote ang ChatGPT mula sa mga na-upload na file",
     "description": "Tooltip for exclude file citations option"
   },
-
   "includePseudoQuotesLabel": {
     "message": "Isama ang mga Quote Mark (ChatGPT)",
     "description": "Label for include quote marks checkbox"
@@ -244,7 +235,6 @@
     "message": "Kinukuha ang mga quotation mark mula sa CSS ::before/::after pseudo-elements sa mga blockquote list item",
     "description": "Tooltip for include quote marks option"
   },
-
   "keyboardShortcutLabel": {
     "message": "Shortcut sa Keyboard:",
     "description": "Label for keyboard shortcut display"
@@ -261,12 +251,10 @@
     "message": "I-configure ang shortcut sa Chrome",
     "description": "Link text to configure shortcuts"
   },
-
   "commandTriggerExtraction": {
     "message": "Kopyahin ang Q&A sa Clipboard",
     "description": "Command description for trigger-extraction"
   },
-
   "manualCopyTitle": {
     "message": "Nabigo ang pag-access sa clipboard",
     "description": "Title for manual copy section"
@@ -283,7 +271,6 @@
     "message": "Bumalik sa Mga Setting",
     "description": "Back button text"
   },
-
   "statusExtracting": {
     "message": "Kinukuha ang Q&A...",
     "description": "Status message while extracting"
@@ -310,7 +297,6 @@
     "message": "Nakopya sa clipboard!",
     "description": "Status message when copy succeeds"
   },
-
   "toastCopied": {
     "message": "Nakopya ang Q&A sa clipboard!",
     "description": "Toast message when Q&A copied successfully"
@@ -339,7 +325,6 @@
     "message": "Error sa pag-check ng mga permission ng extension.",
     "description": "Toast message for permission check error"
   },
-
   "errorNoActiveTab": {
     "message": "Walang nakitang active na tab.",
     "description": "Error message when no active tab"
@@ -375,5 +360,83 @@
   "errorClipboardManual": {
     "message": "Hindi makopya sa clipboard. Ginagamit ang manual na opsyon sa pagkopya.",
     "description": "Error message when clipboard fails in popup"
+  },
+  "capturePlatformLabel": {
+    "message": "Platform",
+    "description": "Label for detected platform in capture status panel"
+  },
+  "captureCapturedLabel": {
+    "message": "Nakuha",
+    "description": "Label for captured message count in capture status panel"
+  },
+  "preserveCaptureLabel": {
+    "message": "Panatilihin habang nag-i-scroll",
+    "description": "Label for passive capture toggle"
+  },
+  "clearCacheButton": {
+    "message": "I-clear ang nakuhang nilalaman",
+    "description": "Button text to clear temporary captured content"
+  },
+  "fullScanButton": {
+    "message": "Full Scan at kopyahin",
+    "description": "Button text to start Full Scan and copy"
+  },
+  "stopScanButton": {
+    "message": "Ihinto ang scan",
+    "description": "Button text to stop Full Scan"
+  },
+  "capturePrivacyNote": {
+    "message": "Pansamantalang iniingatan ang mga nakuhang mensahe para sa tab/session na ito. Hindi sila sini-sync o ina-upload.",
+    "description": "Privacy note for temporary capture cache"
+  },
+  "captureMessageCount": {
+    "message": "$COUNT$ mensahe ang nakuha",
+    "description": "Captured message count text",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "12"
+      }
+    }
+  },
+  "statusCapturedCleared": {
+    "message": "Na-clear ang nakuhang nilalaman.",
+    "description": "Status shown after temporary captured content is cleared"
+  },
+  "statusClearCapturedError": {
+    "message": "Hindi ma-clear ang nakuhang nilalaman.",
+    "description": "Status shown when temporary captured content cannot be cleared"
+  },
+  "statusFullScanRunning": {
+    "message": "Tumatakbo ang Full Scan...",
+    "description": "Status shown while Full Scan is running"
+  },
+  "statusFullScanFailed": {
+    "message": "Nabigo ang Full Scan.",
+    "description": "Status shown when Full Scan fails"
+  },
+  "statusStoppingFullScan": {
+    "message": "Ihihinto ang Full Scan...",
+    "description": "Status shown while stopping Full Scan"
+  },
+  "statusFullScanStopped": {
+    "message": "Nahinto ang Full Scan.",
+    "description": "Status shown after Full Scan is stopped"
+  },
+  "statusStopFullScanError": {
+    "message": "Hindi mahinto ang Full Scan.",
+    "description": "Status shown when Full Scan cannot be stopped"
+  },
+  "warningCachedIncompleteChatgpt": {
+    "message": "Nakopya ang mga naka-cache na mensahe. Maaaring may nawawalang ilang naunang mensahe. Para sa mas kumpletong kopya, i-scroll ang buong chat nang isang beses o patakbuhin ang Full Scan.",
+    "description": "Warning shown when copied ChatGPT cached messages may be incomplete"
+  },
+  "warningCachedIncompleteManualScroll": {
+    "message": "Nakopya ang mga naka-cache na mensahe. Maaaring may nawawalang ilang naunang mensahe. Para sa mas kumpletong kopya, i-scroll ang buong chat nang isang beses o patakbuhin ang Full Scan.",
+    "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
+  },
+  "platformUnknown": {
+    "message": "Hindi kilala",
+    "description": "Fallback label for unknown platform"
   }
 }

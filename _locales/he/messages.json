@@ -7,7 +7,6 @@
     "message": "מחלץ שאלות ותשובות משיחות עם צ'אטבוטים ומעתיק ללוח בפורמטים מסוימים",
     "description": "Extension description"
   },
-
   "popupTitle": {
     "message": "צ'אטבוט שאלות ותשובות Clipper",
     "description": "Title shown in popup header"
@@ -16,7 +15,6 @@
     "message": "העתק שאלות ותשובות ללוח",
     "description": "Main action button text"
   },
-
   "headerLevelLabel": {
     "message": "רמת כותרת:",
     "description": "Label for header level selector"
@@ -41,7 +39,6 @@
     "message": "##### (H5)",
     "description": "Header level 5 option"
   },
-
   "labelStyleLabel": {
     "message": "סגנון תווית:",
     "description": "Label for Q&A label style selector"
@@ -150,7 +147,6 @@
     "message": "Tanong / Sagot",
     "description": "Filipino label style option"
   },
-
   "numberFormatLabel": {
     "message": "פורמט מספור:",
     "description": "Label for number format selector"
@@ -195,7 +191,6 @@
     "message": " : 1 (רווח, נקודתיים, רווח)",
     "description": "Number format with space, colon, space"
   },
-
   "imageFormatLabel": {
     "message": "פורמט URL תמונה:",
     "description": "Label for image format selector"
@@ -212,7 +207,6 @@
     "message": "https://... (URL פשוט)",
     "description": "Plain URL image format option"
   },
-
   "imageLabelLabel": {
     "message": "תווית תמונה מותאמת אישית:",
     "description": "Label for custom image label input"
@@ -221,12 +215,10 @@
     "message": "URL תמונה",
     "description": "Placeholder for custom image label input"
   },
-
   "includePlatformLabel": {
     "message": "כלול שם פלטפורמה",
     "description": "Label for include platform checkbox"
   },
-
   "excludeFileCitationsLabel": {
     "message": "הסר ציטוטי קבצים (ChatGPT)",
     "description": "Label for exclude file citations checkbox"
@@ -235,7 +227,6 @@
     "message": "מסיר תגי הפניה לקבצים שמופיעים כאשר ChatGPT מצטט מקבצים שהועלו",
     "description": "Tooltip for exclude file citations option"
   },
-
   "includePseudoQuotesLabel": {
     "message": "כלול סימני ציטוט (ChatGPT)",
     "description": "Label for include quote marks checkbox"
@@ -244,7 +235,6 @@
     "message": "מחלץ סימני ציטוט מאלמנטים מדומים CSS ::before/::after בפריטי רשימת blockquote",
     "description": "Tooltip for include quote marks option"
   },
-
   "keyboardShortcutLabel": {
     "message": "קיצור מקלדת:",
     "description": "Label for keyboard shortcut display"
@@ -261,12 +251,10 @@
     "message": "הגדר קיצור ב-Chrome",
     "description": "Link text to configure shortcuts"
   },
-
   "commandTriggerExtraction": {
     "message": "העתק שאלות ותשובות ללוח",
     "description": "Command description for trigger-extraction"
   },
-
   "manualCopyTitle": {
     "message": "הגישה ללוח נכשלה",
     "description": "Title for manual copy section"
@@ -283,7 +271,6 @@
     "message": "חזרה להגדרות",
     "description": "Back button text"
   },
-
   "statusExtracting": {
     "message": "מחלץ שאלות ותשובות...",
     "description": "Status message while extracting"
@@ -310,7 +297,6 @@
     "message": "הועתק ללוח!",
     "description": "Status message when copy succeeds"
   },
-
   "toastCopied": {
     "message": "שאלות ותשובות הועתקו ללוח!",
     "description": "Toast message when Q&A copied successfully"
@@ -339,7 +325,6 @@
     "message": "שגיאה בבדיקת הרשאות התוסף.",
     "description": "Toast message for permission check error"
   },
-
   "errorNoActiveTab": {
     "message": "לא נמצאה כרטיסייה פעילה.",
     "description": "Error message when no active tab"
@@ -375,5 +360,83 @@
   "errorClipboardManual": {
     "message": "לא ניתן להעתיק ללוח. משתמש באפשרות העתקה ידנית.",
     "description": "Error message when clipboard fails in popup"
+  },
+  "capturePlatformLabel": {
+    "message": "פלטפורמה",
+    "description": "Label for detected platform in capture status panel"
+  },
+  "captureCapturedLabel": {
+    "message": "נלכד",
+    "description": "Label for captured message count in capture status panel"
+  },
+  "preserveCaptureLabel": {
+    "message": "שמור בזמן גלילה",
+    "description": "Label for passive capture toggle"
+  },
+  "clearCacheButton": {
+    "message": "נקה תוכן שנלכד",
+    "description": "Button text to clear temporary captured content"
+  },
+  "fullScanButton": {
+    "message": "סריקה מלאה והעתקה",
+    "description": "Button text to start Full Scan and copy"
+  },
+  "stopScanButton": {
+    "message": "עצור סריקה",
+    "description": "Button text to stop Full Scan"
+  },
+  "capturePrivacyNote": {
+    "message": "הודעות שנלכדו נשמרות זמנית עבור כרטיסייה/הפעלה זו. הן לא מסונכרנות ולא מועלות.",
+    "description": "Privacy note for temporary capture cache"
+  },
+  "captureMessageCount": {
+    "message": "$COUNT$ הודעות נלכדו",
+    "description": "Captured message count text",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "12"
+      }
+    }
+  },
+  "statusCapturedCleared": {
+    "message": "התוכן שנלכד נוקה.",
+    "description": "Status shown after temporary captured content is cleared"
+  },
+  "statusClearCapturedError": {
+    "message": "לא ניתן לנקות את התוכן שנלכד.",
+    "description": "Status shown when temporary captured content cannot be cleared"
+  },
+  "statusFullScanRunning": {
+    "message": "סריקה מלאה פועלת...",
+    "description": "Status shown while Full Scan is running"
+  },
+  "statusFullScanFailed": {
+    "message": "הסריקה המלאה נכשלה.",
+    "description": "Status shown when Full Scan fails"
+  },
+  "statusStoppingFullScan": {
+    "message": "עוצר סריקה מלאה...",
+    "description": "Status shown while stopping Full Scan"
+  },
+  "statusFullScanStopped": {
+    "message": "הסריקה המלאה נעצרה.",
+    "description": "Status shown after Full Scan is stopped"
+  },
+  "statusStopFullScanError": {
+    "message": "לא ניתן לעצור את הסריקה המלאה.",
+    "description": "Status shown when Full Scan cannot be stopped"
+  },
+  "warningCachedIncompleteChatgpt": {
+    "message": "הודעות מהמטמון הועתקו. ייתכן שחלק מההודעות הקודמות חסרות. להעתקה מלאה יותר, גלול פעם אחת בכל הצ׳אט או הפעל סריקה מלאה.",
+    "description": "Warning shown when copied ChatGPT cached messages may be incomplete"
+  },
+  "warningCachedIncompleteManualScroll": {
+    "message": "הודעות מהמטמון הועתקו. ייתכן שחלק מההודעות הקודמות חסרות. להעתקה מלאה יותר, גלול פעם אחת בכל הצ׳אט או הפעל סריקה מלאה.",
+    "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
+  },
+  "platformUnknown": {
+    "message": "לא ידוע",
+    "description": "Fallback label for unknown platform"
   }
 }

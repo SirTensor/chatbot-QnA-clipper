@@ -7,7 +7,6 @@
     "message": "从聊天机器人对话中提取问答，并按特定格式复制到剪贴板",
     "description": "Extension description"
   },
-
   "popupTitle": {
     "message": "聊天机器人问答提取",
     "description": "Title shown in popup header"
@@ -16,7 +15,6 @@
     "message": "将问答复制到剪贴板",
     "description": "Main action button text"
   },
-
   "headerLevelLabel": {
     "message": "标题级别:",
     "description": "Label for header level selector"
@@ -41,7 +39,6 @@
     "message": "##### (H5)",
     "description": "Header level 5 option"
   },
-
   "labelStyleLabel": {
     "message": "标签样式:",
     "description": "Label for Q&A label style selector"
@@ -150,7 +147,6 @@
     "message": "Tanong / Sagot",
     "description": "Filipino label style option"
   },
-
   "numberFormatLabel": {
     "message": "编号格式:",
     "description": "Label for number format selector"
@@ -195,7 +191,6 @@
     "message": " : 1 (空格, 冒号, 空格)",
     "description": "Number format with space, colon, space"
   },
-
   "imageFormatLabel": {
     "message": "图片链接 格式:",
     "description": "Label for image format selector"
@@ -212,7 +207,6 @@
     "message": "https://... (纯链接)",
     "description": "Plain URL image format option"
   },
-
   "imageLabelLabel": {
     "message": "自定义图片标签:",
     "description": "Label for custom image label input"
@@ -221,12 +215,10 @@
     "message": "图片链接",
     "description": "Placeholder for custom image label input"
   },
-
   "includePlatformLabel": {
     "message": "包含平台名称",
     "description": "Label for include platform checkbox"
   },
-
   "excludeFileCitationsLabel": {
     "message": "排除文件引用 (ChatGPT)",
     "description": "Label for exclude file citations checkbox"
@@ -235,7 +227,6 @@
     "message": "排除当 ChatGPT 引用上传文件时出现的文件参考徽章",
     "description": "Tooltip for exclude file citations option"
   },
-
   "includePseudoQuotesLabel": {
     "message": "包含引号 (ChatGPT)",
     "description": "Label for include quote marks checkbox"
@@ -244,7 +235,6 @@
     "message": "从 blockquote 列表项的 CSS ::before/::after 伪元素中提取引号",
     "description": "Tooltip for include quote marks option"
   },
-
   "keyboardShortcutLabel": {
     "message": "键盘快捷键:",
     "description": "Label for keyboard shortcut display"
@@ -261,12 +251,10 @@
     "message": "在 Chrome 中配置快捷键",
     "description": "Link text to configure shortcuts"
   },
-
   "commandTriggerExtraction": {
     "message": "将问答复制到剪贴板",
     "description": "Command description for trigger-extraction"
   },
-
   "manualCopyTitle": {
     "message": "剪贴板访问失败",
     "description": "Title for manual copy section"
@@ -283,7 +271,6 @@
     "message": "返回设置",
     "description": "Back button text"
   },
-
   "statusExtracting": {
     "message": "正在提取问答...",
     "description": "Status message while extracting"
@@ -310,7 +297,6 @@
     "message": "已复制到剪贴板!",
     "description": "Status message when copy succeeds"
   },
-
   "toastCopied": {
     "message": "问答已复制到剪贴板!",
     "description": "Toast message when Q&A copied successfully"
@@ -339,7 +325,6 @@
     "message": "检查扩展程序权限时出错。",
     "description": "Toast message for permission check error"
   },
-
   "errorNoActiveTab": {
     "message": "未找到活动标签页。",
     "description": "Error message when no active tab"
@@ -375,5 +360,83 @@
   "errorClipboardManual": {
     "message": "无法复制到剪贴板。使用手动复制选项。",
     "description": "Error message when clipboard fails in popup"
+  },
+  "capturePlatformLabel": {
+    "message": "平台",
+    "description": "Label for detected platform in capture status panel"
+  },
+  "captureCapturedLabel": {
+    "message": "已捕获",
+    "description": "Label for captured message count in capture status panel"
+  },
+  "preserveCaptureLabel": {
+    "message": "滚动时保留",
+    "description": "Label for passive capture toggle"
+  },
+  "clearCacheButton": {
+    "message": "清除已捕获内容",
+    "description": "Button text to clear temporary captured content"
+  },
+  "fullScanButton": {
+    "message": "完整扫描后复制",
+    "description": "Button text to start Full Scan and copy"
+  },
+  "stopScanButton": {
+    "message": "停止扫描",
+    "description": "Button text to stop Full Scan"
+  },
+  "capturePrivacyNote": {
+    "message": "捕获的消息仅临时保存在此标签页/会话中，不会同步或上传。",
+    "description": "Privacy note for temporary capture cache"
+  },
+  "captureMessageCount": {
+    "message": "已捕获 $COUNT$ 条消息",
+    "description": "Captured message count text",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "12"
+      }
+    }
+  },
+  "statusCapturedCleared": {
+    "message": "已清除捕获内容。",
+    "description": "Status shown after temporary captured content is cleared"
+  },
+  "statusClearCapturedError": {
+    "message": "无法清除捕获内容。",
+    "description": "Status shown when temporary captured content cannot be cleared"
+  },
+  "statusFullScanRunning": {
+    "message": "正在完整扫描...",
+    "description": "Status shown while Full Scan is running"
+  },
+  "statusFullScanFailed": {
+    "message": "完整扫描失败。",
+    "description": "Status shown when Full Scan fails"
+  },
+  "statusStoppingFullScan": {
+    "message": "正在停止完整扫描...",
+    "description": "Status shown while stopping Full Scan"
+  },
+  "statusFullScanStopped": {
+    "message": "完整扫描已停止。",
+    "description": "Status shown after Full Scan is stopped"
+  },
+  "statusStopFullScanError": {
+    "message": "无法停止完整扫描。",
+    "description": "Status shown when Full Scan cannot be stopped"
+  },
+  "warningCachedIncompleteChatgpt": {
+    "message": "已复制缓存消息。部分较早的消息可能缺失。若要获得更完整的副本，请完整滚动一次聊天，或运行完整扫描。",
+    "description": "Warning shown when copied ChatGPT cached messages may be incomplete"
+  },
+  "warningCachedIncompleteManualScroll": {
+    "message": "已复制缓存消息。部分较早的消息可能缺失。若要获得更完整的副本，请完整滚动一次聊天，或运行完整扫描。",
+    "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
+  },
+  "platformUnknown": {
+    "message": "未知",
+    "description": "Fallback label for unknown platform"
   }
 }

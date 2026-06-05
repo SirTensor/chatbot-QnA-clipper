@@ -7,7 +7,6 @@
     "message": "Huchota Maswali na Majibu kutoka kwa mazungumzo ya chatbot na kuyaiga kwenye ubao wa kunakili katika miundo maalum",
     "description": "Extension description"
   },
-
   "popupTitle": {
     "message": "Chatbot Maswali na Majibu Clipper",
     "description": "Title shown in popup header"
@@ -16,7 +15,6 @@
     "message": "Nakili Maswali na Majibu kwenye ubao wa kunakili",
     "description": "Main action button text"
   },
-
   "headerLevelLabel": {
     "message": "Kiwango cha kichwa:",
     "description": "Label for header level selector"
@@ -41,7 +39,6 @@
     "message": "##### (H5)",
     "description": "Header level 5 option"
   },
-
   "labelStyleLabel": {
     "message": "Mtindo wa lebo:",
     "description": "Label for Q&A label style selector"
@@ -150,7 +147,6 @@
     "message": "Tanong / Sagot",
     "description": "Filipino label style option"
   },
-
   "numberFormatLabel": {
     "message": "Muundo wa nambari:",
     "description": "Label for number format selector"
@@ -195,7 +191,6 @@
     "message": " : 1 (Nafasi, nukta mbili, nafasi)",
     "description": "Number format with space, colon, space"
   },
-
   "imageFormatLabel": {
     "message": "Muundo wa URL ya picha:",
     "description": "Label for image format selector"
@@ -212,7 +207,6 @@
     "message": "https://... (URL ya kawaida)",
     "description": "Plain URL image format option"
   },
-
   "imageLabelLabel": {
     "message": "Lebo maalum ya picha:",
     "description": "Label for custom image label input"
@@ -221,12 +215,10 @@
     "message": "URL ya picha",
     "description": "Placeholder for custom image label input"
   },
-
   "includePlatformLabel": {
     "message": "Jumuisha jina la jukwaa",
     "description": "Label for include platform checkbox"
   },
-
   "excludeFileCitationsLabel": {
     "message": "Ondoa marejeo ya faili (ChatGPT)",
     "description": "Label for exclude file citations checkbox"
@@ -235,7 +227,6 @@
     "message": "Huondoa beji za marejeo ya faili zinazoonekana wakati ChatGPT inanukuu faili zilizo pakizwa",
     "description": "Tooltip for exclude file citations option"
   },
-
   "includePseudoQuotesLabel": {
     "message": "Jumuisha alama za nukuu (ChatGPT)",
     "description": "Label for include quote marks checkbox"
@@ -244,7 +235,6 @@
     "message": "Hutoa alama za nukuu kutoka kwenye vipengee bubu vya CSS ::before/::after ndani ya vipengee vya orodha vya blockquote",
     "description": "Tooltip for include quote marks option"
   },
-
   "keyboardShortcutLabel": {
     "message": "Kifupisho cha kibodi:",
     "description": "Label for keyboard shortcut display"
@@ -261,12 +251,10 @@
     "message": "Sanidi kifupisho kwenye Chrome",
     "description": "Link text to configure shortcuts"
   },
-
   "commandTriggerExtraction": {
     "message": "Nakili Q&A kwenye ubao wa kunakili",
     "description": "Command description for trigger-extraction"
   },
-
   "manualCopyTitle": {
     "message": "Ufikiaji wa ubao wa kunakili umefeli",
     "description": "Title for manual copy section"
@@ -283,7 +271,6 @@
     "message": "Rudi kwa Mipangilio",
     "description": "Back button text"
   },
-
   "statusExtracting": {
     "message": "Inatoa Q&A...",
     "description": "Status message while extracting"
@@ -310,7 +297,6 @@
     "message": "Imenakiliwa kwenye ubao wa kunakili!",
     "description": "Status message when copy succeeds"
   },
-
   "toastCopied": {
     "message": "Q&A imenakiliwa kwenye ubao wa kunakili!",
     "description": "Toast message when Q&A copied successfully"
@@ -339,7 +325,6 @@
     "message": "Hitilafu kukagua ruhusa za kiendelezi.",
     "description": "Toast message for permission check error"
   },
-
   "errorNoActiveTab": {
     "message": "Hakuna kichupo kinachotumika kilichopatikana.",
     "description": "Error message when no active tab"
@@ -375,5 +360,83 @@
   "errorClipboardManual": {
     "message": "Imeshindwa kunakili kwenye ubao wa kunakili. Inatumia chaguo la kunakili kwa mkono.",
     "description": "Error message when clipboard fails in popup"
+  },
+  "capturePlatformLabel": {
+    "message": "Jukwaa",
+    "description": "Label for detected platform in capture status panel"
+  },
+  "captureCapturedLabel": {
+    "message": "Imenaswa",
+    "description": "Label for captured message count in capture status panel"
+  },
+  "preserveCaptureLabel": {
+    "message": "Hifadhi unaposcroll",
+    "description": "Label for passive capture toggle"
+  },
+  "clearCacheButton": {
+    "message": "Futa maudhui yaliyonaswa",
+    "description": "Button text to clear temporary captured content"
+  },
+  "fullScanButton": {
+    "message": "Skani kamili kisha nakili",
+    "description": "Button text to start Full Scan and copy"
+  },
+  "stopScanButton": {
+    "message": "Simamisha skani",
+    "description": "Button text to stop Full Scan"
+  },
+  "capturePrivacyNote": {
+    "message": "Ujumbe ulionaswa huhifadhiwa kwa muda kwa kichupo/kikao hiki. Hausawazishwi wala kupakiwa.",
+    "description": "Privacy note for temporary capture cache"
+  },
+  "captureMessageCount": {
+    "message": "Ujumbe $COUNT$ umenaswa",
+    "description": "Captured message count text",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "12"
+      }
+    }
+  },
+  "statusCapturedCleared": {
+    "message": "Maudhui yaliyonaswa yamefutwa.",
+    "description": "Status shown after temporary captured content is cleared"
+  },
+  "statusClearCapturedError": {
+    "message": "Haiwezi kufuta maudhui yaliyonaswa.",
+    "description": "Status shown when temporary captured content cannot be cleared"
+  },
+  "statusFullScanRunning": {
+    "message": "Skani kamili inaendelea...",
+    "description": "Status shown while Full Scan is running"
+  },
+  "statusFullScanFailed": {
+    "message": "Skani kamili imeshindwa.",
+    "description": "Status shown when Full Scan fails"
+  },
+  "statusStoppingFullScan": {
+    "message": "Inasimamisha skani kamili...",
+    "description": "Status shown while stopping Full Scan"
+  },
+  "statusFullScanStopped": {
+    "message": "Skani kamili imesimamishwa.",
+    "description": "Status shown after Full Scan is stopped"
+  },
+  "statusStopFullScanError": {
+    "message": "Haiwezi kusimamisha skani kamili.",
+    "description": "Status shown when Full Scan cannot be stopped"
+  },
+  "warningCachedIncompleteChatgpt": {
+    "message": "Ujumbe uliowekwa kwenye akiba umenakiliwa. Baadhi ya ujumbe wa awali unaweza kukosekana. Kwa nakala kamili zaidi, pitia gumzo lote mara moja au endesha Skani Kamili.",
+    "description": "Warning shown when copied ChatGPT cached messages may be incomplete"
+  },
+  "warningCachedIncompleteManualScroll": {
+    "message": "Ujumbe uliowekwa kwenye akiba umenakiliwa. Baadhi ya ujumbe wa awali unaweza kukosekana. Kwa nakala kamili zaidi, pitia gumzo lote mara moja au endesha Skani Kamili.",
+    "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
+  },
+  "platformUnknown": {
+    "message": "Haijulikani",
+    "description": "Fallback label for unknown platform"
   }
 }

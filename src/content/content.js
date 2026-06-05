@@ -43,6 +43,14 @@
     return window.QAClipper && window.QAClipper.messageNormalizer;
   }
 
+  function getMessage(messageName, substitutions) {
+    try {
+      return chrome.i18n.getMessage(messageName, substitutions) || messageName;
+    } catch (error) {
+      return messageName;
+    }
+  }
+
   function getCache() {
     if (!state.cache && window.QAClipper && typeof window.QAClipper.createCaptureCache === 'function') {
       state.cache = window.QAClipper.createCaptureCache();
@@ -701,11 +709,11 @@
   async function runChatGPTFullScan(settings = state.lastFormatSettings) {
     const platform = identifyPlatform();
     if (platform !== 'chatgpt') {
-      return { success: false, error: 'Full Scan is only available on ChatGPT.', status: getStatusSnapshot() };
+      return { success: false, error: getMessage('statusFullScanFailed'), status: getStatusSnapshot() };
     }
 
     if (state.scan.running) {
-      return { success: false, error: 'A Full Scan is already running.', status: getStatusSnapshot() };
+      return { success: false, error: getMessage('statusFullScanRunning'), status: getStatusSnapshot() };
     }
 
     state.scan.running = true;
@@ -764,7 +772,7 @@
       return { success: true, status: getStatusSnapshot() };
     }
 
-    return { success: false, error: 'No Full Scan is running.', status: getStatusSnapshot() };
+    return { success: false, error: getMessage('statusStopFullScanError'), status: getStatusSnapshot() };
   }
 
   function startRouteWatcher() {
@@ -876,7 +884,7 @@
         .then(sendResponse)
         .catch(error => {
           console.error('Chatbot Clipper: Full Scan failed:', error);
-          sendResponse({ success: false, error: error.message || 'Full Scan failed', status: getStatusSnapshot() });
+          sendResponse({ success: false, error: error.message || getMessage('statusFullScanFailed'), status: getStatusSnapshot() });
         });
       return true;
     }

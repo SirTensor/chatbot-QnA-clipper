@@ -7,7 +7,6 @@
     "message": "Mengekstrak tanya jawab dari percakapan chatbot dan menyalinnya ke papan klip dalam format tertentu",
     "description": "Extension description"
   },
-
   "popupTitle": {
     "message": "Chatbot Tanya Jawab Clipper",
     "description": "Title shown in popup header"
@@ -16,7 +15,6 @@
     "message": "Salin Tanya Jawab ke Papan Klip",
     "description": "Main action button text"
   },
-
   "headerLevelLabel": {
     "message": "Tingkat header:",
     "description": "Label for header level selector"
@@ -41,7 +39,6 @@
     "message": "##### (H5)",
     "description": "Header level 5 option"
   },
-
   "labelStyleLabel": {
     "message": "Gaya label:",
     "description": "Label for Q&A label style selector"
@@ -150,7 +147,6 @@
     "message": "Tanong / Sagot",
     "description": "Filipino label style option"
   },
-
   "numberFormatLabel": {
     "message": "Format penomoran:",
     "description": "Label for number format selector"
@@ -195,7 +191,6 @@
     "message": " : 1 (Spasi, titik dua, spasi)",
     "description": "Number format with space, colon, space"
   },
-
   "imageFormatLabel": {
     "message": "Format URL gambar:",
     "description": "Label for image format selector"
@@ -212,7 +207,6 @@
     "message": "https://... (URL polos)",
     "description": "Plain URL image format option"
   },
-
   "imageLabelLabel": {
     "message": "Label gambar khusus:",
     "description": "Label for custom image label input"
@@ -221,12 +215,10 @@
     "message": "URL Gambar",
     "description": "Placeholder for custom image label input"
   },
-
   "includePlatformLabel": {
     "message": "Sertakan nama platform",
     "description": "Label for include platform checkbox"
   },
-
   "excludeFileCitationsLabel": {
     "message": "Kecualikan kutipan file (ChatGPT)",
     "description": "Label for exclude file citations checkbox"
@@ -235,7 +227,6 @@
     "message": "Mengecualikan lencana referensi file yang muncul ketika ChatGPT mengutip dari file yang diunggah",
     "description": "Tooltip for exclude file citations option"
   },
-
   "includePseudoQuotesLabel": {
     "message": "Sertakan tanda kutip (ChatGPT)",
     "description": "Label for include quote marks checkbox"
@@ -244,7 +235,6 @@
     "message": "Mengekstrak tanda kutip dari pseudo-element CSS ::before/::after dalam item daftar blockquote",
     "description": "Tooltip for include quote marks option"
   },
-
   "keyboardShortcutLabel": {
     "message": "Pintasan keyboard:",
     "description": "Label for keyboard shortcut display"
@@ -261,12 +251,10 @@
     "message": "Atur pintasan di Chrome",
     "description": "Link text to configure shortcuts"
   },
-
   "commandTriggerExtraction": {
     "message": "Salin Tanya Jawab ke Papan Klip",
     "description": "Command description for trigger-extraction"
   },
-
   "manualCopyTitle": {
     "message": "Akses Papan Klip gagal",
     "description": "Title for manual copy section"
@@ -283,7 +271,6 @@
     "message": "Kembali ke Pengaturan",
     "description": "Back button text"
   },
-
   "statusExtracting": {
     "message": "Sedang mengekstrak tanya jawab...",
     "description": "Status message while extracting"
@@ -310,7 +297,6 @@
     "message": "Disalin ke papan klip!",
     "description": "Status message when copy succeeds"
   },
-
   "toastCopied": {
     "message": "Tanya jawab disalin ke papan klip!",
     "description": "Toast message when Q&A copied successfully"
@@ -339,7 +325,6 @@
     "message": "Kesalahan memeriksa izin ekstensi.",
     "description": "Toast message for permission check error"
   },
-
   "errorNoActiveTab": {
     "message": "Tidak ditemukan tab aktif.",
     "description": "Error message when no active tab"
@@ -375,5 +360,83 @@
   "errorClipboardManual": {
     "message": "Tidak dapat menyalin ke papan klip. Gunakan opsi salin manual.",
     "description": "Error message when papan klip fails in popup"
+  },
+  "capturePlatformLabel": {
+    "message": "Platform",
+    "description": "Label for detected platform in capture status panel"
+  },
+  "captureCapturedLabel": {
+    "message": "Tertangkap",
+    "description": "Label for captured message count in capture status panel"
+  },
+  "preserveCaptureLabel": {
+    "message": "Pertahankan saat menggulir",
+    "description": "Label for passive capture toggle"
+  },
+  "clearCacheButton": {
+    "message": "Hapus konten yang tertangkap",
+    "description": "Button text to clear temporary captured content"
+  },
+  "fullScanButton": {
+    "message": "Pindai penuh lalu salin",
+    "description": "Button text to start Full Scan and copy"
+  },
+  "stopScanButton": {
+    "message": "Hentikan pemindaian",
+    "description": "Button text to stop Full Scan"
+  },
+  "capturePrivacyNote": {
+    "message": "Pesan yang tertangkap disimpan sementara untuk tab/sesi ini. Pesan tidak disinkronkan atau diunggah.",
+    "description": "Privacy note for temporary capture cache"
+  },
+  "captureMessageCount": {
+    "message": "$COUNT$ pesan tertangkap",
+    "description": "Captured message count text",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "12"
+      }
+    }
+  },
+  "statusCapturedCleared": {
+    "message": "Konten yang tertangkap dihapus.",
+    "description": "Status shown after temporary captured content is cleared"
+  },
+  "statusClearCapturedError": {
+    "message": "Tidak dapat menghapus konten yang tertangkap.",
+    "description": "Status shown when temporary captured content cannot be cleared"
+  },
+  "statusFullScanRunning": {
+    "message": "Pemindaian penuh berjalan...",
+    "description": "Status shown while Full Scan is running"
+  },
+  "statusFullScanFailed": {
+    "message": "Pemindaian penuh gagal.",
+    "description": "Status shown when Full Scan fails"
+  },
+  "statusStoppingFullScan": {
+    "message": "Menghentikan pemindaian penuh...",
+    "description": "Status shown while stopping Full Scan"
+  },
+  "statusFullScanStopped": {
+    "message": "Pemindaian penuh dihentikan.",
+    "description": "Status shown after Full Scan is stopped"
+  },
+  "statusStopFullScanError": {
+    "message": "Tidak dapat menghentikan pemindaian penuh.",
+    "description": "Status shown when Full Scan cannot be stopped"
+  },
+  "warningCachedIncompleteChatgpt": {
+    "message": "Pesan cache disalin. Beberapa pesan sebelumnya mungkin hilang. Untuk salinan yang lebih lengkap, gulir seluruh chat sekali atau jalankan Pindai Penuh.",
+    "description": "Warning shown when copied ChatGPT cached messages may be incomplete"
+  },
+  "warningCachedIncompleteManualScroll": {
+    "message": "Pesan cache disalin. Beberapa pesan sebelumnya mungkin hilang. Untuk salinan yang lebih lengkap, gulir seluruh chat sekali atau jalankan Pindai Penuh.",
+    "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
+  },
+  "platformUnknown": {
+    "message": "Tidak diketahui",
+    "description": "Fallback label for unknown platform"
   }
 }

@@ -249,7 +249,7 @@ function getPlatformDisplayName(platform) {
     claude: 'Claude',
     grok: 'Grok'
   };
-  return names[platform] || 'Unknown';
+  return names[platform] || getMessage('platformUnknown');
 }
 
 function updateCaptureStatusUI(status = {}) {
@@ -270,7 +270,7 @@ function updateCaptureStatusUI(status = {}) {
   }
 
   if (platformName) platformName.textContent = getPlatformDisplayName(platform);
-  if (capturedCount) capturedCount.textContent = `${count} ${count === 1 ? 'message' : 'messages'}`;
+  if (capturedCount) capturedCount.textContent = getMessage('captureMessageCount', String(count));
   if (preserveToggle) preserveToggle.checked = status.passiveEnabled !== false;
 
   if (fullScanButton) {
@@ -375,12 +375,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       if (response && response.status) updateCaptureStatusUI(response.status);
-      updateStatus(response && response.success ? 'Captured content cleared.' : (response?.error || 'Unable to clear captured content.'));
+      updateStatus(response && response.success ? getMessage('statusCapturedCleared') : (response?.error || getMessage('statusClearCapturedError')));
     });
   });
 
   document.getElementById('fullScanButton').addEventListener('click', () => {
-    updateStatus('Full Scan running...');
+    updateStatus(getMessage('statusFullScanRunning'));
     updateCaptureStatusUI({ platform: 'chatgpt', scanRunning: true, passiveEnabled: document.getElementById('preserveToggle').checked });
 
     chrome.runtime.sendMessage({ action: 'start-full-scan' }, (response) => {
@@ -391,20 +391,20 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       if (response && response.status) updateCaptureStatusUI(response.status);
-      updateStatus(response && response.success ? (response.message || getMessage('statusCopied')) : (response?.error || 'Full Scan failed.'));
+      updateStatus(response && response.success ? (response.message || getMessage('statusCopied')) : (response?.error || getMessage('statusFullScanFailed')));
       refreshCaptureStatus();
     });
   });
 
   document.getElementById('stopScanButton').addEventListener('click', () => {
-    updateStatus('Stopping Full Scan...');
+    updateStatus(getMessage('statusStoppingFullScan'));
     chrome.runtime.sendMessage({ action: 'stop-full-scan' }, (response) => {
       if (chrome.runtime.lastError) {
         updateStatus(getMessage('statusError', chrome.runtime.lastError.message));
         return;
       }
       if (response && response.status) updateCaptureStatusUI(response.status);
-      updateStatus(response && response.success ? 'Full Scan stopped.' : (response?.error || 'Unable to stop Full Scan.'));
+      updateStatus(response && response.success ? getMessage('statusFullScanStopped') : (response?.error || getMessage('statusStopFullScanError')));
       refreshCaptureStatus();
     });
   });
@@ -479,7 +479,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.status) {
       updateCaptureStatusUI(request.status);
     }
-    updateStatus(request.message || (request.success ? getMessage('statusCopied') : 'Full Scan failed.'));
+    updateStatus(request.message || (request.success ? getMessage('statusCopied') : getMessage('statusFullScanFailed')));
     sendResponse({ received: true });
   }
   

@@ -7,7 +7,6 @@
     "message": "Chatbot konuşmalarından soru-cevapları çıkarır ve belirli formatlarda panoya kopyalar",
     "description": "Extension description"
   },
-
   "popupTitle": {
     "message": "Chatbot Soru-Cevap Çıkarıcı",
     "description": "Title shown in popup header"
@@ -16,7 +15,6 @@
     "message": "Soru-Cevapları Kopyala",
     "description": "Main action button text"
   },
-
   "headerLevelLabel": {
     "message": "Başlık Seviyesi:",
     "description": "Label for header level selector"
@@ -41,7 +39,6 @@
     "message": "##### (H5)",
     "description": "Header level 5 option"
   },
-
   "labelStyleLabel": {
     "message": "Etiket Stili:",
     "description": "Label for Q&A label style selector"
@@ -150,7 +147,6 @@
     "message": "Tanong / Sagot",
     "description": "Filipino label style option"
   },
-
   "numberFormatLabel": {
     "message": "Numara Formatı:",
     "description": "Label for number format selector"
@@ -195,7 +191,6 @@
     "message": " : 1 (Boşluk, iki nokta, boşluk)",
     "description": "Number format with space, colon, space"
   },
-
   "imageFormatLabel": {
     "message": "Görsel URL Formatı:",
     "description": "Label for image format selector"
@@ -212,7 +207,6 @@
     "message": "https://... (düz URL)",
     "description": "Plain URL image format option"
   },
-
   "imageLabelLabel": {
     "message": "Özel Görsel Etiketi:",
     "description": "Label for custom image label input"
@@ -221,12 +215,10 @@
     "message": "Görsel URL",
     "description": "Placeholder for custom image label input"
   },
-
   "includePlatformLabel": {
     "message": "Platform Adını Dahil Et",
     "description": "Label for include platform checkbox"
   },
-
   "excludeFileCitationsLabel": {
     "message": "Dosya Alıntılarını Hariç Tut (ChatGPT)",
     "description": "Label for exclude file citations checkbox"
@@ -235,7 +227,6 @@
     "message": "ChatGPT yüklenen dosyalardan alıntı yaptığında görünen dosya referans rozetlerini hariç tutar",
     "description": "Tooltip for exclude file citations option"
   },
-
   "includePseudoQuotesLabel": {
     "message": "Tırnak İşaretlerini Dahil Et (ChatGPT)",
     "description": "Label for include quote marks checkbox"
@@ -244,7 +235,6 @@
     "message": "Blockquote liste öğelerindeki CSS ::before/::after sözde öğelerinden tırnak işaretlerini çıkarır",
     "description": "Tooltip for include quote marks option"
   },
-
   "keyboardShortcutLabel": {
     "message": "Klavye Kısayolu:",
     "description": "Label for keyboard shortcut display"
@@ -261,12 +251,10 @@
     "message": "Chrome'da kısayolu yapılandır",
     "description": "Link text to configure shortcuts"
   },
-
   "commandTriggerExtraction": {
     "message": "Soru-Cevabı Panoya Kopyala",
     "description": "Command description for trigger-extraction"
   },
-
   "manualCopyTitle": {
     "message": "Pano erişimi başarısız",
     "description": "Title for manual copy section"
@@ -283,7 +271,6 @@
     "message": "Ayarlara Dön",
     "description": "Back button text"
   },
-
   "statusExtracting": {
     "message": "Soru-Cevap çıkarılıyor...",
     "description": "Status message while extracting"
@@ -310,7 +297,6 @@
     "message": "Panoya kopyalandı!",
     "description": "Status message when copy succeeds"
   },
-
   "toastCopied": {
     "message": "Soru-Cevap panoya kopyalandı!",
     "description": "Toast message when Q&A copied successfully"
@@ -339,7 +325,6 @@
     "message": "Uzantı izinleri kontrol edilirken hata.",
     "description": "Toast message for permission check error"
   },
-
   "errorNoActiveTab": {
     "message": "Etkin sekme bulunamadı.",
     "description": "Error message when no active tab"
@@ -375,5 +360,83 @@
   "errorClipboardManual": {
     "message": "Panoya kopyalanamadı. Manuel kopyalama seçeneği kullanılıyor.",
     "description": "Error message when clipboard fails in popup"
+  },
+  "capturePlatformLabel": {
+    "message": "Platform",
+    "description": "Label for detected platform in capture status panel"
+  },
+  "captureCapturedLabel": {
+    "message": "Yakalandı",
+    "description": "Label for captured message count in capture status panel"
+  },
+  "preserveCaptureLabel": {
+    "message": "Kaydırırken koru",
+    "description": "Label for passive capture toggle"
+  },
+  "clearCacheButton": {
+    "message": "Yakalanan içeriği temizle",
+    "description": "Button text to clear temporary captured content"
+  },
+  "fullScanButton": {
+    "message": "Tam tarama ve kopyalama",
+    "description": "Button text to start Full Scan and copy"
+  },
+  "stopScanButton": {
+    "message": "Taramayı durdur",
+    "description": "Button text to stop Full Scan"
+  },
+  "capturePrivacyNote": {
+    "message": "Yakalanan mesajlar bu sekme/oturum için geçici olarak tutulur. Eşitlenmez veya yüklenmez.",
+    "description": "Privacy note for temporary capture cache"
+  },
+  "captureMessageCount": {
+    "message": "$COUNT$ mesaj yakalandı",
+    "description": "Captured message count text",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "12"
+      }
+    }
+  },
+  "statusCapturedCleared": {
+    "message": "Yakalanan içerik temizlendi.",
+    "description": "Status shown after temporary captured content is cleared"
+  },
+  "statusClearCapturedError": {
+    "message": "Yakalanan içerik temizlenemedi.",
+    "description": "Status shown when temporary captured content cannot be cleared"
+  },
+  "statusFullScanRunning": {
+    "message": "Tam tarama çalışıyor...",
+    "description": "Status shown while Full Scan is running"
+  },
+  "statusFullScanFailed": {
+    "message": "Tam tarama başarısız oldu.",
+    "description": "Status shown when Full Scan fails"
+  },
+  "statusStoppingFullScan": {
+    "message": "Tam tarama durduruluyor...",
+    "description": "Status shown while stopping Full Scan"
+  },
+  "statusFullScanStopped": {
+    "message": "Tam tarama durduruldu.",
+    "description": "Status shown after Full Scan is stopped"
+  },
+  "statusStopFullScanError": {
+    "message": "Tam tarama durdurulamıyor.",
+    "description": "Status shown when Full Scan cannot be stopped"
+  },
+  "warningCachedIncompleteChatgpt": {
+    "message": "Önbelleğe alınan mesajlar kopyalandı. Bazı önceki mesajlar eksik olabilir. Daha eksiksiz bir kopya için tüm sohbeti bir kez kaydırın veya Tam Tarama çalıştırın.",
+    "description": "Warning shown when copied ChatGPT cached messages may be incomplete"
+  },
+  "warningCachedIncompleteManualScroll": {
+    "message": "Önbelleğe alınan mesajlar kopyalandı. Bazı önceki mesajlar eksik olabilir. Daha eksiksiz bir kopya için tüm sohbeti bir kez kaydırın veya Tam Tarama çalıştırın.",
+    "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
+  },
+  "platformUnknown": {
+    "message": "Bilinmiyor",
+    "description": "Fallback label for unknown platform"
   }
 }

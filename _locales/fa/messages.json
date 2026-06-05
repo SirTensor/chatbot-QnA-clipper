@@ -7,7 +7,6 @@
     "message": "پرسش و پاسخ را از مکالمات چت‌بات استخراج کرده و در قالب‌های مشخص به کلیپ‌بورد کپی می‌کند",
     "description": "Extension description"
   },
-
   "popupTitle": {
     "message": "چت‌بات پرسش و پاسخ کلیپر",
     "description": "Title shown in popup header"
@@ -16,7 +15,6 @@
     "message": "کپی پرسش و پاسخ به کلیپ‌بورد",
     "description": "Main action button text"
   },
-
   "headerLevelLabel": {
     "message": "سطح عنوان:",
     "description": "Label for header level selector"
@@ -41,7 +39,6 @@
     "message": "##### (H5)",
     "description": "Header level 5 option"
   },
-
   "labelStyleLabel": {
     "message": "سبک برچسب:",
     "description": "Label for Q&A label style selector"
@@ -150,7 +147,6 @@
     "message": "Tanong / Sagot",
     "description": "Filipino label style option"
   },
-
   "numberFormatLabel": {
     "message": "قالب شماره‌گذاری:",
     "description": "Label for number format selector"
@@ -195,7 +191,6 @@
     "message": " : 1 (فاصله، دو نقطه، فاصله)",
     "description": "Number format with space, colon, space"
   },
-
   "imageFormatLabel": {
     "message": "قالب URL تصویر:",
     "description": "Label for image format selector"
@@ -212,7 +207,6 @@
     "message": "https://... (URL ساده)",
     "description": "Plain URL image format option"
   },
-
   "imageLabelLabel": {
     "message": "برچسب سفارشی تصویر:",
     "description": "Label for custom image label input"
@@ -221,12 +215,10 @@
     "message": "URL تصویر",
     "description": "Placeholder for custom image label input"
   },
-
   "includePlatformLabel": {
     "message": "شامل نام پلتفرم",
     "description": "Label for include platform checkbox"
   },
-
   "excludeFileCitationsLabel": {
     "message": "حذف ارجاعات فایل (ChatGPT)",
     "description": "Label for exclude file citations checkbox"
@@ -235,7 +227,6 @@
     "message": "نشان‌های ارجاع فایل که هنگام استناد ChatGPT به فایل‌های آپلود شده ظاهر می‌شوند را حذف می‌کند",
     "description": "Tooltip for exclude file citations option"
   },
-
   "includePseudoQuotesLabel": {
     "message": "شامل علامت نقل قول (ChatGPT)",
     "description": "Label for include quote marks checkbox"
@@ -244,7 +235,6 @@
     "message": "علامت‌های نقل قول را از شبه‌عناصر CSS ::before/::after در آیتم‌های لیست blockquote استخراج می‌کند",
     "description": "Tooltip for include quote marks option"
   },
-
   "keyboardShortcutLabel": {
     "message": "میانبر صفحه کلید:",
     "description": "Label for keyboard shortcut display"
@@ -261,12 +251,10 @@
     "message": "پیکربندی میانبر در Chrome",
     "description": "Link text to configure shortcuts"
   },
-
   "commandTriggerExtraction": {
     "message": "کپی پرسش و پاسخ به کلیپ‌بورد",
     "description": "Command description for trigger-extraction"
   },
-
   "manualCopyTitle": {
     "message": "دسترسی به کلیپ‌بورد ناموفق بود",
     "description": "Title for manual copy section"
@@ -283,7 +271,6 @@
     "message": "بازگشت به تنظیمات",
     "description": "Back button text"
   },
-
   "statusExtracting": {
     "message": "در حال استخراج پرسش و پاسخ...",
     "description": "Status message while extracting"
@@ -310,7 +297,6 @@
     "message": "به کلیپ‌بورد کپی شد!",
     "description": "Status message when copy succeeds"
   },
-
   "toastCopied": {
     "message": "پرسش و پاسخ به کلیپ‌بورد کپی شد!",
     "description": "Toast message when Q&A copied successfully"
@@ -339,7 +325,6 @@
     "message": "خطا در بررسی مجوزهای افزونه.",
     "description": "Toast message for permission check error"
   },
-
   "errorNoActiveTab": {
     "message": "برگه فعالی یافت نشد.",
     "description": "Error message when no active tab"
@@ -375,5 +360,83 @@
   "errorClipboardManual": {
     "message": "کپی به کلیپ‌بورد ممکن نبود. از گزینه کپی دستی استفاده کنید.",
     "description": "Error message when clipboard fails in popup"
+  },
+  "capturePlatformLabel": {
+    "message": "پلتفرم",
+    "description": "Label for detected platform in capture status panel"
+  },
+  "captureCapturedLabel": {
+    "message": "گرفته‌شده",
+    "description": "Label for captured message count in capture status panel"
+  },
+  "preserveCaptureLabel": {
+    "message": "نگه‌داری هنگام اسکرول",
+    "description": "Label for passive capture toggle"
+  },
+  "clearCacheButton": {
+    "message": "پاک کردن محتوای گرفته‌شده",
+    "description": "Button text to clear temporary captured content"
+  },
+  "fullScanButton": {
+    "message": "اسکن کامل و سپس کپی",
+    "description": "Button text to start Full Scan and copy"
+  },
+  "stopScanButton": {
+    "message": "توقف اسکن",
+    "description": "Button text to stop Full Scan"
+  },
+  "capturePrivacyNote": {
+    "message": "پیام‌های گرفته‌شده به‌صورت موقت برای این برگه/نشست نگه‌داری می‌شوند. همگام‌سازی یا بارگذاری نمی‌شوند.",
+    "description": "Privacy note for temporary capture cache"
+  },
+  "captureMessageCount": {
+    "message": "$COUNT$ پیام گرفته شد",
+    "description": "Captured message count text",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "12"
+      }
+    }
+  },
+  "statusCapturedCleared": {
+    "message": "محتوای گرفته‌شده پاک شد.",
+    "description": "Status shown after temporary captured content is cleared"
+  },
+  "statusClearCapturedError": {
+    "message": "امکان پاک کردن محتوای گرفته‌شده وجود ندارد.",
+    "description": "Status shown when temporary captured content cannot be cleared"
+  },
+  "statusFullScanRunning": {
+    "message": "اسکن کامل در حال اجراست...",
+    "description": "Status shown while Full Scan is running"
+  },
+  "statusFullScanFailed": {
+    "message": "اسکن کامل ناموفق بود.",
+    "description": "Status shown when Full Scan fails"
+  },
+  "statusStoppingFullScan": {
+    "message": "در حال توقف اسکن کامل...",
+    "description": "Status shown while stopping Full Scan"
+  },
+  "statusFullScanStopped": {
+    "message": "اسکن کامل متوقف شد.",
+    "description": "Status shown after Full Scan is stopped"
+  },
+  "statusStopFullScanError": {
+    "message": "امکان توقف اسکن کامل وجود ندارد.",
+    "description": "Status shown when Full Scan cannot be stopped"
+  },
+  "warningCachedIncompleteChatgpt": {
+    "message": "پیام‌های کش‌شده کپی شدند. ممکن است برخی پیام‌های قبلی جا افتاده باشند. برای نسخه کامل‌تر، کل گفتگو را یک بار اسکرول کنید یا اسکن کامل را اجرا کنید.",
+    "description": "Warning shown when copied ChatGPT cached messages may be incomplete"
+  },
+  "warningCachedIncompleteManualScroll": {
+    "message": "پیام‌های کش‌شده کپی شدند. ممکن است برخی پیام‌های قبلی جا افتاده باشند. برای نسخه کامل‌تر، کل گفتگو را یک بار اسکرول کنید یا اسکن کامل را اجرا کنید.",
+    "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
+  },
+  "platformUnknown": {
+    "message": "نامشخص",
+    "description": "Fallback label for unknown platform"
   }
 }

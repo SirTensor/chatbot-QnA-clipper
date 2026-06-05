@@ -7,7 +7,6 @@
     "message": "चैटबॉट बातचीत से प्रश्नोत्तर निकालकर तय प्रारूप में क्लिपबोर्ड पर कॉपी करता है",
     "description": "Extension description"
   },
-
   "popupTitle": {
     "message": "चैटबॉट प्रश्न-उत्तर क्लिपर",
     "description": "Title shown in popup header"
@@ -16,7 +15,6 @@
     "message": "प्रश्न-उत्तर क्लिपबोर्ड पर कॉपी करें",
     "description": "Main action button text"
   },
-
   "headerLevelLabel": {
     "message": "हेडर स्तर:",
     "description": "Label for header level selector"
@@ -41,7 +39,6 @@
     "message": "##### (H5)",
     "description": "Header level 5 option"
   },
-
   "labelStyleLabel": {
     "message": "लेबल स्टाइल:",
     "description": "Label for Q&A label style selector"
@@ -150,7 +147,6 @@
     "message": "Tanong / Sagot",
     "description": "Filipino label style option"
   },
-
   "numberFormatLabel": {
     "message": "संख्या प्रारूप:",
     "description": "Label for number format selector"
@@ -195,7 +191,6 @@
     "message": " : 1 (स्पेस, कोलन, स्पेस)",
     "description": "Number format with space, colon, space"
   },
-
   "imageFormatLabel": {
     "message": "छवि URL प्रारूप:",
     "description": "Label for image format selector"
@@ -212,7 +207,6 @@
     "message": "https://... (साधारण URL)",
     "description": "Plain URL image format option"
   },
-
   "imageLabelLabel": {
     "message": "कस्टम छवि लेबल:",
     "description": "Label for custom image label input"
@@ -221,12 +215,10 @@
     "message": "छवि URL",
     "description": "Placeholder for custom image label input"
   },
-
   "includePlatformLabel": {
     "message": "प्लेटफ़ॉर्म नाम शामिल करें",
     "description": "Label for include platform checkbox"
   },
-
   "excludeFileCitationsLabel": {
     "message": "फ़ाइल उद्धरण हटाएं (ChatGPT)",
     "description": "Label for exclude file citations checkbox"
@@ -235,7 +227,6 @@
     "message": "जब ChatGPT अपलोड की गई फाइलों का संदर्भ देता है तब दिखने वाले फ़ाइल संदर्भ बैज को हटाता है",
     "description": "Tooltip for exclude file citations option"
   },
-
   "includePseudoQuotesLabel": {
     "message": "उद्धरण चिह्न शामिल करें (ChatGPT)",
     "description": "Label for include quote marks checkbox"
@@ -244,7 +235,6 @@
     "message": "blockquote सूची आइटम के CSS ::before/::after छद्म-तत्वों से उद्धरण चिह्न निकालता है",
     "description": "Tooltip for include quote marks option"
   },
-
   "keyboardShortcutLabel": {
     "message": "कीबोर्ड शॉर्टकट:",
     "description": "Label for keyboard shortcut display"
@@ -261,12 +251,10 @@
     "message": "Chrome में शॉर्टकट सेट करें",
     "description": "Link text to configure shortcuts"
   },
-
   "commandTriggerExtraction": {
     "message": "Q&A को क्लिपबोर्ड पर कॉपी करें",
     "description": "Command description for trigger-extraction"
   },
-
   "manualCopyTitle": {
     "message": "क्लिपबोर्ड तक पहुँच विफल",
     "description": "Title for manual copy section"
@@ -283,7 +271,6 @@
     "message": "सेटिंग्स पर वापस जाएं",
     "description": "Back button text"
   },
-
   "statusExtracting": {
     "message": "Q&A निकाला जा रहा है...",
     "description": "Status message while extracting"
@@ -310,7 +297,6 @@
     "message": "क्लिपबोर्ड में कॉपी हो गया!",
     "description": "Status message when copy succeeds"
   },
-
   "toastCopied": {
     "message": "Q&A क्लिपबोर्ड में कॉपी हो गया!",
     "description": "Toast message when Q&A copied successfully"
@@ -339,7 +325,6 @@
     "message": "एक्सटेंशन अनुमतियों की जांच में त्रुटि.",
     "description": "Toast message for permission check error"
   },
-
   "errorNoActiveTab": {
     "message": "कोई सक्रिय टैब नहीं मिला.",
     "description": "Error message when no active tab"
@@ -375,5 +360,83 @@
   "errorClipboardManual": {
     "message": "क्लिपबोर्ड पर कॉपी नहीं हो सका. मैन्युअल कॉपी विकल्प का उपयोग कर रहे हैं.",
     "description": "Error message when clipboard fails in popup"
+  },
+  "capturePlatformLabel": {
+    "message": "प्लैटफ़ॉर्म",
+    "description": "Label for detected platform in capture status panel"
+  },
+  "captureCapturedLabel": {
+    "message": "कैप्चर किया गया",
+    "description": "Label for captured message count in capture status panel"
+  },
+  "preserveCaptureLabel": {
+    "message": "स्क्रॉल करते समय सुरक्षित रखें",
+    "description": "Label for passive capture toggle"
+  },
+  "clearCacheButton": {
+    "message": "कैप्चर की गई सामग्री साफ़ करें",
+    "description": "Button text to clear temporary captured content"
+  },
+  "fullScanButton": {
+    "message": "पूरा स्कैन करके कॉपी करें",
+    "description": "Button text to start Full Scan and copy"
+  },
+  "stopScanButton": {
+    "message": "स्कैन रोकें",
+    "description": "Button text to stop Full Scan"
+  },
+  "capturePrivacyNote": {
+    "message": "कैप्चर किए गए संदेश इस टैब/सत्र के लिए अस्थायी रूप से रखे जाते हैं। वे सिंक या अपलोड नहीं किए जाते।",
+    "description": "Privacy note for temporary capture cache"
+  },
+  "captureMessageCount": {
+    "message": "$COUNT$ संदेश कैप्चर किए गए",
+    "description": "Captured message count text",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "12"
+      }
+    }
+  },
+  "statusCapturedCleared": {
+    "message": "कैप्चर की गई सामग्री साफ़ कर दी गई।",
+    "description": "Status shown after temporary captured content is cleared"
+  },
+  "statusClearCapturedError": {
+    "message": "कैप्चर की गई सामग्री साफ़ नहीं की जा सकी।",
+    "description": "Status shown when temporary captured content cannot be cleared"
+  },
+  "statusFullScanRunning": {
+    "message": "पूरा स्कैन चल रहा है...",
+    "description": "Status shown while Full Scan is running"
+  },
+  "statusFullScanFailed": {
+    "message": "पूरा स्कैन विफल रहा।",
+    "description": "Status shown when Full Scan fails"
+  },
+  "statusStoppingFullScan": {
+    "message": "पूरा स्कैन रोका जा रहा है...",
+    "description": "Status shown while stopping Full Scan"
+  },
+  "statusFullScanStopped": {
+    "message": "पूरा स्कैन रोक दिया गया।",
+    "description": "Status shown after Full Scan is stopped"
+  },
+  "statusStopFullScanError": {
+    "message": "पूरा स्कैन रोका नहीं जा सका।",
+    "description": "Status shown when Full Scan cannot be stopped"
+  },
+  "warningCachedIncompleteChatgpt": {
+    "message": "कैश किए गए संदेश कॉपी किए गए। कुछ पुराने संदेश छूट सकते हैं। अधिक पूर्ण कॉपी के लिए पूरी चैट को एक बार स्क्रॉल करें या पूरा स्कैन चलाएँ।",
+    "description": "Warning shown when copied ChatGPT cached messages may be incomplete"
+  },
+  "warningCachedIncompleteManualScroll": {
+    "message": "कैश किए गए संदेश कॉपी किए गए। कुछ पुराने संदेश छूट सकते हैं। अधिक पूर्ण कॉपी के लिए पूरी चैट को एक बार स्क्रॉल करें या पूरा स्कैन चलाएँ।",
+    "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
+  },
+  "platformUnknown": {
+    "message": "अज्ञात",
+    "description": "Fallback label for unknown platform"
   }
 }

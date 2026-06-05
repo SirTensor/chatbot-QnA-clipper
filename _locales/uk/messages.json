@@ -7,7 +7,6 @@
     "message": "Витягує питання та відповіді з розмов з чат-ботами та копіює їх у буфер обміну у вказаному форматі",
     "description": "Extension description"
   },
-
   "popupTitle": {
     "message": "Кліпер питань та відповідей чат-бота",
     "description": "Title shown in popup header"
@@ -16,7 +15,6 @@
     "message": "Копіювати питання та відповіді в буфер обміну",
     "description": "Main action button text"
   },
-
   "headerLevelLabel": {
     "message": "Рівень заголовка:",
     "description": "Label for header level selector"
@@ -41,7 +39,6 @@
     "message": "##### (H5)",
     "description": "Header level 5 option"
   },
-
   "labelStyleLabel": {
     "message": "Стиль міток:",
     "description": "Label for Q&A label style selector"
@@ -150,7 +147,6 @@
     "message": "Tanong / Sagot",
     "description": "Filipino label style option"
   },
-
   "numberFormatLabel": {
     "message": "Формат нумерації:",
     "description": "Label for number format selector"
@@ -195,7 +191,6 @@
     "message": " : 1 (Пробіл, двокрапка, пробіл)",
     "description": "Number format with space, colon, space"
   },
-
   "imageFormatLabel": {
     "message": "Формат URL зображення:",
     "description": "Label for image format selector"
@@ -212,7 +207,6 @@
     "message": "https://... (простий URL)",
     "description": "Plain URL image format option"
   },
-
   "imageLabelLabel": {
     "message": "Власна мітка зображення:",
     "description": "Label for custom image label input"
@@ -221,12 +215,10 @@
     "message": "URL зображення",
     "description": "Placeholder for custom image label input"
   },
-
   "includePlatformLabel": {
     "message": "Включити назву платформи",
     "description": "Label for include platform checkbox"
   },
-
   "excludeFileCitationsLabel": {
     "message": "Виключити посилання на файли (ChatGPT)",
     "description": "Label for exclude file citations checkbox"
@@ -235,7 +227,6 @@
     "message": "Виключає значки посилань на файли, що з'являються, коли ChatGPT цитує завантажені файли",
     "description": "Tooltip for exclude file citations option"
   },
-
   "includePseudoQuotesLabel": {
     "message": "Включити лапки (ChatGPT)",
     "description": "Label for include quote marks checkbox"
@@ -244,7 +235,6 @@
     "message": "Витягує лапки з псевдоелементів CSS ::before/::after у елементах списку blockquote",
     "description": "Tooltip for include quote marks option"
   },
-
   "keyboardShortcutLabel": {
     "message": "Комбінація клавіш:",
     "description": "Label for keyboard shortcut display"
@@ -261,12 +251,10 @@
     "message": "Налаштувати комбінацію в Chrome",
     "description": "Link text to configure shortcuts"
   },
-
   "commandTriggerExtraction": {
     "message": "Копіювати Q&A в буфер обміну",
     "description": "Command description for trigger-extraction"
   },
-
   "manualCopyTitle": {
     "message": "Помилка доступу до буфера обміну",
     "description": "Title for manual copy section"
@@ -283,7 +271,6 @@
     "message": "Назад до налаштувань",
     "description": "Back button text"
   },
-
   "statusExtracting": {
     "message": "Витягування Q&A...",
     "description": "Status message while extracting"
@@ -310,7 +297,6 @@
     "message": "Скопійовано в буфер обміну!",
     "description": "Status message when copy succeeds"
   },
-
   "toastCopied": {
     "message": "Q&A скопійовано в буфер обміну!",
     "description": "Toast message when Q&A copied successfully"
@@ -339,7 +325,6 @@
     "message": "Помилка перевірки дозволів розширення.",
     "description": "Toast message for permission check error"
   },
-
   "errorNoActiveTab": {
     "message": "Активну вкладку не знайдено.",
     "description": "Error message when no active tab"
@@ -375,5 +360,83 @@
   "errorClipboardManual": {
     "message": "Не вдалося скопіювати в буфер обміну. Використовуйте ручне копіювання.",
     "description": "Error message when clipboard fails in popup"
+  },
+  "capturePlatformLabel": {
+    "message": "Платформа",
+    "description": "Label for detected platform in capture status panel"
+  },
+  "captureCapturedLabel": {
+    "message": "Захоплено",
+    "description": "Label for captured message count in capture status panel"
+  },
+  "preserveCaptureLabel": {
+    "message": "Зберігати під час прокручування",
+    "description": "Label for passive capture toggle"
+  },
+  "clearCacheButton": {
+    "message": "Очистити захоплений вміст",
+    "description": "Button text to clear temporary captured content"
+  },
+  "fullScanButton": {
+    "message": "Повне сканування й копіювання",
+    "description": "Button text to start Full Scan and copy"
+  },
+  "stopScanButton": {
+    "message": "Зупинити сканування",
+    "description": "Button text to stop Full Scan"
+  },
+  "capturePrivacyNote": {
+    "message": "Захоплені повідомлення тимчасово зберігаються для цієї вкладки/сесії. Вони не синхронізуються й не завантажуються.",
+    "description": "Privacy note for temporary capture cache"
+  },
+  "captureMessageCount": {
+    "message": "Захоплено повідомлень: $COUNT$",
+    "description": "Captured message count text",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "12"
+      }
+    }
+  },
+  "statusCapturedCleared": {
+    "message": "Захоплений вміст очищено.",
+    "description": "Status shown after temporary captured content is cleared"
+  },
+  "statusClearCapturedError": {
+    "message": "Не вдалося очистити захоплений вміст.",
+    "description": "Status shown when temporary captured content cannot be cleared"
+  },
+  "statusFullScanRunning": {
+    "message": "Виконується повне сканування...",
+    "description": "Status shown while Full Scan is running"
+  },
+  "statusFullScanFailed": {
+    "message": "Повне сканування не вдалося.",
+    "description": "Status shown when Full Scan fails"
+  },
+  "statusStoppingFullScan": {
+    "message": "Зупинення повного сканування...",
+    "description": "Status shown while stopping Full Scan"
+  },
+  "statusFullScanStopped": {
+    "message": "Повне сканування зупинено.",
+    "description": "Status shown after Full Scan is stopped"
+  },
+  "statusStopFullScanError": {
+    "message": "Не вдалося зупинити повне сканування.",
+    "description": "Status shown when Full Scan cannot be stopped"
+  },
+  "warningCachedIncompleteChatgpt": {
+    "message": "Скопійовано кешовані повідомлення. Деякі попередні повідомлення можуть бути відсутні. Щоб отримати повнішу копію, прокрутіть увесь чат один раз або запустіть повне сканування.",
+    "description": "Warning shown when copied ChatGPT cached messages may be incomplete"
+  },
+  "warningCachedIncompleteManualScroll": {
+    "message": "Скопійовано кешовані повідомлення. Деякі попередні повідомлення можуть бути відсутні. Щоб отримати повнішу копію, прокрутіть увесь чат один раз або запустіть повне сканування.",
+    "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
+  },
+  "platformUnknown": {
+    "message": "Невідомо",
+    "description": "Fallback label for unknown platform"
   }
 }

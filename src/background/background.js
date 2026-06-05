@@ -11,12 +11,6 @@ importScripts('../shared/formatter.js');
 // Track the last shortcut trigger time to prevent duplicates
 let lastTriggerTime = 0;
 
-const INCOMPLETE_CACHE_WARNING =
-  'Copied cached messages. This chat may be incomplete if earlier messages were never rendered in this tab. On ChatGPT, use Full Scan for the most complete result.';
-
-const NON_CHATGPT_INCOMPLETE_WARNING =
-  'Copied cached messages. This chat may be incomplete if earlier messages were never rendered in this tab. Scroll through the conversation to capture more messages.';
-
 // --- i18n Helper Function ---
 
 /**
@@ -339,7 +333,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const { response } = await sendContentRequestToActiveTab({ action: 'clearCaptureCacheV3' });
         sendResponse(response || { success: true });
       } catch (error) {
-        sendResponse({ success: false, error: error.message || 'Unable to clear captured content' });
+        sendResponse({ success: false, error: error.message || getMessage('statusClearCapturedError') });
       }
     })();
     return true;
@@ -356,8 +350,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
         if (!response || response.success === false) {
           const message = response && response.stopped
-            ? 'Full Scan stopped.'
-            : (response && response.error) || 'Full Scan failed.';
+            ? getMessage('statusFullScanStopped')
+            : (response && response.error) || getMessage('statusFullScanFailed');
           sendMessageToPopup({
             action: 'full-scan-complete',
             success: false,
@@ -377,7 +371,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         });
         sendResponse(copyResult);
       } catch (error) {
-        const message = error.message || 'Full Scan failed.';
+        const message = error.message || getMessage('statusFullScanFailed');
         sendMessageToPopup({
           action: 'full-scan-complete',
           success: false,
@@ -395,7 +389,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const { response } = await sendContentRequestToActiveTab({ action: 'stopChatGPTFullScanV3' });
         sendResponse(response || { success: true });
       } catch (error) {
-        sendResponse({ success: false, error: error.message || 'Unable to stop Full Scan' });
+        sendResponse({ success: false, error: error.message || getMessage('statusStopFullScanError') });
       }
     })();
     return true;
@@ -686,7 +680,9 @@ async function savePassiveCaptureEnabled(enabled) {
 }
 
 function getIncompleteMessage(platform) {
-  return platform === 'chatgpt' ? INCOMPLETE_CACHE_WARNING : NON_CHATGPT_INCOMPLETE_WARNING;
+  return platform === 'chatgpt'
+    ? getMessage('warningCachedIncompleteChatgpt')
+    : getMessage('warningCachedIncompleteManualScroll');
 }
 
 async function copyExtractionResponse(tabId, response, formatSettings) {
@@ -982,9 +978,7 @@ async function extractQA() {
       // Show success or error toast and notify popup
       if (copySuccess) {
         const mayBeIncomplete = response.status && response.status.mayBeIncomplete;
-        const incompleteMessage = response.data.platform === 'chatgpt'
-          ? INCOMPLETE_CACHE_WARNING
-          : NON_CHATGPT_INCOMPLETE_WARNING;
+        const incompleteMessage = getIncompleteMessage(response.data.platform);
         const successMessage = mayBeIncomplete ? incompleteMessage : getMessage('toastCopied');
 
         await showToast(currentTabId, successMessage, mayBeIncomplete ? 5000 : 2000);
