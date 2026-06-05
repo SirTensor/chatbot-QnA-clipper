@@ -1,6 +1,6 @@
 # Privacy Policy for Chatbot Q&A Clipper
 
-**Effective Date:** April 7, 2025
+**Effective Date:** June 5, 2026
 
 Thank you for using Chatbot Q&A Clipper (the "Extension"). This Privacy Policy describes how we handle information when you use our Extension. Your privacy is important to us, and we are committed to transparency about our practices.
 
@@ -8,8 +8,8 @@ Thank you for using Chatbot Q&A Clipper (the "Extension"). This Privacy Policy d
 
 The fundamental principle of this Extension is that **all processing occurs locally on your computer within your browser.**
 
-*   **We DO NOT collect, transmit, or store any of your personal information.**
-*   **We DO NOT collect, transmit, or store the content of your chatbot conversations.**
+*   **We DO NOT collect, transmit, or persistently store any of your personal information.**
+*   **We DO NOT collect, transmit, or persistently store the content of your chatbot conversations.**
 *   **We DO NOT track your browsing activity across websites.**
 *   **We DO NOT share any data with the developer or any third parties.**
 
@@ -20,7 +20,7 @@ While we don't *collect* data in the traditional sense (i.e., sending it to our 
 1.  **Website Content (From Active Chatbot Tabs):**
     *   **What:** When you activate the Extension on a supported chatbot website (ChatGPT, Gemini, Claude, Grok), it needs to access the content of that specific webpage. This includes the text of the conversation (questions and answers), code snippets within the conversation, and the URLs of images displayed in the chat.
     *   **Why:** This access is essential for the Extension's core purpose: to read the conversation data displayed on the page so it can be formatted according to your settings.
-    *   **How:** This information is read directly from the Document Object Model (DOM) of the active chatbot tab *only when you initiate the extraction* (via button click or shortcut). It is processed entirely within your browser and is **never sent externally.**
+    *   **How:** This information is read directly from the Document Object Model (DOM) of supported chatbot tabs. It is processed entirely within your browser and is **never sent externally.** When you use features such as preserving captured messages while scrolling or full scan, the Extension may keep captured conversation content temporarily in memory for that tab/session so it can assemble a more complete copy.
 
 2.  **User Configuration Settings:**
     *   **What:** The Extension stores your preferred formatting options (e.g., header level, label style, number format, image format preferences, custom image label, include platform name setting).
@@ -32,13 +32,14 @@ While we don't *collect* data in the traditional sense (i.e., sending it to our 
 The information accessed and processed locally is used *solely* for the following purposes:
 
 *   **To Extract Conversation Data:** Reading the text, code, and image URLs from the active chatbot webpage.
+*   **To Temporarily Preserve Captured Messages:** Keeping captured conversation content in local browser memory for the current supported tab/session when needed for scrolling preservation or full scan.
 *   **To Format Content:** Applying your chosen formatting rules (header level, labels, numbering, image style) to the extracted data to create Markdown text.
 *   **To Copy to Clipboard:** Placing the final formatted Markdown text onto your system's clipboard when you explicitly trigger the copy function.
 *   **To Store Settings:** Saving your formatting preferences locally for future use.
 
 **Data Storage**
 
-*   **Conversation Content:** The content of your chatbot conversations is **NEVER stored** by the Extension after it has been processed and copied to your clipboard (or if the copy fails and it's shown in the manual copy UI). It exists only temporarily in your browser's memory during the formatting process.
+*   **Conversation Content:** The content of your chatbot conversations is **not persistently stored** by the Extension. It may exist temporarily in your browser's memory while the Extension extracts, formats, copies, or displays it in the manual copy UI. When preserving captured messages while scrolling or using full scan, captured conversation content may also be kept temporarily in memory for the current supported tab/session. This temporary cache is local to your browser, is not synced or uploaded, and is cleared when the tab/session lifecycle ends, when the conversation changes, or when you use the clear captured content control.
 *   **Configuration Settings:** Your formatting preferences are stored locally on your device using `chrome.storage.local` and persist until you change them or uninstall the Extension.
 
 **Data Sharing**
