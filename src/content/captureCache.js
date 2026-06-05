@@ -9,6 +9,7 @@
   root.QAClipper.createCaptureCache = factory(root.QAClipper.messageNormalizer);
 })(typeof self !== 'undefined' ? self : this, function(normalizer) {
   const NEAR_ORDER_DISTANCE = 64;
+  const DEFAULT_EDGE_SETTLE_MS = 800;
 
   function isFiniteNumber(value) {
     return typeof value === 'number' && Number.isFinite(value);
@@ -42,6 +43,38 @@
   function cloneTurnData(turnData) {
     if (!turnData) return null;
     return JSON.parse(JSON.stringify(turnData));
+  }
+
+  function clonePlainObject(value) {
+    if (!value) return null;
+    return JSON.parse(JSON.stringify(value));
+  }
+
+  function createEdgeStatus() {
+    return {
+      phase: 'unknown',
+      candidate: null,
+      confirmed: null,
+      stableSince: null,
+      revokedAt: null
+    };
+  }
+
+  function createEdgeState() {
+    return {
+      top: createEdgeStatus(),
+      bottom: createEdgeStatus()
+    };
+  }
+
+  function cloneEdgeStatus(edge) {
+    return {
+      phase: edge.phase,
+      candidate: clonePlainObject(edge.candidate),
+      confirmed: clonePlainObject(edge.confirmed),
+      stableSince: edge.stableSince,
+      revokedAt: edge.revokedAt
+    };
   }
 
   function preferIncoming(existing, incoming) {
@@ -81,12 +114,12 @@
 
   function createCaptureCache(options = {}) {
     const now = typeof options.now === 'function' ? options.now : () => Date.now();
+    const edgeSettleMs = isFiniteNumber(options.edgeSettleMs) ? options.edgeSettleMs : DEFAULT_EDGE_SETTLE_MS;
     const messages = [];
     let sequence = 0;
     let platform = options.platform || 'unknown';
     let conversationKey = options.conversationKey || '';
-    let hasSeenTop = false;
-    let hasSeenBottom = false;
+    let edgeState = createEdgeState();
     let lastCaptureAt = null;
 
     function makeMessage(input) {
@@ -165,10 +198,11 @@
       lastCaptureAt = incoming.lastSeenAt;
 
       const existing = findExisting(incoming);
-      if (existing) return mergeMessage(existing, incoming);
+      const captured = existing ? mergeMessage(existing, incoming) : incoming;
 
-      messages.push(incoming);
-      return incoming;
+      if (!existing) messages.push(incoming);
+      reconcileConfirmedEdges(getBoundarySnapshot({ observedAt: incoming.lastSeenAt }), incoming.lastSeenAt);
+      return captured;
     }
 
     function captureMessages(incomingMessages) {
@@ -191,12 +225,176 @@
       });
     }
 
+    function getMessageToken(message) {
+      if (!message) return null;
+      return message.stableId || message.messageKey || [
+        message.platform,
+        message.conversationKey,
+        message.role,
+        message.contentHash,
+        getOrderBucket(message.orderHint)
+      ].join('|');
+    }
+
+    function getComparableOrder(message) {
+      if (!message) return null;
+      if (isFiniteNumber(message.orderHint)) return message.orderHint;
+      if (isFiniteNumber(message.orderKey)) return message.orderKey;
+      if (isFiniteNumber(message.sequenceHint)) return message.sequenceHint;
+      return null;
+    }
+
+    function getBoundarySnapshot(auxiliary = {}) {
+      const orderedMessages = getMessages();
+      const count = orderedMessages.length;
+      const first = count > 0 ? orderedMessages[0] : null;
+      const last = count > 0 ? orderedMessages[count - 1] : null;
+
+      return {
+        count,
+        firstToken: getMessageToken(first),
+        firstOrder: getComparableOrder(first),
+        firstContentHash: first ? first.contentHash : null,
+        lastToken: getMessageToken(last),
+        lastOrder: getComparableOrder(last),
+        lastContentHash: last ? last.contentHash : null,
+        scrollHeight: isFiniteNumber(auxiliary.scrollHeight) ? auxiliary.scrollHeight : null,
+        lastMutationAt: isFiniteNumber(auxiliary.lastMutationAt) ? auxiliary.lastMutationAt : null,
+        observedAt: isFiniteNumber(auxiliary.observedAt) ? auxiliary.observedAt : now()
+      };
+    }
+
+    function getEdgeFingerprint(edgeName, snapshot) {
+      if (!snapshot || snapshot.count <= 0) return null;
+
+      if (edgeName === 'top') {
+        return {
+          token: snapshot.firstToken,
+          order: snapshot.firstOrder,
+          contentHash: snapshot.firstContentHash
+        };
+      }
+
+      return {
+        token: snapshot.lastToken,
+        order: snapshot.lastOrder,
+        contentHash: snapshot.lastContentHash
+      };
+    }
+
+    function sameEdgeFingerprint(edgeName, firstSnapshot, secondSnapshot) {
+      const first = getEdgeFingerprint(edgeName, firstSnapshot);
+      const second = getEdgeFingerprint(edgeName, secondSnapshot);
+      if (!first || !second || !first.token || !second.token) return false;
+      if (first.token !== second.token) return false;
+
+      return edgeName !== 'bottom' || first.contentHash === second.contentHash;
+    }
+
+    function resetUnconfirmedEdge(edgeName) {
+      const edge = edgeState[edgeName];
+      if (edge.phase !== 'confirmed') {
+        const revokedAt = edge.revokedAt;
+        edgeState[edgeName] = createEdgeStatus();
+        edgeState[edgeName].revokedAt = revokedAt;
+      }
+    }
+
+    function revokeEdge(edgeName, observedAt) {
+      edgeState[edgeName] = createEdgeStatus();
+      edgeState[edgeName].revokedAt = observedAt;
+    }
+
+    function reconcileConfirmedEdges(snapshot, observedAt) {
+      ['top', 'bottom'].forEach(edgeName => {
+        const edge = edgeState[edgeName];
+        if (edge.phase === 'confirmed' && !sameEdgeFingerprint(edgeName, snapshot, edge.confirmed)) {
+          revokeEdge(edgeName, observedAt);
+        }
+      });
+    }
+
+    function setCandidate(edgeName, snapshot, observedAt) {
+      const edge = edgeState[edgeName];
+      edge.phase = 'candidate';
+      edge.candidate = clonePlainObject(snapshot);
+      edge.confirmed = null;
+      edge.stableSince = observedAt;
+    }
+
+    function maybeConfirmCandidate(edgeName, snapshot, observedAt) {
+      const edge = edgeState[edgeName];
+      if (edge.phase !== 'candidate' || !sameEdgeFingerprint(edgeName, snapshot, edge.candidate)) return;
+
+      const lastMutationAt = Math.max(
+        edge.candidate && edge.candidate.lastMutationAt ? edge.candidate.lastMutationAt : 0,
+        snapshot && snapshot.lastMutationAt ? snapshot.lastMutationAt : 0
+      );
+      if (edge.candidate) edge.candidate.lastMutationAt = lastMutationAt || null;
+
+      const quietSince = Math.max(
+        edge.stableSince || observedAt,
+        lastMutationAt
+      );
+
+      if (observedAt - quietSince < edgeSettleMs) return;
+
+      edge.phase = 'confirmed';
+      edge.confirmed = clonePlainObject({
+        ...snapshot,
+        confirmedAt: observedAt
+      });
+      edge.candidate = null;
+      edge.stableSince = quietSince;
+    }
+
+    function observeEdge(edgeName, isNearEdge, snapshot, observedAt) {
+      const edge = edgeState[edgeName];
+
+      if (edge.phase === 'confirmed') {
+        return;
+      }
+
+      if (!isNearEdge) {
+        resetUnconfirmedEdge(edgeName);
+        return;
+      }
+
+      if (!edge.candidate || !sameEdgeFingerprint(edgeName, snapshot, edge.candidate)) {
+        setCandidate(edgeName, snapshot, observedAt);
+      }
+
+      maybeConfirmCandidate(edgeName, snapshot, observedAt);
+    }
+
+    function promoteSettledCandidates(snapshot, observedAt) {
+      ['top', 'bottom'].forEach(edgeName => {
+        const edge = edgeState[edgeName];
+        if (edge.phase === 'candidate' && !sameEdgeFingerprint(edgeName, snapshot, edge.candidate)) {
+          resetUnconfirmedEdge(edgeName);
+          return;
+        }
+
+        maybeConfirmCandidate(edgeName, snapshot, observedAt);
+      });
+    }
+
     function markViewportState(state = {}) {
       const capturedCount = state.capturedCount ?? messages.length;
       if (capturedCount <= 0) return;
 
-      if (state.hasSeenTop) hasSeenTop = true;
-      if (state.hasSeenBottom) hasSeenBottom = true;
+      const observedAt = isFiniteNumber(state.observedAt) ? state.observedAt : now();
+      const snapshot = getBoundarySnapshot({
+        scrollHeight: state.scrollHeight,
+        lastMutationAt: state.lastMutationAt,
+        observedAt
+      });
+      const nearTop = state.nearTop ?? state.hasSeenTop;
+      const nearBottom = state.nearBottom ?? state.hasSeenBottom;
+
+      reconcileConfirmedEdges(snapshot, observedAt);
+      observeEdge('top', nearTop === true, snapshot, observedAt);
+      observeEdge('bottom', nearBottom === true, snapshot, observedAt);
     }
 
     function clear(nextScope = {}) {
@@ -204,21 +402,33 @@
       sequence = 0;
       platform = nextScope.platform || platform || 'unknown';
       conversationKey = nextScope.conversationKey || conversationKey || '';
-      hasSeenTop = false;
-      hasSeenBottom = false;
+      edgeState = createEdgeState();
       lastCaptureAt = null;
     }
 
     function getStatus() {
       const count = messages.length;
+      const observedAt = now();
+      const snapshot = getBoundarySnapshot({ observedAt });
+      reconcileConfirmedEdges(snapshot, observedAt);
+      promoteSettledCandidates(snapshot, observedAt);
+
+      const hasSeenTop = edgeState.top.phase === 'confirmed';
+      const hasSeenBottom = edgeState.bottom.phase === 'confirmed';
+
       return {
         platform,
         conversationKey,
         capturedCount: count,
         hasSeenTop,
         hasSeenBottom,
+        edgeState: {
+          top: cloneEdgeStatus(edgeState.top),
+          bottom: cloneEdgeStatus(edgeState.bottom)
+        },
+        edgeSettleMs,
         lastCaptureAt,
-        mayBeIncomplete: count > 0 && !hasSeenTop,
+        mayBeIncomplete: count > 0 && !(hasSeenTop && hasSeenBottom),
         isEmpty: count === 0
       };
     }

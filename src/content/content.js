@@ -1,7 +1,7 @@
 // --- START OF FILE content.js ---
 
 (function() {
-  const CONTENT_VERSION = 3;
+  const CONTENT_VERSION = 4;
   if (window.qaClipperContentVersion >= CONTENT_VERSION) return;
   window.qaClipperContentVersion = CONTENT_VERSION;
   window.qaClipperInitialized = true;
@@ -15,6 +15,8 @@
   const FULL_SCAN_WAIT_MS = 320;
   const FULL_SCAN_MAX_STEPS = 180;
   const FULL_SCAN_MAX_MS = 90000;
+  const EDGE_SETTLE_RECHECK_FALLBACK_MS = 850;
+  const FULL_SCAN_EDGE_SETTLE_MAX_MS = 4000;
 
   const state = {
     cache: null,
@@ -33,6 +35,7 @@
     passiveEnabled: true,
     lastFormatSettings: {},
     lastUrl: window.location.href,
+    lastMutationAt: 0,
     scan: {
       running: false,
       cancelRequested: false
@@ -210,11 +213,21 @@
   function computeViewportState(scrollContainer, capturedCount) {
     const metrics = getScrollMetrics(scrollContainer);
     const distanceFromBottom = metrics.scrollHeight - metrics.scrollTop - metrics.clientHeight;
+    const nearTop = metrics.scrollTop <= 80;
+    const nearBottom = distanceFromBottom <= 120;
 
     return {
       capturedCount,
-      hasSeenTop: metrics.scrollTop <= 80,
-      hasSeenBottom: distanceFromBottom <= 120
+      nearTop,
+      nearBottom,
+      hasSeenTop: nearTop,
+      hasSeenBottom: nearBottom,
+      scrollTop: metrics.scrollTop,
+      scrollHeight: metrics.scrollHeight,
+      clientHeight: metrics.clientHeight,
+      distanceFromBottom,
+      lastMutationAt: state.lastMutationAt,
+      observedAt: Date.now()
     };
   }
 
@@ -558,6 +571,7 @@
       disconnectObserver();
       state.conversationRoot = root;
       state.observer = new MutationObserver(() => {
+        state.lastMutationAt = Date.now();
         captureNowThrottled(MUTATION_CAPTURE_THROTTLE_MS);
         scheduleCapture(PASSIVE_DEBOUNCE_MS);
       });
@@ -623,6 +637,10 @@
       if (cache && result.messages.length > 0) {
         cache.captureMessages(result.messages);
         cache.markViewportState(computeViewportState(result.scrollContainer, result.messages.length));
+        const captureStatus = cache.getStatus();
+        if (source === 'passive-cache' && hasPendingEdgeSettlement(captureStatus)) {
+          scheduleEdgeSettleCapture(captureStatus);
+        }
       }
 
       if (source === 'passive-cache') {
@@ -668,6 +686,55 @@
       state.captureTimer = null;
       performCapture(state.lastFormatSettings, 'passive-cache');
     }, delay);
+  }
+
+  function hasPendingEdgeSettlement(status) {
+    const edgeState = status && status.edgeState;
+    return !!(
+      edgeState &&
+      (
+        edgeState.top && edgeState.top.phase === 'candidate' ||
+        edgeState.bottom && edgeState.bottom.phase === 'candidate'
+      )
+    );
+  }
+
+  function scheduleEdgeSettleCapture(status) {
+    const settleMs = Number(status && status.edgeSettleMs) || EDGE_SETTLE_RECHECK_FALLBACK_MS;
+    scheduleCapture(Math.max(settleMs + 50, PASSIVE_DEBOUNCE_MS));
+  }
+
+  function isEdgeConfirmed(status, edgeName) {
+    if (!status) return false;
+    return edgeName === 'top' ? status.hasSeenTop === true : status.hasSeenBottom === true;
+  }
+
+  function setScrollToEdge(scrollContainer, edgeName) {
+    if (edgeName === 'top') {
+      setScrollTop(scrollContainer, 0);
+      return;
+    }
+
+    const metrics = getScrollMetrics(scrollContainer);
+    setScrollTop(scrollContainer, Math.max(metrics.scrollHeight - metrics.clientHeight, 0));
+  }
+
+  async function settleFullScanEdge(edgeName, scrollContainer, settings, stopAt) {
+    const deadline = Math.min(Date.now() + FULL_SCAN_EDGE_SETTLE_MAX_MS, stopAt || Number.POSITIVE_INFINITY);
+    let status = getStatusSnapshot();
+
+    while (!isEdgeConfirmed(status, edgeName) && !state.scan.cancelRequested && Date.now() < deadline) {
+      setScrollToEdge(scrollContainer, edgeName);
+      await wait(FULL_SCAN_WAIT_MS);
+      performCapture(settings, 'full-scan');
+      status = getStatusSnapshot();
+    }
+
+    return {
+      status,
+      confirmed: isEdgeConfirmed(status, edgeName),
+      cancelled: state.scan.cancelRequested
+    };
   }
 
   function getStatusSnapshot() {
@@ -732,8 +799,10 @@
       setScrollTop(scrollContainer, 0);
       await wait(FULL_SCAN_WAIT_MS + 200);
       performCapture(state.lastFormatSettings, 'full-scan');
+      const topSettle = await settleFullScanEdge('top', scrollContainer, state.lastFormatSettings, startTime + FULL_SCAN_MAX_MS);
+      if (topSettle.cancelled) stopped = true;
 
-      for (let step = 0; step < FULL_SCAN_MAX_STEPS; step++) {
+      for (let step = 0; !stopped && step < FULL_SCAN_MAX_STEPS; step++) {
         if (state.scan.cancelRequested || Date.now() - startTime > FULL_SCAN_MAX_MS) {
           stopped = true;
           break;
@@ -743,7 +812,7 @@
         const distanceFromBottom = metrics.scrollHeight - metrics.scrollTop - metrics.clientHeight;
         if (distanceFromBottom <= 120) break;
 
-        const stepSize = Math.max(Math.floor(metrics.clientHeight * 0.95), 520);
+        const stepSize = Math.max(Math.floor(metrics.clientHeight * 0.75), 420);
         const nextScrollTop = Math.min(metrics.scrollTop + stepSize, metrics.scrollHeight - metrics.clientHeight);
         if (nextScrollTop <= metrics.scrollTop + 2) break;
 
@@ -756,7 +825,14 @@
         return { success: false, stopped: true, status: getStatusSnapshot() };
       }
 
+      setScrollToEdge(scrollContainer, 'bottom');
+      await wait(FULL_SCAN_WAIT_MS);
       performCapture(state.lastFormatSettings, 'full-scan');
+      const bottomSettle = await settleFullScanEdge('bottom', scrollContainer, state.lastFormatSettings, startTime + FULL_SCAN_MAX_MS);
+      if (bottomSettle.cancelled) {
+        return { success: false, stopped: true, status: getStatusSnapshot() };
+      }
+
       return { success: true, ...composeCachedConversation(state.lastFormatSettings, { skipFinalCapture: true }) };
     } finally {
       setScrollTop(scrollContainer, originalScrollTop);
