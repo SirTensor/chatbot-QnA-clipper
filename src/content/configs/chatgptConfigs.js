@@ -1,9 +1,9 @@
-// chatgptConfigs.js (v37 - Skip transient empty assistant turns without warning)
+// chatgptConfigs.js (v38 - Silently skip assistant images before URL readiness)
 
 (function() {
     // Initialization check
-    // v37: Avoid extension error-page noise from transient empty ChatGPT assistant turns.
-    if (window.chatgptConfig && window.chatgptConfig.version >= 37) { return; }
+    // v38: Avoid extension error-page noise from transient ChatGPT image containers.
+    if (window.chatgptConfig && window.chatgptConfig.version >= 38) { return; }
 
     // --- Helper Functions ---
 
@@ -833,22 +833,22 @@
 
     function processAssistantImage(el) {
          const selectors = window.chatgptConfig.selectors;
+         const getExtractableSrc = (imgElement) => {
+             const src = imgElement?.getAttribute('src');
+             if (!src || src.startsWith('data:') || src.startsWith('blob:')) return null;
+             return src;
+         };
+
          // Primary selector is already URL-based (localization-free)
          let targetImgElement = el.querySelector(selectors.imageElementAssistant);
-         if (!targetImgElement) {
-             // Final fallback: any img with valid src in this container
-             targetImgElement = el.querySelector('img[src]');
-             if (!targetImgElement || targetImgElement.getAttribute('src').startsWith('data:') || targetImgElement.getAttribute('src').startsWith('blob:')) {
-                 console.error("[Extractor v30] No valid image found in assistant image container.");
-                 return null;
-             }
-             console.warn("[Extractor v30] Using fallback image search (any img[src])");
+         let src = getExtractableSrc(targetImgElement);
+         if (!src) {
+             // ChatGPT can mount image containers before the final URL is available.
+             targetImgElement = Array.from(el.querySelectorAll('img[src]')).find(img => getExtractableSrc(img));
+             src = getExtractableSrc(targetImgElement);
+             if (!src) return null;
          }
-         const src = targetImgElement.getAttribute('src');
-         if (!src || src.startsWith('data:') || src.startsWith('blob:')) {
-             console.error("[Extractor v30] Selected assistant image has an invalid source.");
-             return null;
-         }
+
          let altText = targetImgElement.getAttribute('alt')?.trim();
          // Use alt text if meaningful (not the default localized placeholder)
          const extractedContent = (altText && altText.length > 0) ? altText : "Generated Image";
@@ -857,7 +857,7 @@
              return { type: 'image', src: absoluteSrc, alt: altText || "Generated Image", extractedContent: extractedContent };
          }
          catch (e) {
-             console.error("[Extractor v30] Error parsing assistant image URL:", e);
+             console.warn("[Extractor v38] Error parsing assistant image URL:", e);
              return null;
          }
      }
@@ -1243,7 +1243,7 @@
     // --- Main Configuration Object ---
     const chatgptConfig = {
       platformName: 'ChatGPT',
-      version: 37, // v37: Skip transient empty assistant turns without warning
+      version: 38, // v38: Silently skip assistant image containers before URL readiness
       selectors: { // Updated selectors for new table structure
         turnContainer: 'article[data-testid^="conversation-turn-"], section[data-testid^="conversation-turn-"]',
         turnContainerFallback: 'div[data-message-author-role]', // Fallback for edge cases without article wrapper
