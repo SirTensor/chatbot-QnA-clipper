@@ -640,17 +640,121 @@ async function getActiveWebTab() {
   }
 
   if (!tab.url || (!tab.url.startsWith('http:') && !tab.url.startsWith('https:'))) {
-    const error = new Error(getMessage('errorUnsupportedPage'));
-    error.unsupportedPage = true;
-    error.tab = tab;
-    throw error;
+    throw createUnsupportedPageError(tab);
   }
 
   return tab;
 }
 
+function createUnsupportedPageError(tab) {
+  const error = new Error(getMessage('errorUnsupportedPage'));
+  error.unsupportedPage = true;
+  error.tab = tab;
+  return error;
+}
+
+function getSupportedHostPatterns() {
+  const manifest = chrome.runtime.getManifest();
+  const hostPermissions = manifest.host_permissions || [];
+  const contentScriptMatches = (manifest.content_scripts || []).reduce((matches, contentScript) => {
+    return matches.concat(contentScript.matches || []);
+  }, []);
+
+  return Array.from(new Set(hostPermissions.concat(contentScriptMatches)));
+}
+
+function escapeRegexPattern(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function matchesPathPattern(pathPattern, tabPath) {
+  const regex = '^' + pathPattern.split('*').map(escapeRegexPattern).join('.*') + '$';
+  return new RegExp(regex).test(tabPath);
+}
+
+function matchesExtensionHostPattern(pattern, urlObject) {
+  if (pattern === '<all_urls>') {
+    return urlObject.protocol === 'http:' || urlObject.protocol === 'https:';
+  }
+
+  const patternMatch = pattern.match(/^(\*|http|https):\/\/([^/]+)(\/.*)$/);
+  if (!patternMatch) {
+    return false;
+  }
+
+  const schemePattern = patternMatch[1];
+  const hostPattern = patternMatch[2];
+  const pathPattern = patternMatch[3];
+  const tabScheme = urlObject.protocol.slice(0, -1);
+  if (schemePattern === '*') {
+    if (tabScheme !== 'http' && tabScheme !== 'https') {
+      return false;
+    }
+  } else if (schemePattern !== tabScheme) {
+    return false;
+  }
+
+  const tabHost = urlObject.hostname;
+  let hostMatches = false;
+  if (hostPattern === '*') {
+    hostMatches = true;
+  } else if (hostPattern.startsWith('*.')) {
+    const suffix = hostPattern.slice(2);
+    hostMatches = tabHost === suffix || tabHost.endsWith('.' + suffix);
+  } else {
+    hostMatches = tabHost === hostPattern;
+  }
+
+  if (!hostMatches) {
+    return false;
+  }
+
+  return matchesPathPattern(pathPattern, urlObject.pathname + urlObject.search + urlObject.hash);
+}
+
+function isSupportedTabUrl(tabUrl) {
+  try {
+    const urlObject = new URL(tabUrl);
+    return getSupportedHostPatterns().some((pattern) => matchesExtensionHostPattern(pattern, urlObject));
+  } catch (error) {
+    console.error("Error checking supported URL pattern:", error);
+    return false;
+  }
+}
+
+async function hasSupportedHostPermission(tabUrl) {
+  if (!isSupportedTabUrl(tabUrl)) {
+    return false;
+  }
+
+  try {
+    const urlOrigin = new URL(tabUrl).origin;
+    return await new Promise((resolve) => {
+      chrome.permissions.contains({ origins: [urlOrigin + '/*'] }, (granted) => {
+        if (chrome.runtime.lastError) {
+          console.error("Error checking permissions:", chrome.runtime.lastError);
+          resolve(false);
+        } else {
+          resolve(granted);
+        }
+      });
+    });
+  } catch (error) {
+    console.error("Error checking permissions (URL parsing):", error);
+    return false;
+  }
+}
+
+async function ensureTabHasSupportedHostPermission(tab) {
+  const hasPermission = await hasSupportedHostPermission(tab.url);
+  if (!hasPermission) {
+    throw createUnsupportedPageError(tab);
+  }
+}
+
 async function sendContentRequestToActiveTab(message) {
   const tab = await getActiveWebTab();
+  await ensureTabHasSupportedHostPermission(tab);
   const scriptsLoaded = await ensureContentScriptLoaded(tab.id);
   if (!scriptsLoaded) {
     throw new Error(getMessage('errorScriptsNotLoaded'));
@@ -782,53 +886,22 @@ async function extractQA() {
     }
 
     // --- Check Host Permissions FIRST ---
-    try {
-      const hasPermission = await new Promise((resolve) => {
-        try {
-          const urlOrigin = new URL(tabUrl).origin;
-          chrome.permissions.contains({ origins: [urlOrigin + '/*'] }, (granted) => {
-            if (chrome.runtime.lastError) {
-              // Handle potential errors during permission check (e.g., invalid origin)
-              console.error("Error checking permissions:", chrome.runtime.lastError);
-              resolve(false); // Assume no permission if check fails
-            } else {
-              resolve(granted);
-            }
-          });
-        } catch (e) {
-          // Catch potential errors from new URL() if tabUrl is invalid (though checked earlier)
-          console.error("Error checking permissions (URL parsing):", e);
-          resolve(false);
-        }
-      });
-
-      if (!hasPermission) {
-        // console.log(`Extension does not have permission for origin: ${new URL(tabUrl).origin}. Silently ignoring trigger for unsupported site.`);
-        // For popup triggers, we should show an error, but shortcut triggers should be silent.
-        // Check if the trigger came from the popup. This is tricky to know directly here.
-        // Let's send a message to the popup regardless, it will only be received if open.
-        // And show a toast which will only appear if user explicitly tried on the page.
-        await showToast(currentTabId, getMessage('toastUnsupportedSite'), 3000);
-        sendMessageToPopup({
-          action: 'extraction-complete',
-          success: false,
-          message: getMessage('errorUnsupportedPage')
-        });
-        return; // Stop execution
-      }
-      // console.log(`Host permission granted for tab ${currentTabId}`);
-
-    } catch (permError) {
-      // Catch any unexpected error during the permission check process
-      console.error('Unexpected error during permission check:', permError);
-      await showToast(currentTabId, getMessage('toastPermissionError'), 3000);
+    const hasPermission = await hasSupportedHostPermission(tabUrl);
+    if (!hasPermission) {
+      // console.log(`Extension does not have permission for origin: ${new URL(tabUrl).origin}. Silently ignoring trigger for unsupported site.`);
+      // For popup triggers, we should show an error, but shortcut triggers should be silent.
+      // Check if the trigger came from the popup. This is tricky to know directly here.
+      // Let's send a message to the popup regardless, it will only be received if open.
+      // And show a toast which will only appear if user explicitly tried on the page.
+      await showToast(currentTabId, getMessage('toastUnsupportedSite'), 3000);
       sendMessageToPopup({
         action: 'extraction-complete',
         success: false,
-        message: getMessage('toastPermissionError')
+        message: getMessage('errorUnsupportedPage')
       });
       return; // Stop execution
     }
+    // console.log(`Host permission granted for tab ${currentTabId}`);
     // --- End of Host Permissions Check ---
 
     // If URL checks and permission check passed, proceed with script loading and extraction

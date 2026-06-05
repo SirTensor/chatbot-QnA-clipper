@@ -810,11 +810,9 @@
         // Check if this is a display math (block) or inline math
         const isDisplayMath = element.closest('.katex-display') !== null;
         const result = isDisplayMath ? `$$${latexSource}$$` : `$${latexSource}$`;
-        console.log("[Claude Extractor v9] KaTeX processed:", { isDisplayMath, latexSource, result });
         return result;
       }
     }
-    console.log("[Claude Extractor v9] KaTeX element found but no LaTeX source:", element);
     return null;
   }
 
@@ -1301,6 +1299,5 @@
 
   // Assign to window object
   window.claudeConfig = claudeConfig;
-  console.log("claudeConfig.js initialized (v" + claudeConfig.version + ") - normalize assistant heading depth and extract full assistant response");
 
 })(); // End of IIFE

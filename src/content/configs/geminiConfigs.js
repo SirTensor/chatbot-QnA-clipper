@@ -748,8 +748,6 @@
      */
     function reconstructLatexFromPatterns(katexElement, allText) {
         try {
-            console.log('[Debug] Starting pattern reconstruction with text:', allText);
-            
             // Analyze the known pattern: n=1∑∞​n21​=1+221​+321​+421​+⋯=6π2​
             // This represents: ∑_{n=1}^{∞} 1/n^2 = 1 + 1/2^2 + 1/3^2 + 1/4^2 + ⋯ = π^2/6
             
@@ -811,7 +809,6 @@
                 latex = processedText;
             }
             
-            console.log('[Debug] Pattern reconstruction result:', latex);
             return latex;
             
         } catch (error) {
