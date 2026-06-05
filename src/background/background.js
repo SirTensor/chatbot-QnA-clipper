@@ -102,6 +102,24 @@ function sendMessageToPopup(message) {
   });
 }
 
+function getResponseLogInfo(response) {
+  if (!response || typeof response !== 'object') {
+    return { type: typeof response };
+  }
+
+  const data = response.data && typeof response.data === 'object' ? response.data : null;
+  const status = response.status && typeof response.status === 'object' ? response.status : null;
+
+  return {
+    success: response.success,
+    hasError: typeof response.error === 'string',
+    hasData: !!data,
+    platform: data && data.platform,
+    turnCount: Array.isArray(data && data.conversationTurns) ? data.conversationTurns.length : undefined,
+    statusKeys: status ? Object.keys(status) : []
+  };
+}
+
 function createClipboardNonce() {
   if (crypto.randomUUID) {
     return crypto.randomUUID();
@@ -537,7 +555,7 @@ async function ensureContentScriptLoaded(tabId) {
           // We'll proceed to inject ALL scripts to ensure everything is loaded
         }
       } else {
-        console.warn(`Ping to tab ${tabId} received unexpected response:`, response);
+        console.warn(`Ping to tab ${tabId} received unexpected response:`, getResponseLogInfo(response));
         // Content script might not be loaded, proceed to injection
       }
     } catch (err) {
@@ -1112,7 +1130,7 @@ async function extractQA() {
       }
     } else {
       // Handle case where response structure is incorrect
-      console.error(`Extraction response from tab ${currentTabId} has invalid structure:`, response);
+      console.error(`Extraction response from tab ${currentTabId} has invalid structure:`, getResponseLogInfo(response));
       const invalidDataMessage = getMessage('errorInvalidData');
       await showToast(currentTabId, invalidDataMessage, 3000);
       sendMessageToPopup({

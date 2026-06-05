@@ -150,6 +150,26 @@
            element.closest(selectors.artifactButton); // Check if element is INSIDE an artifact button/cell
   }
 
+  function getElementLogInfo(element) {
+    if (!element || element.nodeType !== Node.ELEMENT_NODE) {
+      return { nodeType: element?.nodeType || typeof element };
+    }
+
+    return {
+      tagName: element.tagName.toLowerCase(),
+      childElementCount: element.children ? element.children.length : 0
+    };
+  }
+
+  function getUrlLogInfo(url) {
+    const value = String(url || '');
+    const schemeMatch = value.match(/^([a-z][a-z0-9+.-]*):/i);
+    return {
+      scheme: schemeMatch ? schemeMatch[1].toLowerCase() : 'relative',
+      length: value.length
+    };
+  }
+
   /**
    * Processes <li> elements within a <ul> or <ol> list.
    * @param {HTMLElement} el - The <ul> or <ol> element.
@@ -455,7 +475,7 @@
    */
   function processTableToMarkdown(tableElement) {
     if (!tableElement || tableElement.tagName.toLowerCase() !== 'table') {
-      console.warn("[Claude Extractor v7] Invalid table element:", tableElement);
+      console.warn("[Claude Extractor v7] Invalid table element:", getElementLogInfo(tableElement));
       return null;
     }
 
@@ -1171,7 +1191,12 @@
           let absoluteSrc = src;
           if (src && !src.startsWith('http') && !src.startsWith('blob:') && !src.startsWith('data:')) {
               try { absoluteSrc = new URL(src, window.location.origin).href; }
-              catch (e) { console.error("[Claude Extractor v7] Error creating absolute URL for image:", e, src); }
+              catch (e) {
+                console.error("[Claude Extractor v7] Error creating absolute URL for image:", {
+                  error: e.message,
+                  source: getUrlLogInfo(src)
+                });
+              }
           }
           if (absoluteSrc && !absoluteSrc.startsWith('blob:') && !absoluteSrc.startsWith('data:')) {
              images.push({ type: 'image', sourceUrl: absoluteSrc, isPreviewOnly: src !== absoluteSrc, extractedContent: alt });

@@ -215,6 +215,16 @@ function showManualCopyUI(text) {
   document.getElementById('extractedTextArea').value = text;
 }
 
+function hideManualCopyUI({ clearText = true } = {}) {
+  const textArea = document.getElementById('extractedTextArea');
+  if (clearText && textArea) {
+    textArea.value = '';
+  }
+
+  document.getElementById('manualCopyUI').style.display = 'none';
+  document.getElementById('normalUI').style.display = 'block';
+}
+
 /**
  * Update the displayed shortcut from Chrome's commands API
  */
@@ -437,19 +447,22 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('manualCopyButton').addEventListener('click', () => {
     const textArea = document.getElementById('extractedTextArea');
     textArea.select();
-    document.execCommand('copy');
+    const copied = document.execCommand('copy');
+    if (!copied) {
+      updateStatus(getMessage('toastClipboardFailed'));
+      return;
+    }
+
     updateStatus(getMessage('statusCopied'));
     
     // Return to normal UI after brief delay
     setTimeout(() => {
-      document.getElementById('manualCopyUI').style.display = 'none';
-      document.getElementById('normalUI').style.display = 'block';
+      hideManualCopyUI();
     }, 1500);
   });
   
   document.getElementById('backButton').addEventListener('click', () => {
-    document.getElementById('manualCopyUI').style.display = 'none';
-    document.getElementById('normalUI').style.display = 'block';
+    hideManualCopyUI();
   });
 });
 

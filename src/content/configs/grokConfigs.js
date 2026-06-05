@@ -37,6 +37,26 @@
            // element.tagName.toLowerCase() === 'table';
   }
 
+  function getElementLogInfo(element) {
+    if (!element || element.nodeType !== Node.ELEMENT_NODE) {
+      return { nodeType: element?.nodeType || typeof element };
+    }
+
+    return {
+      tagName: element.tagName.toLowerCase(),
+      childElementCount: element.children ? element.children.length : 0
+    };
+  }
+
+  function getTableLogInfo(tableElement) {
+    return {
+      ...getElementLogInfo(tableElement),
+      rowCount: tableElement?.querySelectorAll?.('tr')?.length || 0,
+      headerCellCount: tableElement?.querySelectorAll?.('th')?.length || 0,
+      dataCellCount: tableElement?.querySelectorAll?.('td')?.length || 0
+    };
+  }
+
   /**
    * Processes <li> elements within a <ul> or <ol> list, handling nested structures.
    * Uses a custom node processing logic to correctly handle inline formatting and nested blocks.
@@ -427,7 +447,7 @@
           : tableElement.querySelector('table');
       
       if (!table) {
-                      console.warn("[Grok Extractor v10] No table found in element:", tableElement);
+                      console.warn("[Grok Extractor v10] No table found in element:", getElementLogInfo(tableElement));
             return null;
         }
 
@@ -473,7 +493,7 @@
       }
 
       if (columnCount === 0) {
-                      console.warn("[Grok Extractor v10] Could not determine column count for table:", table);
+                      console.warn("[Grok Extractor v10] Could not determine column count for table:", getTableLogInfo(table));
             return null;
         }
 
@@ -845,7 +865,7 @@
     }
     
     if (!title) {
-      console.warn('[Grok Extractor] No title found for interactive block:', interactiveContainer);
+      console.warn('[Grok Extractor] No title found for interactive block:', getElementLogInfo(interactiveContainer));
       return null;
     }
     
@@ -1464,7 +1484,7 @@
                       // Add the table markdown as a text item
                       QAClipper.Utils.addTextItem(contentItems, tableMarkdown);
                   } else {
-                      console.warn("  -> Failed to convert table to markdown:", tableElement);
+                      console.warn("  -> Failed to convert table to markdown:", getTableLogInfo(tableElement));
                   }
                   processedElements.add(block);
                   processedElements.add(tableElement);
@@ -1485,7 +1505,7 @@
                       if (tableMarkdown) {
                           QAClipper.Utils.addTextItem(contentItems, tableMarkdown);
                       } else {
-                          console.warn("  -> Failed to convert table to markdown:", tableElement);
+                          console.warn("  -> Failed to convert table to markdown:", getTableLogInfo(tableElement));
                       }
                       processedElements.add(block);
                       processedElements.add(tableContainer);
@@ -1592,7 +1612,7 @@
           }
           // --- Fallback / Unhandled ---
           else {
-                              console.warn(`[Grok Extractor v12]   -> Skipping unhandled direct block type <${tagNameLower}>`, block);
+                              console.warn(`[Grok Extractor v12]   -> Skipping unhandled direct block type <${tagNameLower}>`, getElementLogInfo(block));
                 processedElements.add(block);
             }
         }); // End forEach loop over allElements

@@ -29,6 +29,26 @@
              element.matches('.math-block'); // Skip math blocks for dedicated processing
     }
 
+    function getElementLogInfo(element) {
+        if (!element || element.nodeType !== Node.ELEMENT_NODE) {
+            return { nodeType: element?.nodeType || typeof element };
+        }
+
+        return {
+            tagName: element.tagName.toLowerCase(),
+            childElementCount: element.children ? element.children.length : 0
+        };
+    }
+
+    function getTableLogInfo(tableElement) {
+        return {
+            ...getElementLogInfo(tableElement),
+            rowCount: tableElement?.querySelectorAll?.('tr')?.length || 0,
+            headerCellCount: tableElement?.querySelectorAll?.('th')?.length || 0,
+            dataCellCount: tableElement?.querySelectorAll?.('td')?.length || 0
+        };
+    }
+
     /**
      * Gemini-only markdown conversion wrapper.
      * Replaces Gemini math spans with LaTeX text first so shared utils do not need platform-specific logic.
@@ -2084,7 +2104,7 @@
 
         // Abort if no header could be determined
         if (columnCount === 0) {
-            console.warn("[Extractor v31 - Table] Table has no discernible header. Cannot generate Markdown.", tableElement);
+            console.warn("[Extractor v31 - Table] Table has no discernible header. Cannot generate Markdown.", getTableLogInfo(tableElement));
             return null;
         }
 
@@ -2109,7 +2129,11 @@
                     markdownRows.push(`| ${cellContent.join(' | ')} |`);
                 } else {
                     // This warning should now only appear for actual data rows with mismatched columns
-                    console.warn(`  -> [Table Processor v31] Data row ${rowIndex+1} skipped. Expected ${columnCount} 'td' cells, found ${cells.length}.`, row);
+                    console.warn(`  -> [Table Processor v31] Data row ${rowIndex+1} skipped. Expected ${columnCount} 'td' cells, found ${cells.length}.`, {
+                        rowIndex: rowIndex + 1,
+                        expectedColumnCount: columnCount,
+                        actualCellCount: cells.length
+                    });
                 }
             });
         } else {

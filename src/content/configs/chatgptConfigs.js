@@ -19,6 +19,26 @@
              (element.closest(selectors.userMessageContainer) && element.matches('span.hint-pill'));
     }
 
+    function getElementLogInfo(element) {
+      if (!element || element.nodeType !== Node.ELEMENT_NODE) {
+        return { nodeType: element?.nodeType || typeof element };
+      }
+
+      return {
+        tagName: element.tagName.toLowerCase(),
+        childElementCount: element.children ? element.children.length : 0
+      };
+    }
+
+    function getTableLogInfo(tableElement) {
+      return {
+        ...getElementLogInfo(tableElement),
+        rowCount: tableElement?.querySelectorAll?.('tr')?.length || 0,
+        headerCellCount: tableElement?.querySelectorAll?.('th')?.length || 0,
+        dataCellCount: tableElement?.querySelectorAll?.('td')?.length || 0
+      };
+    }
+
     /**
      * Extracts CSS ::before and ::after pseudo-element content from an element.
      * Uses getComputedStyle to read the actual CSS content property.
@@ -872,7 +892,7 @@
         if (title || code) {
             return { type: 'interactive_block', title: title || '[Interactive Block]', code: code, language: language };
         } else {
-            console.error("[Extractor v30] Failed to extract title or code from interactive block:", el);
+            console.error("[Extractor v30] Failed to extract title or code from interactive block:", getElementLogInfo(el));
             return null;
         }
      }
@@ -902,7 +922,7 @@
         }
 
         if (columnCount === 0) { // Abort if no header found
-            console.warn("[Extractor v30] Table has no header (thead > tr > th). Cannot generate Markdown.", tableElement);
+            console.warn("[Extractor v30] Table has no header (thead > tr > th). Cannot generate Markdown.", getTableLogInfo(tableElement));
             return null;
         }
 
@@ -917,7 +937,10 @@
                     const cellContent = cells.map(td => QAClipper.Utils.htmlToMarkdown(td, { skipElementCheck: shouldSkipElement, ignoreTags: ['table', 'tr', 'th', 'td'] }).trim().replace(/\|/g, '\\|').replace(/\n+/g, ' ')); // Escape pipes and replace newlines in cells
                     markdownRows.push(`| ${cellContent.join(' | ')} |`);
                 } else {
-                    console.warn("[Extractor v30] Table row skipped due to column count mismatch.", row);
+                    console.warn("[Extractor v30] Table row skipped due to column count mismatch.", {
+                        expectedColumnCount: columnCount,
+                        actualCellCount: cells.length
+                    });
                 }
             });
         }
@@ -992,7 +1015,7 @@
                 const tableMarkdown = getTableMarkdown(tableElement);
                 if (tableMarkdown) {
                     QAClipper.Utils.addTextItem(contentItems, tableMarkdown);
-                } else { console.warn("[Extractor v24] Failed to process table:", tableElement); }
+                } else { console.warn("[Extractor v24] Failed to process table:", getTableLogInfo(tableElement)); }
                 processedElements.add(element); // Add container
                 processedElements.add(tableElement); // Add table itself
                 element.querySelectorAll('*').forEach(child => processedElements.add(child)); // Mark all descendants
@@ -1046,7 +1069,7 @@
                      flushMdBlock(); // Flush any pending standard blocks
                      // Handle unrecognized elements or containers not processed above
                      if (!isTableContainer) { // Avoid double logging table containers
-                        console.warn(`  -> [Fallback Text]: Unhandled element: <${tagNameLower}>`, element);
+                        console.warn(`  -> [Fallback Text]: Unhandled element: <${tagNameLower}>`, getElementLogInfo(element));
                         const fallbackText = enhancedHtmlToMarkdown(element, { skipElementCheck: shouldSkipElement }).trim();
                         if (fallbackText) {
                             QAClipper.Utils.addTextItem(contentItems, fallbackText);
