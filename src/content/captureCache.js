@@ -116,11 +116,72 @@
     const now = typeof options.now === 'function' ? options.now : () => Date.now();
     const edgeSettleMs = isFiniteNumber(options.edgeSettleMs) ? options.edgeSettleMs : DEFAULT_EDGE_SETTLE_MS;
     const messages = [];
+    const byStableId = new Map();
+    const byMessageKey = new Map();
+    let sortedMessages = null;
+    let sortedMessagesDirty = true;
     let sequence = 0;
     let platform = options.platform || 'unknown';
     let conversationKey = options.conversationKey || '';
     let edgeState = createEdgeState();
     let lastCaptureAt = null;
+
+    function getStableIndexKey(message) {
+      if (!message || !message.stableId) return null;
+      return [
+        message.platform,
+        message.conversationKey,
+        message.stableId
+      ].join('|');
+    }
+
+    function getMessageIndexKey(message) {
+      if (!message || !message.messageKey) return null;
+      return [
+        message.platform,
+        message.conversationKey,
+        message.messageKey
+      ].join('|');
+    }
+
+    function indexMessage(message) {
+      const stableIndexKey = getStableIndexKey(message);
+      if (stableIndexKey) byStableId.set(stableIndexKey, message);
+
+      const messageIndexKey = getMessageIndexKey(message);
+      if (messageIndexKey) byMessageKey.set(messageIndexKey, message);
+    }
+
+    function clearIndexes() {
+      byStableId.clear();
+      byMessageKey.clear();
+    }
+
+    function markSortedMessagesDirty() {
+      sortedMessagesDirty = true;
+    }
+
+    function compareMessages(first, second) {
+      const firstOrder = isFiniteNumber(first.orderHint);
+      const secondOrder = isFiniteNumber(second.orderHint);
+
+      if (firstOrder && secondOrder && first.orderHint !== second.orderHint) {
+        return first.orderHint - second.orderHint;
+      }
+
+      if (firstOrder !== secondOrder) return firstOrder ? -1 : 1;
+      if (first.sequenceHint !== second.sequenceHint) return first.sequenceHint - second.sequenceHint;
+      return first.firstSeenAt - second.firstSeenAt;
+    }
+
+    function getOrderedMessages() {
+      if (!sortedMessages || sortedMessagesDirty) {
+        sortedMessages = [...messages].sort(compareMessages);
+        sortedMessagesDirty = false;
+      }
+
+      return sortedMessages;
+    }
 
     function makeMessage(input) {
       const plainText = String(input.plainText || input.markdown || '').trim();
@@ -167,16 +228,14 @@
 
     function findExisting(incoming) {
       if (incoming.stableId) {
-        const byStableId = messages.find(message =>
-          message.platform === incoming.platform &&
-          message.conversationKey === incoming.conversationKey &&
-          message.stableId === incoming.stableId
-        );
-        if (byStableId) return byStableId;
+        const stableIndexKey = getStableIndexKey(incoming);
+        const stableMatch = byStableId.get(stableIndexKey);
+        if (stableMatch) return stableMatch;
       }
 
-      const byMessageKey = messages.find(message => message.messageKey === incoming.messageKey);
-      if (byMessageKey) return byMessageKey;
+      const messageIndexKey = getMessageIndexKey(incoming);
+      const messageMatch = byMessageKey.get(messageIndexKey);
+      if (messageMatch) return messageMatch;
 
       return messages.find(message => {
         if (!isSameScope(message, incoming)) return false;
@@ -189,7 +248,7 @@
       }) || null;
     }
 
-    function captureMessage(input) {
+    function captureMessageInternal(input) {
       const incoming = makeMessage(input);
       if (!incoming) return null;
 
@@ -198,31 +257,55 @@
       lastCaptureAt = incoming.lastSeenAt;
 
       const existing = findExisting(incoming);
+      const previousOrderHint = existing ? existing.orderHint : null;
       const captured = existing ? mergeMessage(existing, incoming) : incoming;
 
-      if (!existing) messages.push(incoming);
-      reconcileConfirmedEdges(getBoundarySnapshot({ observedAt: incoming.lastSeenAt }), incoming.lastSeenAt);
-      return captured;
+      if (!existing) {
+        messages.push(incoming);
+        markSortedMessagesDirty();
+      } else if (previousOrderHint !== captured.orderHint) {
+        markSortedMessagesDirty();
+      }
+
+      indexMessage(captured);
+
+      return {
+        captured,
+        observedAt: incoming.lastSeenAt
+      };
+    }
+
+    function captureMessage(input) {
+      const result = captureMessageInternal(input);
+      if (!result) return null;
+
+      reconcileConfirmedEdges(getBoundarySnapshot({ observedAt: result.observedAt }), result.observedAt);
+      return result.captured;
     }
 
     function captureMessages(incomingMessages) {
       if (!Array.isArray(incomingMessages)) return [];
-      return incomingMessages.map(captureMessage).filter(Boolean);
+
+      const capturedMessages = [];
+      let observedAt = null;
+
+      incomingMessages.forEach(input => {
+        const result = captureMessageInternal(input);
+        if (!result) return;
+
+        capturedMessages.push(result.captured);
+        observedAt = result.observedAt;
+      });
+
+      if (capturedMessages.length > 0) {
+        reconcileConfirmedEdges(getBoundarySnapshot({ observedAt }), observedAt);
+      }
+
+      return capturedMessages;
     }
 
     function getMessages() {
-      return [...messages].sort((first, second) => {
-        const firstOrder = isFiniteNumber(first.orderHint);
-        const secondOrder = isFiniteNumber(second.orderHint);
-
-        if (firstOrder && secondOrder && first.orderHint !== second.orderHint) {
-          return first.orderHint - second.orderHint;
-        }
-
-        if (firstOrder !== secondOrder) return firstOrder ? -1 : 1;
-        if (first.sequenceHint !== second.sequenceHint) return first.sequenceHint - second.sequenceHint;
-        return first.firstSeenAt - second.firstSeenAt;
-      });
+      return getOrderedMessages().slice();
     }
 
     function getMessageToken(message) {
@@ -245,7 +328,7 @@
     }
 
     function getBoundarySnapshot(auxiliary = {}) {
-      const orderedMessages = getMessages();
+      const orderedMessages = getOrderedMessages();
       const count = orderedMessages.length;
       const first = count > 0 ? orderedMessages[0] : null;
       const last = count > 0 ? orderedMessages[count - 1] : null;
@@ -399,6 +482,9 @@
 
     function clear(nextScope = {}) {
       messages.length = 0;
+      clearIndexes();
+      sortedMessages = null;
+      sortedMessagesDirty = true;
       sequence = 0;
       platform = nextScope.platform || platform || 'unknown';
       conversationKey = nextScope.conversationKey || conversationKey || '';
