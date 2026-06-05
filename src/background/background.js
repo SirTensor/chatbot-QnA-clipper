@@ -102,6 +102,42 @@ function sendMessageToPopup(message) {
   });
 }
 
+function createClipboardNonce() {
+  if (crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
+function sendOffscreenClipboardMessage(message) {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage(message, (response) => {
+      if (chrome.runtime.lastError) {
+        console.error('Error sending offscreen clipboard message:', chrome.runtime.lastError);
+        resolve(null);
+        return;
+      }
+
+      resolve(response);
+    });
+  });
+}
+
+function scheduleOffscreenClipboardCleanup() {
+  setTimeout(async () => {
+    try {
+      if (await chrome.offscreen.hasDocument()) {
+        await chrome.offscreen.closeDocument();
+      }
+    } catch (closeError) {
+      console.warn('Error closing offscreen document:', closeError);
+    }
+  }, 500);
+}
+
 // New function to ensure the offscreen document exists
 async function ensureOffscreenDocumentExists() {
   // Check if we already have an offscreen document
@@ -122,32 +158,31 @@ async function copyToClipboardViaOffscreen(text) {
   try {
     // Ensure offscreen document exists
     await ensureOffscreenDocumentExists();
-    
-    // Send message to the offscreen document
-    return new Promise((resolve) => {
-      chrome.runtime.sendMessage({
-        action: 'copy-to-clipboard',
-        text: text
-      }, (response) => {
-        if (chrome.runtime.lastError) {
-          console.error('Error in offscreen clipboard operation:', chrome.runtime.lastError);
-          resolve(false);
-        } else {
-          resolve(response && response.success === true);
-        }
-        
-        // Schedule cleanup after copying
-        setTimeout(async () => {
-          try {
-            if (await chrome.offscreen.hasDocument()) {
-              await chrome.offscreen.closeDocument();
-            }
-          } catch (closeError) {
-            console.warn('Error closing offscreen document:', closeError);
-          }
-        }, 500);
+
+    try {
+      const nonce = createClipboardNonce();
+
+      const nonceResponse = await sendOffscreenClipboardMessage({
+        action: 'register-clipboard-nonce',
+        nonce: nonce
       });
-    });
+
+      if (!nonceResponse || nonceResponse.success !== true) {
+        console.error('Unable to register offscreen clipboard nonce:', nonceResponse && nonceResponse.error);
+        return false;
+      }
+
+      // Send message to the offscreen document
+      const response = await sendOffscreenClipboardMessage({
+        action: 'copy-to-clipboard',
+        text: text,
+        nonce: nonce
+      });
+
+      return response && response.success === true;
+    } finally {
+      scheduleOffscreenClipboardCleanup();
+    }
   } catch (error) {
     console.error('Error using offscreen API for clipboard:', error);
     return false;
