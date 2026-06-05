@@ -435,6 +435,10 @@
     "message": "Скопійовано кешовані повідомлення. Деякі повідомлення можуть бути відсутні. Щоб отримати повнішу копію, прокрутіть увесь чат один раз або запустіть повне сканування.",
     "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
   },
+  "warningCopiedCacheChanged": {
+    "message": "Деякі повідомлення завантажилися після копіювання. Скопіюйте ще раз, щоб включити їх.",
+    "description": "Warning shown when additional cached conversation content is found after a successful copy"
+  },
   "platformUnknown": {
     "message": "Невідомо",
     "description": "Fallback label for unknown platform"

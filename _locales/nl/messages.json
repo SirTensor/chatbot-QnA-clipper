@@ -435,6 +435,10 @@
     "message": "Berichten uit de cache gekopieerd. Sommige berichten ontbreken mogelijk. Voor een completere kopie scrol je één keer door de hele chat of voer je de volledige scan uit.",
     "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
   },
+  "warningCopiedCacheChanged": {
+    "message": "Er zijn enkele berichten geladen na het kopiëren. Kopieer opnieuw om ze mee te nemen.",
+    "description": "Warning shown when additional cached conversation content is found after a successful copy"
+  },
   "platformUnknown": {
     "message": "Onbekend",
     "description": "Fallback label for unknown platform"

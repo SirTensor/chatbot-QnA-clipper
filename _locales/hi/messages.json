@@ -435,6 +435,10 @@
     "message": "कैश किए गए संदेश कॉपी किए गए। कुछ संदेश छूट सकते हैं। अधिक पूर्ण कॉपी के लिए पूरी चैट को एक बार स्क्रॉल करें या पूरा स्कैन चलाएँ।",
     "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
   },
+  "warningCopiedCacheChanged": {
+    "message": "कॉपी करने के बाद कुछ संदेश लोड हुए। उन्हें शामिल करने के लिए फिर से कॉपी करें।",
+    "description": "Warning shown when additional cached conversation content is found after a successful copy"
+  },
   "platformUnknown": {
     "message": "अज्ञात",
     "description": "Fallback label for unknown platform"

@@ -435,6 +435,10 @@
     "message": "Se copiaron mensajes en caché. Es posible que falten algunos mensajes. Para una copia más completa, desplázate por todo el chat una vez o ejecuta el escaneo completo.",
     "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
   },
+  "warningCopiedCacheChanged": {
+    "message": "Algunos mensajes se cargaron después de copiar. Copia de nuevo para incluirlos.",
+    "description": "Warning shown when additional cached conversation content is found after a successful copy"
+  },
   "platformUnknown": {
     "message": "Desconocido",
     "description": "Fallback label for unknown platform"

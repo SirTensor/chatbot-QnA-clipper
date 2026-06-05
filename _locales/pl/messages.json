@@ -435,6 +435,10 @@
     "message": "Skopiowano wiadomości z pamięci podręcznej. Może brakować niektórych wiadomości. Aby uzyskać pełniejszą kopię, przewiń cały czat raz albo uruchom pełne skanowanie.",
     "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
   },
+  "warningCopiedCacheChanged": {
+    "message": "Niektóre wiadomości wczytały się po skopiowaniu. Skopiuj ponownie, aby je uwzględnić.",
+    "description": "Warning shown when additional cached conversation content is found after a successful copy"
+  },
   "platformUnknown": {
     "message": "Nieznane",
     "description": "Fallback label for unknown platform"

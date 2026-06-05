@@ -253,6 +253,20 @@ chrome.commands.onCommand.addListener((command) => {
 
 // Listen for messages from popup or content scripts
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'show-post-copy-cache-warning') {
+    (async () => {
+      const tabId = sender && sender.tab && sender.tab.id;
+      if (!tabId) {
+        sendResponse({ success: false });
+        return;
+      }
+
+      await showToast(tabId, getPostCopyCacheWarningMessage(), 5000, 'danger');
+      sendResponse({ success: true });
+    })();
+    return true;
+  }
+
   if (request.action === 'start-extraction') {
     // console.log('Received extraction request from popup');
 
@@ -454,7 +468,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 // Function to show a toast notification in the tab
-async function showToast(tabId, message, duration = 2000) {
+async function showToast(tabId, message, duration = 2000, variant = 'default') {
   // Check if tabId is valid before proceeding
   if (!tabId) {
     console.warn("Skipping toast: Invalid tabId provided.");
@@ -466,7 +480,7 @@ async function showToast(tabId, message, duration = 2000) {
 
     await chrome.scripting.executeScript({
       target: { tabId },
-      func: (msg, dur) => {
+      func: (msg, dur, toastVariant) => {
         try {
             // Create or get toast container
             let container = document.querySelector('.qa-clipper-toast-container');
@@ -484,7 +498,13 @@ async function showToast(tabId, message, duration = 2000) {
 
             // Create toast element
             const toast = document.createElement('div');
-            toast.className = 'qa-clipper-toast';
+            toast.className = toastVariant === 'danger'
+              ? 'qa-clipper-toast qa-clipper-toast-danger'
+              : 'qa-clipper-toast';
+            if (toastVariant === 'danger') {
+              toast.style.backgroundColor = 'rgba(127, 29, 29, 0.88)';
+              toast.style.boxShadow = '0 2px 8px rgba(69, 10, 10, 0.24)';
+            }
             toast.textContent = msg;
             container.appendChild(toast);
 
@@ -511,7 +531,7 @@ async function showToast(tabId, message, duration = 2000) {
             console.error("Error inside injected toast function:", e);
         }
       },
-      args: [message, duration]
+      args: [message, duration, variant]
     });
   } catch (error) {
     // Log error, especially if tab doesn't exist or scripting is denied
@@ -842,6 +862,31 @@ function getIncompleteMessage(platform) {
     : getMessage('warningCachedIncompleteManualScroll');
 }
 
+function getPostCopyCacheWarningMessage() {
+  const key = 'warningCopiedCacheChanged';
+  const message = getMessage(key);
+  return message === key
+    ? 'Some messages loaded after copying. Copy again to include them.'
+    : message;
+}
+
+function sendContentCopySnapshotMessage(tabId, response, copiedCleanly) {
+  if (!tabId || !response || !response.status || response.status.cacheSupported === false) return;
+
+  const action = copiedCleanly ? 'recordSuccessfulCopySnapshotV3' : 'clearCopySnapshotV3';
+  try {
+    chrome.tabs.sendMessage(tabId, {
+      action,
+      status: response.status
+    }, () => {
+      // The content script can be unavailable during navigation; the snapshot is best-effort.
+      if (chrome.runtime.lastError) return;
+    });
+  } catch (error) {
+    // Best-effort only.
+  }
+}
+
 async function copyExtractionResponse(tabId, response, formatSettings) {
   if (!response || !response.data || !Array.isArray(response.data.conversationTurns)) {
     throw new Error(getMessage('errorInvalidData'));
@@ -853,6 +898,7 @@ async function copyExtractionResponse(tabId, response, formatSettings) {
   if (copySuccess) {
     const mayBeIncomplete = response.status && response.status.mayBeIncomplete;
     const message = mayBeIncomplete ? getIncompleteMessage(response.data.platform) : getMessage('toastCopied');
+    sendContentCopySnapshotMessage(tabId, response, !mayBeIncomplete);
 
     await showToast(tabId, message, mayBeIncomplete ? 5000 : 2000);
     sendMessageToPopup({
@@ -866,6 +912,7 @@ async function copyExtractionResponse(tabId, response, formatSettings) {
   }
 
   await showToast(tabId, getMessage('toastClipboardFailed'), 4000);
+  sendContentCopySnapshotMessage(tabId, response, false);
   sendMessageToPopup({
     action: 'clipboard-failed',
     text: formattedText
@@ -1106,6 +1153,7 @@ async function extractQA() {
         const mayBeIncomplete = response.status && response.status.mayBeIncomplete;
         const incompleteMessage = getIncompleteMessage(response.data.platform);
         const successMessage = mayBeIncomplete ? incompleteMessage : getMessage('toastCopied');
+        sendContentCopySnapshotMessage(currentTabId, response, !mayBeIncomplete);
 
         await showToast(currentTabId, successMessage, mayBeIncomplete ? 5000 : 2000);
         sendMessageToPopup({
@@ -1117,6 +1165,7 @@ async function extractQA() {
       } else {
         // Clipboard failure handling (remains the same, but text might be larger)
         console.warn(`Clipboard copy failed for tab ${currentTabId}`);
+        sendContentCopySnapshotMessage(currentTabId, response, false);
         await showToast(currentTabId, getMessage('toastClipboardFailed'), 4000);
         sendMessageToPopup({
           action: 'clipboard-failed',

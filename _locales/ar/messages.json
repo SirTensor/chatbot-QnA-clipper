@@ -435,6 +435,10 @@
     "message": "تم نسخ الرسائل المخزنة مؤقتًا. قد تكون بعض الرسائل مفقودة. للحصول على نسخة أكثر اكتمالًا، مرّر عبر المحادثة كاملة مرة واحدة أو شغّل الفحص الكامل.",
     "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
   },
+  "warningCopiedCacheChanged": {
+    "message": "تم تحميل بعض الرسائل بعد النسخ. انسخ مرة أخرى لتضمينها.",
+    "description": "Warning shown when additional cached conversation content is found after a successful copy"
+  },
   "platformUnknown": {
     "message": "غير معروف",
     "description": "Fallback label for unknown platform"

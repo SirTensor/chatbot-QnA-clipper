@@ -9,7 +9,7 @@
   root.QAClipper.createCaptureCache = factory(root.QAClipper.messageNormalizer);
 })(typeof self !== 'undefined' ? self : this, function(normalizer) {
   const NEAR_ORDER_DISTANCE = 64;
-  const DEFAULT_EDGE_SETTLE_MS = 800;
+  const DEFAULT_EDGE_SETTLE_MS = 300;
 
   function isFiniteNumber(value) {
     return typeof value === 'number' && Number.isFinite(value);
@@ -53,6 +53,7 @@
   function createEdgeStatus() {
     return {
       phase: 'unknown',
+      source: null,
       candidate: null,
       confirmed: null,
       stableSince: null,
@@ -70,6 +71,7 @@
   function cloneEdgeStatus(edge) {
     return {
       phase: edge.phase,
+      source: edge.source,
       candidate: clonePlainObject(edge.candidate),
       confirmed: clonePlainObject(edge.confirmed),
       stableSince: edge.stableSince,
@@ -400,6 +402,7 @@
     function setCandidate(edgeName, snapshot, observedAt) {
       const edge = edgeState[edgeName];
       edge.phase = 'candidate';
+      edge.source = null;
       edge.candidate = clonePlainObject(snapshot);
       edge.confirmed = null;
       edge.stableSince = observedAt;
@@ -423,11 +426,71 @@
       if (observedAt - quietSince < edgeSettleMs) return;
 
       edge.phase = 'confirmed';
+      edge.source = 'settled';
       edge.confirmed = clonePlainObject({
         ...snapshot,
+        source: 'settled',
         confirmedAt: observedAt
       });
       edge.candidate = null;
+      edge.stableSince = quietSince;
+    }
+
+    function confirmKnownEdge(edgeName, snapshot, observedAt, source = 'known') {
+      const edge = edgeState[edgeName];
+      edge.phase = 'confirmed';
+      edge.source = source;
+      edge.confirmed = clonePlainObject({
+        ...snapshot,
+        source,
+        confirmedAt: observedAt
+      });
+      edge.candidate = null;
+      edge.stableSince = observedAt;
+    }
+
+    function confirmOptimisticEdge(edgeName, snapshot, observedAt) {
+      const edge = edgeState[edgeName];
+      if (edge.phase === 'confirmed' && edge.source !== 'optimistic') return;
+      if (edge.phase === 'confirmed' && sameEdgeFingerprint(edgeName, snapshot, edge.confirmed)) {
+        return;
+      }
+
+      edge.phase = 'confirmed';
+      edge.source = 'optimistic';
+      edge.confirmed = clonePlainObject({
+        ...snapshot,
+        source: 'optimistic',
+        confirmedAt: observedAt
+      });
+      edge.candidate = null;
+      edge.stableSince = observedAt;
+    }
+
+    function maybePromoteOptimisticEdge(edgeName, snapshot, observedAt) {
+      const edge = edgeState[edgeName];
+      if (edge.phase !== 'confirmed' || edge.source !== 'optimistic') return;
+      if (!sameEdgeFingerprint(edgeName, snapshot, edge.confirmed)) return;
+
+      const lastMutationAt = Math.max(
+        edge.confirmed && edge.confirmed.lastMutationAt ? edge.confirmed.lastMutationAt : 0,
+        snapshot && snapshot.lastMutationAt ? snapshot.lastMutationAt : 0
+      );
+      if (edge.confirmed) edge.confirmed.lastMutationAt = lastMutationAt || null;
+
+      const quietSince = Math.max(
+        edge.stableSince || observedAt,
+        lastMutationAt
+      );
+
+      if (observedAt - quietSince < edgeSettleMs) return;
+
+      edge.source = 'settled';
+      edge.confirmed = clonePlainObject({
+        ...snapshot,
+        source: 'settled',
+        confirmedAt: observedAt
+      });
       edge.stableSince = quietSince;
     }
 
@@ -474,10 +537,24 @@
       });
       const nearTop = state.nearTop ?? state.hasSeenTop;
       const nearBottom = state.nearBottom ?? state.hasSeenBottom;
+      const knownTopReached = state.knownTopReached === true;
+      const knownBottomReached = state.knownBottomReached === true;
+      const optimisticTopReached = state.optimisticTopReached === true;
 
       reconcileConfirmedEdges(snapshot, observedAt);
-      observeEdge('top', nearTop === true, snapshot, observedAt);
-      observeEdge('bottom', nearBottom === true, snapshot, observedAt);
+      if (knownTopReached) {
+        confirmKnownEdge('top', snapshot, observedAt, 'known-first-turn');
+      } else if (optimisticTopReached) {
+        confirmOptimisticEdge('top', snapshot, observedAt);
+        maybePromoteOptimisticEdge('top', snapshot, observedAt);
+      } else {
+        observeEdge('top', nearTop === true, snapshot, observedAt);
+      }
+      if (knownBottomReached) {
+        confirmKnownEdge('bottom', snapshot, observedAt, 'known-initial-bottom');
+      } else {
+        observeEdge('bottom', nearBottom === true, snapshot, observedAt);
+      }
     }
 
     function clear(nextScope = {}) {

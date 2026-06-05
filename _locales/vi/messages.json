@@ -435,6 +435,10 @@
     "message": "Đã sao chép tin nhắn trong bộ nhớ tạm. Một số tin nhắn có thể bị thiếu. Để có bản sao đầy đủ hơn, hãy cuộn qua toàn bộ cuộc trò chuyện một lần hoặc chạy Quét toàn bộ.",
     "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
   },
+  "warningCopiedCacheChanged": {
+    "message": "Một số tin nhắn đã tải sau khi sao chép. Hãy sao chép lại để bao gồm chúng.",
+    "description": "Warning shown when additional cached conversation content is found after a successful copy"
+  },
   "platformUnknown": {
     "message": "Không rõ",
     "description": "Fallback label for unknown platform"

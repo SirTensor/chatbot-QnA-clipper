@@ -435,6 +435,10 @@
     "message": "Önbelleğe alınan mesajlar kopyalandı. Bazı mesajlar eksik olabilir. Daha eksiksiz bir kopya için tüm sohbeti bir kez kaydırın veya Tam Tarama çalıştırın.",
     "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
   },
+  "warningCopiedCacheChanged": {
+    "message": "Bazı mesajlar kopyalamadan sonra yüklendi. Onları dahil etmek için tekrar kopyalayın.",
+    "description": "Warning shown when additional cached conversation content is found after a successful copy"
+  },
   "platformUnknown": {
     "message": "Bilinmiyor",
     "description": "Fallback label for unknown platform"

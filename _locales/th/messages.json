@@ -435,6 +435,10 @@
     "message": "คัดลอกข้อความที่แคชไว้แล้ว ข้อความบางส่วนอาจหายไป หากต้องการสำเนาที่สมบูรณ์ขึ้น ให้เลื่อนดูทั้งแชทหนึ่งครั้ง หรือเรียกใช้การสแกนทั้งหมด",
     "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
   },
+  "warningCopiedCacheChanged": {
+    "message": "มีบางข้อความโหลดหลังจากคัดลอก คัดลอกอีกครั้งเพื่อรวมข้อความเหล่านั้น",
+    "description": "Warning shown when additional cached conversation content is found after a successful copy"
+  },
   "platformUnknown": {
     "message": "ไม่ทราบ",
     "description": "Fallback label for unknown platform"

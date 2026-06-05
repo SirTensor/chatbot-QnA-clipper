@@ -435,6 +435,10 @@
     "message": "Ujumbe uliowekwa kwenye akiba umenakiliwa. Baadhi ya ujumbe unaweza kukosekana. Kwa nakala kamili zaidi, pitia gumzo lote mara moja au endesha Skani Kamili.",
     "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
   },
+  "warningCopiedCacheChanged": {
+    "message": "Baadhi ya ujumbe ulipakia baada ya kunakili. Nakili tena ili ujumuishe ujumbe huo.",
+    "description": "Warning shown when additional cached conversation content is found after a successful copy"
+  },
   "platformUnknown": {
     "message": "Haijulikani",
     "description": "Fallback label for unknown platform"

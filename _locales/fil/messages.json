@@ -435,6 +435,10 @@
     "message": "Nakopya ang mga naka-cache na mensahe. Maaaring may nawawalang ilang mensahe. Para sa mas kumpletong kopya, i-scroll ang buong chat nang isang beses o patakbuhin ang Full Scan.",
     "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
   },
+  "warningCopiedCacheChanged": {
+    "message": "May ilang mensaheng na-load pagkatapos makopya. Kopyahin muli para maisama ang mga ito.",
+    "description": "Warning shown when additional cached conversation content is found after a successful copy"
+  },
   "platformUnknown": {
     "message": "Hindi kilala",
     "description": "Fallback label for unknown platform"

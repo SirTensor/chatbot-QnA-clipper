@@ -435,6 +435,10 @@
     "message": "Pesan cache disalin. Beberapa pesan mungkin hilang. Untuk salinan yang lebih lengkap, gulir seluruh chat sekali atau jalankan Pindai Penuh.",
     "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
   },
+  "warningCopiedCacheChanged": {
+    "message": "Beberapa pesan dimuat setelah penyalinan. Salin lagi untuk menyertakannya.",
+    "description": "Warning shown when additional cached conversation content is found after a successful copy"
+  },
   "platformUnknown": {
     "message": "Tidak diketahui",
     "description": "Fallback label for unknown platform"

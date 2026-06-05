@@ -435,6 +435,10 @@
     "message": "已複製快取訊息。部分訊息可能遺漏。若要取得更完整的複本，請完整捲動一次聊天，或執行完整掃描。",
     "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
   },
+  "warningCopiedCacheChanged": {
+    "message": "複製後又載入了一些訊息。請再次複製以包含它們。",
+    "description": "Warning shown when additional cached conversation content is found after a successful copy"
+  },
   "platformUnknown": {
     "message": "未知",
     "description": "Fallback label for unknown platform"

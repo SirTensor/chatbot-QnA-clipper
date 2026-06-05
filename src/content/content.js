@@ -12,6 +12,10 @@
   const SCROLL_CAPTURE_THROTTLE_MS = 100;
   const MUTATION_CAPTURE_THROTTLE_MS = 80;
   const ROUTE_CHECK_MS = 1000;
+  const TOP_EDGE_THRESHOLD_PX = 200;
+  const BOTTOM_EDGE_THRESHOLD_PX = 350;
+  const FULL_SCAN_BOTTOM_EDGE_THRESHOLD_PX = 120;
+  const OPTIMISTIC_COPY_RECHECK_MS = 150;
   const FULL_SCAN_WAIT_MS = 320;
   const FULL_SCAN_MAX_STEPS = 180;
   const FULL_SCAN_MAX_MS = 90000;
@@ -29,6 +33,9 @@
     captureTimer: null,
     throttleTimer: null,
     lastPassiveCaptureAt: 0,
+    initialBottomCapturePending: true,
+    pendingCopySnapshot: null,
+    lastSuccessfulCopySnapshot: null,
     captureInProgress: false,
     pendingCapture: false,
     routeTimer: null,
@@ -52,6 +59,10 @@
     } catch (error) {
       return messageName;
     }
+  }
+
+  function isFiniteNumber(value) {
+    return typeof value === 'number' && Number.isFinite(value);
   }
 
   function getCache() {
@@ -119,6 +130,8 @@
       cache.clear({ platform, conversationKey });
       state.platform = platform;
       state.conversationKey = conversationKey;
+      state.initialBottomCapturePending = true;
+      clearCopySnapshots();
     }
   }
 
@@ -213,8 +226,8 @@
   function computeViewportState(scrollContainer, capturedCount) {
     const metrics = getScrollMetrics(scrollContainer);
     const distanceFromBottom = metrics.scrollHeight - metrics.scrollTop - metrics.clientHeight;
-    const nearTop = metrics.scrollTop <= 80;
-    const nearBottom = distanceFromBottom <= 120;
+    const nearTop = metrics.scrollTop <= TOP_EDGE_THRESHOLD_PX;
+    const nearBottom = distanceFromBottom <= BOTTOM_EDGE_THRESHOLD_PX;
 
     return {
       capturedCount,
@@ -229,6 +242,12 @@
       lastMutationAt: state.lastMutationAt,
       observedAt: Date.now()
     };
+  }
+
+  function isNearViewportEdge(scrollContainer) {
+    const metrics = getScrollMetrics(scrollContainer);
+    const distanceFromBottom = metrics.scrollHeight - metrics.scrollTop - metrics.clientHeight;
+    return metrics.scrollTop <= TOP_EDGE_THRESHOLD_PX || distanceFromBottom <= BOTTOM_EDGE_THRESHOLD_PX;
   }
 
   function queryAllSafe(root, selector) {
@@ -278,6 +297,22 @@
     }
 
     return !!(turnData.textContent || (turnData.contentItems && turnData.contentItems.length > 0));
+  }
+
+  function getChatGPTTurnNumber(turnElement) {
+    if (!turnElement || !turnElement.getAttribute) return null;
+
+    const testId = turnElement.getAttribute('data-testid');
+    const match = testId && String(testId).match(/^conversation-turn-(\d+)$/);
+    return match ? Number(match[1]) : null;
+  }
+
+  function isKnownFirstChatGPTUserTurn(platform, turnElement, turnData) {
+    return platform === 'chatgpt' &&
+      getChatGPTTurnNumber(turnElement) === 1 &&
+      turnData &&
+      turnData.role === 'user' &&
+      hasTurnContent('user', turnData);
   }
 
   function extractTurnData(platform, config, turnElement, turnIndex, settings) {
@@ -394,12 +429,14 @@
 
   function buildCapturedMessages(settings, source) {
     const platform = identifyPlatform();
-    if (!SUPPORTED_PLATFORMS.has(platform)) return { platform: platform || 'unknown', conversationKey: '', messages: [] };
+    if (!SUPPORTED_PLATFORMS.has(platform)) {
+      return { platform: platform || 'unknown', conversationKey: '', messages: [], knownTopReached: false };
+    }
 
     const config = getConfig(platform);
     const normalizer = getNormalizer();
     if (!config || !normalizer || !getCache()) {
-      return { platform, conversationKey: getConversationKey(platform), messages: [] };
+      return { platform, conversationKey: getConversationKey(platform), messages: [], knownTopReached: false };
     }
 
     const conversationKey = getConversationKey(platform);
@@ -409,11 +446,15 @@
     const scrollContainer = findScrollContainer(platform, root);
     const turnElements = findTurnElements(platform, config, root);
     const messages = [];
+    let knownTopReached = false;
 
     turnElements.forEach((turnElement, index) => {
       try {
         const turnData = extractTurnData(platform, config, turnElement, index, settings);
         if (!turnData) return;
+        if (isKnownFirstChatGPTUserTurn(platform, turnElement, turnData)) {
+          knownTopReached = true;
+        }
 
         const plainText = turnToPlainText(turnData);
         const normalizedText = normalizer.normalizeText(plainText);
@@ -438,7 +479,7 @@
       }
     });
 
-    return { platform, conversationKey, root, scrollContainer, messages };
+    return { platform, conversationKey, root, scrollContainer, messages, knownTopReached };
   }
 
   function messageToTurnData(message, turnIndex) {
@@ -465,6 +506,111 @@
     };
   }
 
+  function getCopyMessageToken(message, index) {
+    if (!message) return `missing:${index}`;
+    return message.stableId || message.messageKey || [
+      message.platform,
+      message.conversationKey,
+      message.role,
+      message.contentHash,
+      getCopyMessageOrder(message, index)
+    ].join('|');
+  }
+
+  function getCopyMessageOrder(message, index) {
+    if (!message) return index;
+    if (isFiniteNumber(message.orderHint)) return message.orderHint;
+    if (isFiniteNumber(message.orderKey)) return message.orderKey;
+    if (isFiniteNumber(message.sequenceHint)) return message.sequenceHint;
+    return index;
+  }
+
+  function createCopySnapshot(messages, status) {
+    if (!Array.isArray(messages) || messages.length === 0 || !status) return null;
+
+    const entries = messages.map((message, index) => {
+      const token = getCopyMessageToken(message, index);
+      return {
+        token,
+        order: getCopyMessageOrder(message, index),
+        contentHash: message.contentHash || null
+      };
+    });
+    const firstEntry = entries[0];
+    const lastEntry = entries[entries.length - 1];
+
+    return {
+      platform: status.platform || state.platform || identifyPlatform() || 'unknown',
+      conversationKey: status.conversationKey || state.conversationKey || '',
+      copiedAt: Date.now(),
+      copiedCount: entries.length,
+      firstOrder: firstEntry ? firstEntry.order : null,
+      lastOrder: lastEntry ? lastEntry.order : null,
+      tokenSet: new Set(entries.map(entry => entry.token)),
+      contentHashByToken: new Map(entries.map(entry => [entry.token, entry.contentHash])),
+      bottomConfirmed: status.hasSeenBottom === true
+    };
+  }
+
+  function clearCopySnapshots() {
+    state.pendingCopySnapshot = null;
+    state.lastSuccessfulCopySnapshot = null;
+  }
+
+  function findPostCopyStaleMessage(currentMessages) {
+    const snapshot = state.lastSuccessfulCopySnapshot;
+    if (!snapshot || !Array.isArray(currentMessages) || currentMessages.length === 0) return null;
+
+    const platform = state.platform || identifyPlatform() || 'unknown';
+    const conversationKey = state.conversationKey || (SUPPORTED_PLATFORMS.has(platform) ? getConversationKey(platform) : '');
+    if (snapshot.conversationKey !== conversationKey) return null;
+
+    for (let index = 0; index < currentMessages.length; index++) {
+      const message = currentMessages[index];
+      const token = getCopyMessageToken(message, index);
+      const previousContentHash = snapshot.contentHashByToken.get(token);
+
+      if (snapshot.tokenSet.has(token)) {
+        if (previousContentHash && message.contentHash && previousContentHash !== message.contentHash) {
+          return { reason: 'copied-message-updated', token };
+        }
+        continue;
+      }
+
+      const order = getCopyMessageOrder(message, index);
+      const isAfterCopiedBottom = snapshot.bottomConfirmed &&
+        isFiniteNumber(order) &&
+        isFiniteNumber(snapshot.lastOrder) &&
+        order > snapshot.lastOrder;
+
+      if (!isAfterCopiedBottom) {
+        return { reason: 'missing-message-found', token };
+      }
+    }
+
+    return null;
+  }
+
+  function notifyPostCopyStaleMessage(reason) {
+    state.lastSuccessfulCopySnapshot = null;
+
+    try {
+      chrome.runtime.sendMessage({
+        action: 'show-post-copy-cache-warning',
+        reason: reason && reason.reason
+      });
+    } catch (error) {
+      // The warning is best-effort; stale extension contexts can fail during navigation.
+    }
+  }
+
+  function checkPostCopySnapshot(currentMessages) {
+    const staleReason = findPostCopyStaleMessage(currentMessages);
+    if (staleReason) {
+      notifyPostCopyStaleMessage(staleReason);
+    }
+  }
+
   function composeCachedConversation(settings, options = {}) {
     if (!options.skipFinalCapture) {
       performCapture(settings, 'visible-dom');
@@ -476,6 +622,18 @@
     const cachedMessages = cache ? cache.getMessages() : [];
     const conversationTurns = cachedMessages.map((message, index) => messageToTurnData(message, index));
     const status = cache ? cache.getStatus() : getStatusSnapshot();
+    const responseStatus = {
+      ...status,
+      platform,
+      conversationKey,
+      copiedCount: conversationTurns.length,
+      cacheSupported: true,
+      fullScanAvailable: platform === 'chatgpt',
+      scanRunning: state.scan.running,
+      passiveEnabled: state.passiveEnabled
+    };
+
+    state.pendingCopySnapshot = createCopySnapshot(cachedMessages, responseStatus);
 
     return {
       data: {
@@ -483,20 +641,13 @@
         conversationKey,
         conversationTurns
       },
-      status: {
-        ...status,
-        platform,
-        conversationKey,
-        copiedCount: conversationTurns.length,
-        cacheSupported: true,
-        fullScanAvailable: platform === 'chatgpt',
-        scanRunning: state.scan.running,
-        passiveEnabled: state.passiveEnabled
-      }
+      status: responseStatus
     };
   }
 
   async function composeLiveConversation(settings) {
+    state.pendingCopySnapshot = null;
+
     const platform = identifyPlatform() || 'unknown';
     const conversationKey = SUPPORTED_PLATFORMS.has(platform) ? getConversationKey(platform) : '';
 
@@ -543,6 +694,18 @@
     }
 
     return composeCachedConversation(settings, options);
+  }
+
+  function hasOptimisticTop(status) {
+    const top = status && status.edgeState && status.edgeState.top;
+    return !!(top && top.phase === 'confirmed' && top.source === 'optimistic');
+  }
+
+  async function recheckOptimisticTopBeforeCopy(result, settings) {
+    if (!hasOptimisticTop(result && result.status)) return result;
+
+    await wait(OPTIMISTIC_COPY_RECHECK_MS);
+    return composeConversationForCopy(settings);
   }
 
   function disconnectObserver() {
@@ -598,7 +761,11 @@
   }
 
   function handleScroll() {
-    captureNowThrottled(SCROLL_CAPTURE_THROTTLE_MS);
+    if (isNearViewportEdge(state.scrollContainer)) {
+      performCapture(state.lastFormatSettings, 'passive-cache');
+    } else {
+      captureNowThrottled(SCROLL_CAPTURE_THROTTLE_MS);
+    }
     scheduleCapture(PASSIVE_DEBOUNCE_MS);
   }
 
@@ -636,8 +803,19 @@
 
       if (cache && result.messages.length > 0) {
         cache.captureMessages(result.messages);
-        cache.markViewportState(computeViewportState(result.scrollContainer, result.messages.length));
+        const viewportState = computeViewportState(result.scrollContainer, result.messages.length);
+        if (result.knownTopReached) {
+          viewportState.knownTopReached = true;
+        } else if (viewportState.nearTop) {
+          viewportState.optimisticTopReached = true;
+        }
+        if (state.initialBottomCapturePending && viewportState.nearBottom) {
+          viewportState.knownBottomReached = true;
+        }
+        state.initialBottomCapturePending = false;
+        cache.markViewportState(viewportState);
         const captureStatus = cache.getStatus();
+        checkPostCopySnapshot(cache.getMessages());
         if (source === 'passive-cache' && hasPendingEdgeSettlement(captureStatus)) {
           scheduleEdgeSettleCapture(captureStatus);
         }
@@ -810,7 +988,7 @@
 
         const metrics = getScrollMetrics(scrollContainer);
         const distanceFromBottom = metrics.scrollHeight - metrics.scrollTop - metrics.clientHeight;
-        if (distanceFromBottom <= 120) break;
+        if (distanceFromBottom <= FULL_SCAN_BOTTOM_EDGE_THRESHOLD_PX) break;
 
         const stepSize = Math.max(Math.floor(metrics.clientHeight * 0.75), 420);
         const nextScrollTop = Math.min(metrics.scrollTop + stepSize, metrics.scrollHeight - metrics.clientHeight);
@@ -911,7 +1089,8 @@
       (async () => {
         try {
         const settings = request.settings || state.lastFormatSettings || {};
-        const result = await composeConversationForCopy(settings);
+        let result = await composeConversationForCopy(settings);
+        result = await recheckOptimisticTopBeforeCopy(result, settings);
         if (!result.data.conversationTurns.length) {
           sendResponse({
             error: `No conversation content found on ${result.status.platform || 'the current page'}. Make sure messages have appeared in this tab.`,
@@ -951,7 +1130,36 @@
       if (cache) cache.clear({ platform, conversationKey });
       state.platform = platform;
       state.conversationKey = conversationKey;
+      state.initialBottomCapturePending = true;
+      clearCopySnapshots();
       sendResponse({ success: true, status: getStatusSnapshot() });
+      return true;
+    }
+
+    if (request.action === 'recordSuccessfulCopySnapshotV3') {
+      if (
+        request.status &&
+        request.status.cacheSupported !== false &&
+        request.status.mayBeIncomplete === false &&
+        state.pendingCopySnapshot &&
+        state.pendingCopySnapshot.conversationKey === request.status.conversationKey
+      ) {
+        state.lastSuccessfulCopySnapshot = state.pendingCopySnapshot;
+        state.pendingCopySnapshot = null;
+        const cache = getCache();
+        if (cache) checkPostCopySnapshot(cache.getMessages());
+        sendResponse({ success: true });
+        return true;
+      }
+
+      clearCopySnapshots();
+      sendResponse({ success: false });
+      return true;
+    }
+
+    if (request.action === 'clearCopySnapshotV3') {
+      clearCopySnapshots();
+      sendResponse({ success: true });
       return true;
     }
 

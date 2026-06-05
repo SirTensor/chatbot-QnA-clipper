@@ -435,6 +435,10 @@
     "message": "הודעות מהמטמון הועתקו. ייתכן שחלק מההודעות חסרות. להעתקה מלאה יותר, גלול פעם אחת בכל הצ׳אט או הפעל סריקה מלאה.",
     "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
   },
+  "warningCopiedCacheChanged": {
+    "message": "חלק מההודעות נטענו לאחר ההעתקה. יש להעתיק שוב כדי לכלול אותן.",
+    "description": "Warning shown when additional cached conversation content is found after a successful copy"
+  },
   "platformUnknown": {
     "message": "לא ידוע",
     "description": "Fallback label for unknown platform"

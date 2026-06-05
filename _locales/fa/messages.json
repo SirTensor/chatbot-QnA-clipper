@@ -435,6 +435,10 @@
     "message": "پیام‌های کش‌شده کپی شدند. ممکن است برخی پیام‌ها جا افتاده باشند. برای نسخه کامل‌تر، کل گفتگو را یک بار اسکرول کنید یا اسکن کامل را اجرا کنید.",
     "description": "Warning shown when copied cached messages may be incomplete on non-ChatGPT platforms"
   },
+  "warningCopiedCacheChanged": {
+    "message": "برخی پیام‌ها پس از کپی شدن بارگذاری شدند. برای شامل کردن آن‌ها دوباره کپی کنید.",
+    "description": "Warning shown when additional cached conversation content is found after a successful copy"
+  },
   "platformUnknown": {
     "message": "نامشخص",
     "description": "Fallback label for unknown platform"

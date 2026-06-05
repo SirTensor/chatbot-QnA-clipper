@@ -30,3 +30,8 @@
   white-space: normal;
   overflow-wrap: break-word;
 }
+
+.qa-clipper-toast-danger {
+  background-color: rgba(127, 29, 29, 0.88);
+  box-shadow: 0 2px 8px rgba(69, 10, 10, 0.24);
+}
