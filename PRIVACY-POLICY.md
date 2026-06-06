@@ -2,73 +2,76 @@
 
 **Effective Date:** June 5, 2026
 
-Thank you for using Chatbot Q&A Clipper (the "Extension"). This Privacy Policy describes how we handle information when you use our Extension. Your privacy is important to us, and we are committed to transparency about our practices.
+Thank you for using Chatbot Q&A Clipper (the "Extension"). This Privacy Policy explains what information the Extension handles and how that information is used.
 
-**Our Core Principle: Local Processing & No Data Collection**
+**Core Principle: Local Processing**
 
-The fundamental principle of this Extension is that **all processing occurs locally on your computer within your browser.**
+The Extension is designed to work locally in your browser.
 
-*   **We DO NOT collect, transmit, or persistently store any of your personal information.**
-*   **We DO NOT collect, transmit, or persistently store the content of your chatbot conversations.**
-*   **We DO NOT track your browsing activity across websites.**
-*   **We DO NOT share any data with the developer or any third parties.**
+*   The developer does not receive your chatbot conversation content.
+*   The Extension does not send your chatbot conversation content to remote servers.
+*   The Extension does not include tracking, analytics, advertising, or profiling code.
+*   The Extension does not sell, share, or transfer your data to third parties.
 
 **Information the Extension Handles Locally**
 
-While we don't *collect* data in the traditional sense (i.e., sending it to our servers), the Extension needs to *access* and *process* certain information locally on your device to function as intended. This includes:
+The Extension must access and process certain information on your device to provide its features.
 
-1.  **Website Content (From Active Chatbot Tabs):**
-    *   **What:** When you activate the Extension on a supported chatbot website (ChatGPT, Gemini, Claude, Grok), it needs to access the content of that specific webpage. This includes the text of the conversation (questions and answers), code snippets within the conversation, and the URLs of images displayed in the chat.
-    *   **Why:** This access is essential for the Extension's core purpose: to read the conversation data displayed on the page so it can be formatted according to your settings.
-    *   **How:** This information is read directly from the Document Object Model (DOM) of supported chatbot tabs. It is processed entirely within your browser and is **never sent externally.** When you use features such as preserving captured messages while scrolling or full scan, the Extension may keep captured conversation content temporarily in memory for that tab/session so it can assemble a more complete copy.
+1.  **Website Content From Supported Chatbot Tabs**
+    *   **What:** On supported chatbot websites (ChatGPT, Gemini, Claude, Grok), the Extension may read visible conversation content from the page. This can include user messages, assistant messages, code snippets, table content, math content, quoted text, file citation labels, and image URLs displayed in the chat.
+    *   **Why:** This access is required to extract the conversation and format it as Markdown according to your settings.
+    *   **How:** The Extension reads the page's Document Object Model (DOM) locally in your browser. Conversation content is not uploaded or sent externally. Where supported, features such as "Preserve while scrolling" and "Full Scan then Copy" may temporarily keep captured conversation content in memory for the current tab/session so the Extension can assemble a more complete copy.
 
-2.  **User Configuration Settings:**
-    *   **What:** The Extension stores your preferred formatting options (e.g., header level, label style, number format, image format preferences, custom image label, include platform name setting).
-    *   **Why:** To provide a consistent user experience and save you from reconfiguring the formatting options every time you use the Extension.
-    *   **How:** These settings are saved locally on your computer using the standard Chrome Storage API (`chrome.storage.local`). This data remains on your device and is **never transmitted externally.**
+2.  **User Configuration Settings**
+    *   **What:** The Extension stores your formatting and capture preferences, including header level, label style, number format, image URL format, custom image label, include platform name, file citation handling, quote mark handling, and preserve-while-scrolling preference.
+    *   **Why:** These settings let the Extension remember your preferred output format and capture behavior.
+    *   **How:** These settings are saved locally using Chrome's `chrome.storage.local` API. They are not synced by the Extension and are not sent externally.
+
+3.  **Clipboard Output**
+    *   **What:** When you trigger a copy action, the Extension places the formatted Markdown text on your system clipboard. If automatic clipboard access fails, the formatted text may be displayed in the popup's manual copy UI so you can copy it yourself.
+    *   **Why:** Copying formatted Markdown is the main purpose of the Extension.
+    *   **How:** Clipboard handling occurs locally through Chrome extension APIs.
 
 **How We Use the Handled Information**
 
-The information accessed and processed locally is used *solely* for the following purposes:
+Information handled by the Extension is used only to provide the Extension's user-facing features:
 
-*   **To Extract Conversation Data:** Reading the text, code, and image URLs from the active chatbot webpage.
-*   **To Temporarily Preserve Captured Messages:** Keeping captured conversation content in local browser memory for the current supported tab/session when needed for scrolling preservation or full scan.
-*   **To Format Content:** Applying your chosen formatting rules (header level, labels, numbering, image style) to the extracted data to create Markdown text.
-*   **To Copy to Clipboard:** Placing the final formatted Markdown text onto your system's clipboard when you explicitly trigger the copy function.
-*   **To Store Settings:** Saving your formatting preferences locally for future use.
+*   **To Extract Conversation Data:** Read conversation content from supported chatbot pages.
+*   **To Temporarily Preserve Captured Messages:** Keep captured messages in local browser memory for the current tab/session when needed for scrolling preservation or Full Scan.
+*   **To Format Content:** Apply your chosen Markdown formatting options.
+*   **To Copy to Clipboard:** Place the final formatted Markdown text on your system clipboard when you trigger copying.
+*   **To Store Settings:** Save your preferences locally for future use.
 
 **Data Storage**
 
-*   **Conversation Content:** The content of your chatbot conversations is **not persistently stored** by the Extension. It may exist temporarily in your browser's memory while the Extension extracts, formats, copies, or displays it in the manual copy UI. When preserving captured messages while scrolling or using full scan, captured conversation content may also be kept temporarily in memory for the current supported tab/session. This temporary cache is local to your browser, is not synced or uploaded, and is cleared when the tab/session lifecycle ends, when the conversation changes, or when you use the clear captured content control.
-*   **Configuration Settings:** Your formatting preferences are stored locally on your device using `chrome.storage.local` and persist until you change them or uninstall the Extension.
+*   **Conversation Content:** Conversation content is not persistently stored by the Extension. It may exist temporarily in browser memory while the Extension extracts, formats, copies, or displays it in the manual copy UI. Where supported, temporary captured content may also be kept in memory for the current tab/session when preserve-while-scrolling or Full Scan is used. This temporary cache is local to your browser, is not synced or uploaded, and is cleared when the tab/session lifecycle ends, when the conversation changes, or when you use the clear captured content control.
+*   **Configuration Settings:** Your preferences are stored locally using `chrome.storage.local` and persist until you change them, clear extension storage, or uninstall the Extension.
 
-**Data Sharing**
+**Data Sharing and Limited Use**
 
-**We do not share any data handled by the Extension with anyone.**
+We do not share data handled by the Extension with anyone.
 
-*   No conversation content is shared.
-*   No configuration settings are shared.
-*   No personally identifiable information is accessed or shared.
-*   All processing and data handling stay within your local browser environment.
+The Extension's use of information received from Chrome extension APIs is limited to providing its single-purpose functionality: extracting supported chatbot conversations and copying them as Markdown. The Extension does not use this information for advertising, analytics, tracking, profiling, model training, creditworthiness, lending, or resale.
 
 **Permissions Justification**
 
-The Extension requests certain permissions to perform its functions. Here's why they are needed:
+The Extension requests the following permissions:
 
-*   **`activeTab`:** To run the extension only when you explicitly invoke it on the currently active tab, ensuring it only acts when and where you intend. Allows checking the URL of the active tab.
-*   **`scripting`:** To inject the necessary code into the active chatbot webpage to read the conversation content and interact with the page's structure.
-*   **`host_permissions`:** To allow the `scripting` permission to function specifically on the supported chatbot websites (ChatGPT, Gemini, Claude, Grok) where the extension needs to operate.
-*   **`clipboardWrite`:** To copy the final formatted Markdown text to your system clipboard, which is the primary output of the Extension.
-*   **`offscreen`:** Required by Chrome Manifest V3 to enable the `clipboardWrite` functionality securely from the extension's background context.
-*   **`storage`:** To save your preferred formatting settings locally on your device.
+*   **`activeTab`:** To identify and act on the current tab when you use the Extension.
+*   **`scripting`:** To run the extraction code on supported chatbot pages.
+*   **`host_permissions`:** To allow extraction only on the supported chatbot websites (ChatGPT, Gemini, Claude, Grok).
+*   **`clipboardWrite`:** To copy the final formatted Markdown text to your system clipboard.
+*   **`offscreen`:** Required by Chrome Manifest V3 for clipboard writing from the Extension's background context.
+*   **`storage`:** To save your formatting and capture preferences locally.
+*   **`commands`:** To provide the configurable keyboard shortcut.
 
 **Security**
 
-We rely on the security measures built into the Google Chrome browser and its extension framework. Since all processing is local and no data is transmitted externally, the risks associated with data breaches on external servers are eliminated for this Extension.
+The Extension relies on the security protections built into Google Chrome and the Chrome extension framework. Because conversation processing stays local, the developer does not operate a server that stores your conversation content. You should still treat copied content carefully because it remains on your system clipboard until overwritten or cleared.
 
 **Changes to This Privacy Policy**
 
-We may update this Privacy Policy from time to time. We encourage you to review this policy periodically for any changes. Your continued use of the Extension after any modifications indicates your acceptance of the updated policy.
+We may update this Privacy Policy from time to time. We encourage you to review this policy periodically for any changes.
 
 **Contact Us**
 
