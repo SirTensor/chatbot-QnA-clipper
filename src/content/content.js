@@ -1077,6 +1077,12 @@
       if (cache) cache.clear({ platform: state.platform, conversationKey: state.conversationKey });
     });
 
+    window.addEventListener('pageshow', event => {
+      if (event.persisted && isCacheEnabledPlatform(identifyPlatform())) {
+        scheduleCapture(250);
+      }
+    });
+
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden && isCacheEnabledPlatform(identifyPlatform())) {
         scheduleCapture(250);

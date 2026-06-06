@@ -4,6 +4,9 @@
   "version": "1.7.0",
   "description": "__MSG_extensionDescription__",
   "default_locale": "en",
+  "externally_connectable": {
+    "ids": []
+  },
   "permissions": [
     "activeTab",
     "scripting",
