@@ -1023,7 +1023,7 @@
   // --- Main Configuration Object ---
   const claudeConfig = {
     platformName: 'Claude',
-    version: 14, // Normalize Claude assistant heading depth and keep full assistant response extraction
+    version: 15, // Extract code blocks inside user messages as fenced markdown
     selectors: {
       // Container for a single turn (user or assistant)
       turnContainer: 'div[data-test-render-count]',
@@ -1152,6 +1152,17 @@
           const blockquoteContent = processBlockquote(child, 0);
           if (blockquoteContent) {
             QAClipper.Utils.addTextItem(contentItems, blockquoteContent);
+          }
+        } else if (tagNameLower === 'pre' || (tagNameLower === 'div' && child.querySelector('pre.code-block__code'))) {
+          // User messages can contain fenced code blocks; the generic fallback drops
+          // them because shouldSkipElement skips standalone pre elements.
+          const codeItem = processCodeBlock(child);
+          if (codeItem && codeItem.type === 'code_block') {
+            const lang = codeItem.language || '';
+            const codeContent = (codeItem.content || '').trimEnd();
+            QAClipper.Utils.addTextItem(contentItems, '```' + lang + '\n' + codeContent + '\n```');
+          } else if (codeItem && codeItem.content) {
+            QAClipper.Utils.addTextItem(contentItems, codeItem.content);
           }
         } else if (tagNameLower.match(/^h[1-6]$/)) { // Handle headings h1-h6
             const level = parseInt(tagNameLower.substring(1), 10);
