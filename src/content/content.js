@@ -1,13 +1,13 @@
 // --- START OF FILE content.js ---
 
 (function() {
-  const CONTENT_VERSION = 4;
+  const CONTENT_VERSION = 5;
   if (window.qaClipperContentVersion >= CONTENT_VERSION) return;
   window.qaClipperContentVersion = CONTENT_VERSION;
   window.qaClipperInitialized = true;
 
   const SUPPORTED_PLATFORMS = new Set(['chatgpt', 'gemini', 'claude', 'grok']);
-  const CACHE_ENABLED_PLATFORMS = new Set(['chatgpt']);
+  const CACHE_ENABLED_PLATFORMS = new Set(['chatgpt', 'claude']);
   const PASSIVE_DEBOUNCE_MS = 300;
   const SCROLL_CAPTURE_THROTTLE_MS = 100;
   const MUTATION_CAPTURE_THROTTLE_MS = 80;
@@ -116,6 +116,13 @@
         if (shareMatch) return `chatgpt:share:${shareMatch[1]}`;
       }
 
+      if (platform === 'claude') {
+        const chatMatch = normalizedPath.match(/\/chat\/([^/]+)/);
+        const shareMatch = normalizedPath.match(/\/share\/([^/]+)/);
+        if (chatMatch) return `claude:chat:${chatMatch[1]}`;
+        if (shareMatch) return `claude:share:${shareMatch[1]}`;
+      }
+
       return `${platform || 'unknown'}:${url.origin}${normalizedPath}`;
     } catch (error) {
       return `${platform || 'unknown'}:${window.location.href.split(/[?#]/)[0]}`;
@@ -178,6 +185,11 @@
     if (platform === 'chatgpt') {
       const chatgptScrollRoot = document.querySelector('[data-scroll-root]');
       if (chatgptScrollRoot) return chatgptScrollRoot;
+    }
+
+    if (platform === 'claude') {
+      const claudeScrollRoot = document.querySelector('[data-autoscroll-container="true"]');
+      if (claudeScrollRoot) return claudeScrollRoot;
     }
 
     const firstTurn = root && findTurnElements(platform, getConfig(platform), root)[0];
@@ -315,6 +327,42 @@
       hasTurnContent('user', turnData);
   }
 
+  function getClaudeTurnPosition(turnElement) {
+    if (!turnElement || typeof turnElement.closest !== 'function') return null;
+
+    // Claude virtualizes turns as [data-index] wrappers holding
+    // [role="article"][aria-posinset][aria-setsize] elements.
+    const article = turnElement.closest('[aria-posinset]');
+    const posInSet = article ? Number(article.getAttribute('aria-posinset')) : NaN;
+    if (Number.isInteger(posInSet) && posInSet >= 1) {
+      const setSize = Number(article.getAttribute('aria-setsize'));
+      return {
+        index: posInSet - 1,
+        setSize: Number.isInteger(setSize) && setSize > 0 ? setSize : null
+      };
+    }
+
+    const wrapper = turnElement.closest('[data-index]');
+    const dataIndex = wrapper ? Number(wrapper.getAttribute('data-index')) : NaN;
+    if (Number.isInteger(dataIndex) && dataIndex >= 0) {
+      return { index: dataIndex, setSize: null };
+    }
+
+    return null;
+  }
+
+  function isKnownFirstClaudeTurn(platform, turnElement) {
+    if (platform !== 'claude') return false;
+    const position = getClaudeTurnPosition(turnElement);
+    return !!position && position.index === 0;
+  }
+
+  function isKnownLastClaudeTurn(platform, turnElement) {
+    if (platform !== 'claude') return false;
+    const position = getClaudeTurnPosition(turnElement);
+    return !!position && position.setSize !== null && position.index === position.setSize - 1;
+  }
+
   function extractTurnData(platform, config, turnElement, turnIndex, settings) {
     if (!config || !turnElement) return null;
     config.settings = settings || {};
@@ -397,6 +445,13 @@
       return messageId ? `chatgpt:${messageId}` : null;
     }
 
+    if (platform === 'claude') {
+      // Claude's own testids are role labels (e.g. "user-message") that repeat across
+      // turns, so the virtualized turn index is the only safe per-message identity.
+      const position = getClaudeTurnPosition(turnElement);
+      return position ? `claude:turn-${position.index}` : null;
+    }
+
     const stableAttribute = ['data-message-id', 'data-response-id', 'data-turn-id', 'data-testid', 'id']
       .map(attribute => turnElement.getAttribute(attribute))
       .find(Boolean);
@@ -411,6 +466,13 @@
 
     if (typeof stableOrderHint === 'number') {
       return stableOrderHint + (index / 1000);
+    }
+
+    if (platform === 'claude') {
+      const position = getClaudeTurnPosition(turnElement);
+      if (position) {
+        return (position.index * 100000) + (index / 1000);
+      }
     }
 
     if (!turnElement || typeof turnElement.getBoundingClientRect !== 'function') {
@@ -447,13 +509,18 @@
     const turnElements = findTurnElements(platform, config, root);
     const messages = [];
     let knownTopReached = false;
+    let knownBottomReached = false;
 
     turnElements.forEach((turnElement, index) => {
       try {
         const turnData = extractTurnData(platform, config, turnElement, index, settings);
         if (!turnData) return;
-        if (isKnownFirstChatGPTUserTurn(platform, turnElement, turnData)) {
+        if (isKnownFirstChatGPTUserTurn(platform, turnElement, turnData) ||
+            isKnownFirstClaudeTurn(platform, turnElement)) {
           knownTopReached = true;
+        }
+        if (isKnownLastClaudeTurn(platform, turnElement)) {
+          knownBottomReached = true;
         }
 
         const plainText = turnToPlainText(turnData);
@@ -479,7 +546,7 @@
       }
     });
 
-    return { platform, conversationKey, root, scrollContainer, messages, knownTopReached };
+    return { platform, conversationKey, root, scrollContainer, messages, knownTopReached, knownBottomReached };
   }
 
   function messageToTurnData(message, turnIndex) {
@@ -621,14 +688,14 @@
     const conversationKey = state.conversationKey || getConversationKey(platform);
     const cachedMessages = cache ? cache.getMessages() : [];
     const conversationTurns = cachedMessages.map((message, index) => messageToTurnData(message, index));
-    const status = cache ? cache.getStatus() : getStatusSnapshot();
+    const status = cache ? applyClaudeCompleteness(platform, cache.getStatus(), cache) : getStatusSnapshot();
     const responseStatus = {
       ...status,
       platform,
       conversationKey,
       copiedCount: conversationTurns.length,
       cacheSupported: true,
-      fullScanAvailable: platform === 'chatgpt',
+      fullScanAvailable: isCacheEnabledPlatform(platform),
       scanRunning: state.scan.running,
       passiveEnabled: state.passiveEnabled
     };
@@ -809,7 +876,7 @@
         } else if (viewportState.nearTop) {
           viewportState.optimisticTopReached = true;
         }
-        if (state.initialBottomCapturePending && viewportState.nearBottom) {
+        if (result.knownBottomReached || (state.initialBottomCapturePending && viewportState.nearBottom)) {
           viewportState.knownBottomReached = true;
         }
         state.initialBottomCapturePending = false;
@@ -915,6 +982,28 @@
     };
   }
 
+  function applyClaudeCompleteness(platform, status, cache) {
+    if (platform !== 'claude' || !cache || !status || status.mayBeIncomplete !== false || !(status.capturedCount > 0)) {
+      return status;
+    }
+
+    // Claude turn indexes are dense integers, so a hole between the confirmed edges
+    // means the user jumped across the virtualized list and middle turns never rendered.
+    const indexes = [];
+    cache.getMessages().forEach(message => {
+      const match = message.stableId && String(message.stableId).match(/^claude:turn-(\d+)$/);
+      if (match) indexes.push(Number(match[1]));
+    });
+
+    if (indexes.length === 0) return status;
+
+    const minIndex = Math.min(...indexes);
+    const maxIndex = Math.max(...indexes);
+    const hasIndexGap = minIndex > 0 || (maxIndex - minIndex + 1) > indexes.length;
+
+    return hasIndexGap ? { ...status, mayBeIncomplete: true } : status;
+  }
+
   function getStatusSnapshot() {
     const platform = identifyPlatform() || state.platform || 'unknown';
     const conversationKey = SUPPORTED_PLATFORMS.has(platform) ? getConversationKey(platform) : (state.conversationKey || '');
@@ -925,7 +1014,7 @@
       resetForCurrentConversation(platform, conversationKey);
     }
 
-    const cacheStatus = cache ? cache.getStatus() : {
+    const cacheStatus = cache ? applyClaudeCompleteness(platform, cache.getStatus(), cache) : {
       platform,
       conversationKey,
       capturedCount: 0,
@@ -942,7 +1031,7 @@
       conversationKey,
       passiveEnabled: cacheSupported && state.passiveEnabled,
       cacheSupported,
-      fullScanAvailable: platform === 'chatgpt',
+      fullScanAvailable: cacheSupported,
       scanRunning: state.scan.running
     };
   }
@@ -951,9 +1040,9 @@
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  async function runChatGPTFullScan(settings = state.lastFormatSettings) {
+  async function runFullScan(settings = state.lastFormatSettings) {
     const platform = identifyPlatform();
-    if (platform !== 'chatgpt') {
+    if (!isCacheEnabledPlatform(platform)) {
       return { success: false, error: getMessage('statusFullScanFailed'), status: getStatusSnapshot() };
     }
 
@@ -1020,7 +1109,7 @@
     }
   }
 
-  function stopChatGPTFullScan() {
+  function stopFullScan() {
     if (state.scan.running) {
       state.scan.cancelRequested = true;
       return { success: true, status: getStatusSnapshot() };
@@ -1170,7 +1259,7 @@
     }
 
     if (request.action === 'startChatGPTFullScan' || request.action === 'startChatGPTFullScanV3') {
-      runChatGPTFullScan(request.settings || state.lastFormatSettings || {})
+      runFullScan(request.settings || state.lastFormatSettings || {})
         .then(sendResponse)
         .catch(error => {
           console.error('Chatbot Clipper: Full Scan failed:', error);
@@ -1180,7 +1269,7 @@
     }
 
     if (request.action === 'stopChatGPTFullScan' || request.action === 'stopChatGPTFullScanV3') {
-      sendResponse(stopChatGPTFullScan());
+      sendResponse(stopFullScan());
       return true;
     }
 

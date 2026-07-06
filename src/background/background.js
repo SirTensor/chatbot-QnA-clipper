@@ -566,7 +566,7 @@ async function ensureContentScriptLoaded(tabId) {
             status.grokConfigLoaded &&
             status.messageNormalizerLoaded &&
             status.captureCacheLoaded &&
-            status.contentVersion >= 4) {
+            status.contentVersion >= 5) {
           // console.log(`All required scripts confirmed loaded on tab ${tabId}`);
           return true;
         } else {

@@ -262,7 +262,11 @@ function getPlatformDisplayName(platform) {
   return names[platform] || getMessage('platformUnknown');
 }
 
+let lastCaptureStatus = {};
+
 function updateCaptureStatusUI(status = {}) {
+  lastCaptureStatus = status;
+
   const capturePanel = document.querySelector('.capture-panel');
   const platformName = document.getElementById('platformName');
   const capturedCount = document.getElementById('capturedCount');
@@ -273,7 +277,8 @@ function updateCaptureStatusUI(status = {}) {
   const platform = status.platform || 'unknown';
   const count = Number(status.capturedCount || 0);
   const scanRunning = status.scanRunning === true;
-  const showCachePanel = platform === 'chatgpt' && status.cacheSupported !== false;
+  const showCachePanel = status.cacheSupported === true;
+  const fullScanAvailable = showCachePanel && status.fullScanAvailable !== false;
 
   if (capturePanel) {
     capturePanel.hidden = !showCachePanel;
@@ -284,11 +289,11 @@ function updateCaptureStatusUI(status = {}) {
   if (preserveToggle) preserveToggle.checked = status.passiveEnabled !== false;
 
   if (fullScanButton) {
-    fullScanButton.hidden = !showCachePanel || scanRunning;
+    fullScanButton.hidden = !fullScanAvailable || scanRunning;
   }
 
   if (stopScanButton) {
-    stopScanButton.hidden = !showCachePanel || !scanRunning;
+    stopScanButton.hidden = !fullScanAvailable || !scanRunning;
   }
 }
 
@@ -391,7 +396,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('fullScanButton').addEventListener('click', () => {
     updateStatus(getMessage('statusFullScanRunning'));
-    updateCaptureStatusUI({ platform: 'chatgpt', scanRunning: true, passiveEnabled: document.getElementById('preserveToggle').checked });
+    updateCaptureStatusUI({ ...lastCaptureStatus, scanRunning: true, passiveEnabled: document.getElementById('preserveToggle').checked });
 
     chrome.runtime.sendMessage({ action: 'start-full-scan' }, (response) => {
       if (chrome.runtime.lastError) {
