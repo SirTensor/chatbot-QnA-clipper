@@ -507,6 +507,13 @@
     const root = findConversationRoot(platform);
     const scrollContainer = findScrollContainer(platform, root);
     const turnElements = findTurnElements(platform, config, root);
+    // Claude share pages render every turn at once without the virtualizer; there,
+    // document order is the stable identity, while pixel offsets shift as media
+    // loads and would register the same turn again under a new order bucket.
+    const claudeStaticTurns = platform === 'claude' &&
+      turnElements.length > 0 &&
+      !turnElements.some(turnElement =>
+        turnElement.closest && turnElement.closest('[data-index], [aria-posinset]'));
     const messages = [];
     let knownTopReached = false;
     let knownBottomReached = false;
@@ -516,10 +523,12 @@
         const turnData = extractTurnData(platform, config, turnElement, index, settings);
         if (!turnData) return;
         if (isKnownFirstChatGPTUserTurn(platform, turnElement, turnData) ||
-            isKnownFirstClaudeTurn(platform, turnElement)) {
+            isKnownFirstClaudeTurn(platform, turnElement) ||
+            (claudeStaticTurns && index === 0)) {
           knownTopReached = true;
         }
-        if (isKnownLastClaudeTurn(platform, turnElement)) {
+        if (isKnownLastClaudeTurn(platform, turnElement) ||
+            (claudeStaticTurns && index === turnElements.length - 1)) {
           knownBottomReached = true;
         }
 
@@ -531,8 +540,11 @@
           platform,
           conversationKey,
           role: turnData.role,
-          stableId: getStableMessageId(platform, turnElement),
-          orderHint: getOrderHint(platform, turnElement, scrollContainer, index),
+          stableId: getStableMessageId(platform, turnElement) ||
+            (claudeStaticTurns ? `claude:static-turn-${index}` : null),
+          orderHint: claudeStaticTurns
+            ? index * 100000
+            : getOrderHint(platform, turnElement, scrollContainer, index),
           plainText,
           markdown: plainText,
           normalizedText,
