@@ -132,6 +132,15 @@
 
     <hr>
 
+    <div id="pageTestSettings" class="option-group" hidden>
+      <label for="pageTestControlsToggle" class="checkbox-row">
+        <span class="checkbox-text" data-i18n="pageTestSettingsLabel">Show test panel</span>
+        <input type="checkbox" id="pageTestControlsToggle" aria-describedby="pageTestSettingsHelp">
+      </label>
+      <p id="pageTestSettingsHelp" class="privacy-note" data-i18n="pageTestSettingsHelp">Show test buttons on supported chat sites. Off by default.</p>
+      <p id="pageTestSettingsError" class="privacy-note" role="status" hidden></p>
+    </div>
+
     <div class="option-group">
       <label data-i18n="keyboardShortcutLabel">Keyboard Shortcut:</label>
       <div id="currentShortcut" class="shortcut-display" data-i18n="shortcutLoading">Loading...</div>

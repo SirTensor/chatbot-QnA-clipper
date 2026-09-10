@@ -178,6 +178,36 @@ function setupHelpTooltips() {
 
 // --- Settings Management Functions ---
 
+async function setupPageTestControlsSetting() {
+  const group = document.getElementById('pageTestSettings');
+  const toggle = document.getElementById('pageTestControlsToggle');
+  const errorLabel = document.getElementById('pageTestSettingsError');
+  if (!group || !toggle || !errorLabel) return;
+  try {
+    const self = chrome.management && await chrome.management.getSelf();
+    if (!self || self.installType !== 'development') return;
+    const preferences = await chrome.storage.local.get('pageTestControlsEnabled');
+    toggle.checked = preferences.pageTestControlsEnabled === true;
+    group.hidden = false;
+    toggle.addEventListener('change', async () => {
+      const enabled = toggle.checked;
+      toggle.disabled = true;
+      errorLabel.hidden = true;
+      try {
+        await chrome.storage.local.set({ pageTestControlsEnabled: enabled });
+      } catch (error) {
+        toggle.checked = !enabled;
+        errorLabel.textContent = getMessage('pageTestSettingsSaveError');
+        errorLabel.hidden = false;
+      } finally {
+        toggle.disabled = false;
+      }
+    });
+  } catch (error) {
+    // Keep this development-only setting hidden if installation or storage lookup fails.
+  }
+}
+
 /**
  * Save format settings to storage whenever they change
  */
@@ -310,6 +340,7 @@ function refreshCaptureStatus() {
 
 // Load saved settings when popup opens
 document.addEventListener('DOMContentLoaded', () => {
+  setupPageTestControlsSetting();
   // Apply RTL direction if needed
   applyRTLDirection();
   // Apply i18n translations

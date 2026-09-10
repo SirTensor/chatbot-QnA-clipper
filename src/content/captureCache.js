@@ -96,7 +96,19 @@
     existing.source = incoming.source || existing.source;
     existing.stableId = existing.stableId || incoming.stableId || null;
 
-    if (isFiniteNumber(existing.orderHint) && isFiniteNumber(incoming.orderHint)) {
+    const incomingTurnNumber = incoming.turnData && incoming.turnData.sourceTurnNumber;
+    const hasCurrentChatGPTPosition = incoming.platform === 'chatgpt' &&
+      existing.stableId && existing.stableId === incoming.stableId &&
+      Number.isInteger(incomingTurnNumber) && incomingTurnNumber >= 0 &&
+      isFiniteNumber(incoming.orderHint);
+
+    if (hasCurrentChatGPTPosition) {
+      // Loading older ChatGPT history renumbers existing turns. Keeping the
+      // smallest historical position interleaves recent answers with early ones.
+      existing.orderHint = incoming.orderHint;
+      existing.orderKey = incoming.orderKey;
+      if (existing.turnData) existing.turnData.sourceTurnNumber = incomingTurnNumber;
+    } else if (isFiniteNumber(existing.orderHint) && isFiniteNumber(incoming.orderHint)) {
       existing.orderHint = Math.min(existing.orderHint, incoming.orderHint);
     } else if (!isFiniteNumber(existing.orderHint) && isFiniteNumber(incoming.orderHint)) {
       existing.orderHint = incoming.orderHint;

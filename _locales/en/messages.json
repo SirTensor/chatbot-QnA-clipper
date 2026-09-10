@@ -15,6 +15,39 @@
     "message": "Copy Q&A to Clipboard",
     "description": "Main action button text"
   },
+  "pageTestCopy": {
+    "message": "Test copy from this tab"
+  },
+  "pageTestReady": {
+    "message": "Ready to test this tab"
+  },
+  "pageTestSettingsLabel": {
+    "message": "Show test panel"
+  },
+  "pageTestSettingsHelp": {
+    "message": "Show test buttons on supported chat sites. Off by default."
+  },
+  "pageTestSettingsSaveError": {
+    "message": "Could not save the test panel setting. Please try again."
+  },
+  "pageTestToggle": {
+    "message": "Toggle test controls"
+  },
+  "pageTestReconnect": {
+    "message": "Reload this page after reloading the extension."
+  },
+  "pageTestFailed": {
+    "message": "Extraction did not complete."
+  },
+  "pageTestReload": {
+    "message": "Reload development extension"
+  },
+  "pageTestReloading": {
+    "message": "Reloading development extension…"
+  },
+  "pageTestReloaded": {
+    "message": "Reloading development extension. Refresh this page in a moment."
+  },
   "headerLevelLabel": {
     "message": "Header Level:",
     "description": "Label for header level selector"

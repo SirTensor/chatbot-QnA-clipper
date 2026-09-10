@@ -1,7 +1,7 @@
 // --- START OF FILE content.js ---
 
 (function() {
-  const CONTENT_VERSION = 5;
+  const CONTENT_VERSION = 6;
   if (window.qaClipperContentVersion >= CONTENT_VERSION) return;
   window.qaClipperContentVersion = CONTENT_VERSION;
   window.qaClipperInitialized = true;
@@ -375,6 +375,9 @@
       userAttachments: null,
       contentItems: null
     };
+    if (platform === 'chatgpt') {
+      turnData.sourceTurnNumber = getChatGPTTurnNumber(turnElement);
+    }
 
     if (role === 'user') {
       turnData.textContent = config.extractUserText(turnElement);
@@ -700,7 +703,7 @@
     const conversationKey = state.conversationKey || getConversationKey(platform);
     const cachedMessages = cache ? cache.getMessages() : [];
     const conversationTurns = cachedMessages.map((message, index) => messageToTurnData(message, index));
-    const status = cache ? applyClaudeCompleteness(platform, cache.getStatus(), cache) : getStatusSnapshot();
+    const status = cache ? applyCacheCompleteness(platform, cache.getStatus(), cache) : getStatusSnapshot();
     const responseStatus = {
       ...status,
       platform,
@@ -994,10 +997,28 @@
     };
   }
 
-  function applyClaudeCompleteness(platform, status, cache) {
-    if (platform !== 'claude' || !cache || !status || status.mayBeIncomplete !== false || !(status.capturedCount > 0)) {
+  function applyCacheCompleteness(platform, status, cache) {
+    if (!cache || !status || status.mayBeIncomplete !== false || !(status.capturedCount > 0)) {
       return status;
     }
+
+    if (platform === 'chatgpt') {
+      const messages = cache.getMessages();
+      const turnNumbers = messages.map(message => message.turnData && message.turnData.sourceTurnNumber);
+      // A viewport can briefly look like both edges while ChatGPT is restoring its
+      // virtualized scroll position. Numeric turn IDs still prove a missing prefix
+      // or middle, even if those viewport edges were already marked complete.
+      // ID-less fallback messages have no reliable position; do not infer one from
+      // their UUID or pixel order. Accept both zero- and one-based turn numbering.
+      if (!turnNumbers.every(number => Number.isInteger(number) && number >= 0)) return status;
+      const uniqueNumbers = new Set(turnNumbers);
+      const minNumber = Math.min(...turnNumbers);
+      const maxNumber = Math.max(...turnNumbers);
+      const hasIndexGap = minNumber > 1 || (maxNumber - minNumber + 1) > uniqueNumbers.size;
+      return hasIndexGap ? { ...status, mayBeIncomplete: true } : status;
+    }
+
+    if (platform !== 'claude') return status;
 
     // Claude turn indexes are dense integers, so a hole between the confirmed edges
     // means the user jumped across the virtualized list and middle turns never rendered.
@@ -1026,7 +1047,7 @@
       resetForCurrentConversation(platform, conversationKey);
     }
 
-    const cacheStatus = cache ? applyClaudeCompleteness(platform, cache.getStatus(), cache) : {
+    const cacheStatus = cache ? applyCacheCompleteness(platform, cache.getStatus(), cache) : {
       platform,
       conversationKey,
       capturedCount: 0,

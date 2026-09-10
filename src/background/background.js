@@ -10,6 +10,7 @@ importScripts('../shared/formatter.js');
 
 // Track the last shortcut trigger time to prevent duplicates
 let lastTriggerTime = 0;
+const pageTestOperations = new Map();
 
 // --- i18n Helper Function ---
 
@@ -253,6 +254,13 @@ chrome.commands.onCommand.addListener((command) => {
 
 // Listen for messages from popup or content scripts
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'get-page-test-support' || request.action === 'page-test-extraction') {
+    handlePageTestRequest(request, sender)
+      .then(sendResponse)
+      .catch(() => sendResponse({ success: false, enabled: false, error: 'Page test request failed' }));
+    return true;
+  }
+
   if (request.action === 'show-post-copy-cache-warning') {
     (async () => {
       const tabId = sender && sender.tab && sender.tab.id;
@@ -566,7 +574,7 @@ async function ensureContentScriptLoaded(tabId) {
             status.grokConfigLoaded &&
             status.messageNormalizerLoaded &&
             status.captureCacheLoaded &&
-            status.contentVersion >= 5) {
+            status.contentVersion >= 6) {
           // console.log(`All required scripts confirmed loaded on tab ${tabId}`);
           return true;
         } else {
@@ -608,7 +616,8 @@ async function ensureContentScriptLoaded(tabId) {
       'src/content/configs/geminiConfigs.js',
       'src/content/configs/claudeConfigs.js',
       'src/content/configs/grokConfigs.js',
-      'src/content/content.js'
+      'src/content/content.js',
+      'src/content/pageTestControls.js'
     ];
 
     const allScriptsToInject = contentScriptLoaded ? requiredScripts : manifestScripts;
@@ -825,8 +834,8 @@ async function ensureTabHasSupportedHostPermission(tab) {
   }
 }
 
-async function sendContentRequestToActiveTab(message) {
-  const tab = await getActiveWebTab();
+async function sendContentRequestToActiveTab(message, targetTabId) {
+  const tab = targetTabId === undefined ? await getActiveWebTab() : await chrome.tabs.get(targetTabId);
   await ensureTabHasSupportedHostPermission(tab);
   const scriptsLoaded = await ensureContentScriptLoaded(tab.id);
   if (!scriptsLoaded) {
@@ -834,7 +843,7 @@ async function sendContentRequestToActiveTab(message) {
   }
 
   const response = await new Promise((resolve, reject) => {
-    chrome.tabs.sendMessage(tab.id, message, (result) => {
+    chrome.tabs.sendMessage(tab.id, message, { frameId: 0 }, (result) => {
       if (chrome.runtime.lastError) {
         reject(chrome.runtime.lastError);
       } else {
@@ -844,6 +853,110 @@ async function sendContentRequestToActiveTab(message) {
   });
 
   return { tab, response };
+}
+
+function sanitizePageTestResult(result) {
+  const safe = { success: !!(result && result.success === true) };
+  if (!result) {
+    safe.error = getMessage('errorInvalidData');
+    return safe;
+  }
+  for (const key of ['message', 'error']) {
+    if (typeof result[key] === 'string') safe[key] = result[key].slice(0, 300);
+  }
+  for (const key of ['stopped', 'busy']) {
+    if (typeof result[key] === 'boolean') safe[key] = result[key];
+  }
+  if (result.status && typeof result.status === 'object') {
+    const status = {};
+    if (['chatgpt', 'claude', 'gemini', 'grok', 'unknown'].includes(result.status.platform)) {
+      status.platform = result.status.platform;
+    }
+    for (const key of ['capturedCount', 'copiedCount']) {
+      if (Number.isFinite(result.status[key]) && result.status[key] >= 0) status[key] = result.status[key];
+    }
+    for (const key of ['hasSeenTop', 'hasSeenBottom', 'mayBeIncomplete', 'isEmpty', 'passiveEnabled', 'cacheSupported', 'fullScanAvailable', 'scanRunning']) {
+      if (typeof result.status[key] === 'boolean') status[key] = result.status[key];
+    }
+    safe.status = status;
+  }
+  return safe;
+}
+
+async function getPageTestTarget(sender) {
+  if (!sender || sender.id !== chrome.runtime.id || sender.frameId !== 0 ||
+      !sender.tab || !Number.isInteger(sender.tab.id) || sender.tab.id < 0) {
+    throw new Error('Page test controls require a supported top-level extension content script');
+  }
+  // getSelf requires no management permission. Store builds and lookup failures stay disabled.
+  const self = chrome.management && await chrome.management.getSelf();
+  if (!self || self.installType !== 'development') throw new Error('Page test controls are available only in the unpacked development extension');
+  const preferences = await chrome.storage.local.get('pageTestControlsEnabled');
+  if (preferences.pageTestControlsEnabled !== true) throw new Error('Page test controls are disabled in extension settings');
+  const tab = await chrome.tabs.get(sender.tab.id);
+  if (!tab || !isSupportedTabUrl(tab.url) || !isSupportedTabUrl(sender.url) ||
+      new URL(tab.url).origin !== new URL(sender.url).origin) {
+    throw new Error(getMessage('errorUnsupportedPage'));
+  }
+  await ensureTabHasSupportedHostPermission(tab);
+  return tab;
+}
+
+async function handlePageTestRequest(request, sender) {
+  let tab;
+  try {
+    tab = await getPageTestTarget(sender);
+  } catch (error) {
+    if (request.action === 'get-page-test-support') return { enabled: false };
+    return { success: false, error: error.message || 'Page test controls are unavailable' };
+  }
+
+  const fullScanAvailable = ['chatgpt.com', 'chat.openai.com', 'claude.ai'].includes(new URL(tab.url).hostname);
+  if (request.action === 'get-page-test-support') {
+    return { enabled: true, version: chrome.runtime.getManifest().version, fullScanAvailable };
+  }
+  if (!['copy', 'full-scan', 'stop', 'reload'].includes(request.mode)) {
+    return { success: false, error: 'Unknown page test extraction mode' };
+  }
+  if (['full-scan', 'stop'].includes(request.mode) && !fullScanAvailable) {
+    return { success: false, error: 'Full scan is unavailable on this platform' };
+  }
+
+  const previous = pageTestOperations.get(tab.id);
+  if (request.mode !== 'stop' && previous && (previous.busy || Date.now() - previous.finishedAt < 500)) {
+    return { success: false, busy: true, error: 'Extraction is already running or was just completed' };
+  }
+  if (request.mode !== 'stop') pageTestOperations.set(tab.id, { busy: true });
+  try {
+    if (request.mode === 'reload') {
+      // Reply before unloading the worker so the page can show the reload instruction.
+      setTimeout(() => chrome.runtime.reload(), 500);
+      return { success: true, message: getMessage('pageTestReloaded') };
+    }
+    if (request.mode === 'copy') return sanitizePageTestResult(await extractQA(tab.id));
+    if (request.mode === 'stop') {
+      const { response } = await sendContentRequestToActiveTab({ action: 'stopChatGPTFullScanV3' }, tab.id);
+      return sanitizePageTestResult(response || { success: false, error: 'No stop response' });
+    }
+    const formatSettings = await getStoredFormatSettings();
+    const { response } = await sendContentRequestToActiveTab({
+      action: 'startChatGPTFullScanV3',
+      settings: formatSettings
+    }, tab.id);
+    if (!response || response.success === false) {
+      return sanitizePageTestResult({
+        success: false,
+        stopped: !!(response && response.stopped),
+        error: response && response.stopped ? getMessage('statusFullScanStopped') : (response && response.error) || getMessage('statusFullScanFailed'),
+        status: response && response.status
+      });
+    }
+    return sanitizePageTestResult(await copyExtractionResponse(tab.id, response, formatSettings));
+  } catch (error) {
+    return sanitizePageTestResult({ success: false, error: error.message || 'Page test extraction failed' });
+  } finally {
+    if (request.mode !== 'stop') pageTestOperations.set(tab.id, { busy: false, finishedAt: Date.now() });
+  }
 }
 
 async function savePassiveCaptureEnabled(enabled) {
@@ -932,13 +1045,15 @@ async function copyExtractionResponse(tabId, response, formatSettings) {
 }
 
 // Main extraction function - called when user triggers extraction
-async function extractQA() {
+async function extractQA(targetTabId) {
   let currentTabId = null; // Store tab ID for potential error reporting
   let tabUrl = null; // Store URL for context
 
   try {
     // Get the current active tab
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const tab = targetTabId === undefined
+      ? (await chrome.tabs.query({ active: true, currentWindow: true }))[0]
+      : await chrome.tabs.get(targetTabId);
     if (!tab || !tab.id) { // Ensure tab and tab.id exist
       console.error('No active tab found or tab has no ID');
        // Attempt to notify popup even without tab context
@@ -947,20 +1062,20 @@ async function extractQA() {
         success: false,
         message: getMessage('statusError', getMessage('errorNoActiveTab'))
       });
-      return; // Stop execution
+      return { success: false, error: getMessage('errorNoActiveTab') };
     }
     
     // ADDITIONAL VALIDATION CHECKS
     // Check if the URL exists and is a valid http/https URL
     if (!tab.url) {
       // console.log('Tab URL is missing - silently ignoring shortcut trigger');
-      return; // Silently stop execution without notification
+      return { success: false, error: getMessage('errorMissingUrl') };
     }
     
     // Check if URL uses http/https protocol (excludes chrome://, file://, etc.)
     if (!tab.url.startsWith('http:') && !tab.url.startsWith('https:')) {
       // console.log(`Non-web URL detected (${tab.url}) - silently ignoring shortcut trigger`);
-      return; // Silently stop execution without notification
+      return { success: false, error: getMessage('errorUnsupportedPage') };
     }
     
     currentTabId = tab.id; // Store the valid tab ID
@@ -970,7 +1085,7 @@ async function extractQA() {
     // Simple URL validation - just check URL exists and protocol is valid
     if (!tabUrl) {
       // console.log('Tab URL is missing - silently ignoring trigger.');
-      return;
+      return { success: false, error: getMessage('errorMissingUrl') };
     }
 
     // Basic protocol check
@@ -978,11 +1093,11 @@ async function extractQA() {
       const urlObject = new URL(tabUrl);
       if (!['http:', 'https:'].includes(urlObject.protocol)) {
         // console.log(`Unsupported protocol (${urlObject.protocol}) at ${tabUrl} - silently ignoring trigger.`);
-        return;
+        return { success: false, error: getMessage('errorUnsupportedPage') };
       }
     } catch (urlError) {
       // console.log(`URL parsing error, ignoring trigger for ${tabUrl}:`, urlError);
-      return;
+      return { success: false, error: getMessage('errorUnsupportedPage') };
     }
 
     // --- Check Host Permissions FIRST ---
@@ -999,7 +1114,7 @@ async function extractQA() {
         success: false,
         message: getMessage('errorUnsupportedPage')
       });
-      return; // Stop execution
+      return { success: false, error: getMessage('errorUnsupportedPage') };
     }
     // console.log(`Host permission granted for tab ${currentTabId}`);
     // --- End of Host Permissions Check ---
@@ -1015,7 +1130,7 @@ async function extractQA() {
           success: false,
           message: getMessage('errorScriptsNotLoaded')
         });
-        return; // Stop execution
+        return { success: false, error: getMessage('errorScriptsNotLoaded') };
       }
       // console.log(`Scripts confirmed loaded for tab ${currentTabId}`);
     } catch (scriptError) {
@@ -1031,7 +1146,7 @@ async function extractQA() {
           success: false,
           message: getMessage('toastUnsupportedSite')
         });
-        return; // Stop execution
+        return { success: false, error: getMessage('toastUnsupportedSite') };
       }
       
       // Handle other script errors
@@ -1042,7 +1157,7 @@ async function extractQA() {
         success: false,
         message: getMessage('statusError', scriptError.message || getMessage('errorScriptsNotLoaded'))
       });
-      return; // Stop execution
+      return { success: false, error: scriptError.message || getMessage('errorScriptsNotLoaded') };
     }
 
     // Get the format settings
@@ -1057,7 +1172,7 @@ async function extractQA() {
             chrome.tabs.sendMessage(currentTabId, {
               action: 'extractCachedConversationV3',
               settings: formatSettings // Pass settings to content script
-            }, (result) => {
+            }, { frameId: 0 }, (result) => {
                 if (chrome.runtime.lastError) {
                     reject(chrome.runtime.lastError);
                 } else {
@@ -1114,7 +1229,7 @@ async function extractQA() {
           message: getMessage('statusError', response.error)
         });
       }
-      return; // Stop execution
+      return { success: false, error: isNoContentError ? getMessage('toastNoConversation') : response.error, status: response.status };
     }
 
     // Check for empty conversation (valid structure but no content)
@@ -1128,7 +1243,7 @@ async function extractQA() {
         success: true,
         message: getMessage('toastNoConversationYet')
       });
-      return; // Stop execution but don't log as error
+      return { success: false, error: getMessage('toastNoConversationYet'), status: response.status };
     }
 
     // Ensure data is in the new expected format
@@ -1162,6 +1277,7 @@ async function extractQA() {
           message: successMessage,
           status: response.status
         });
+        return { success: true, message: successMessage, status: response.status };
       } else {
         // Clipboard failure handling (remains the same, but text might be larger)
         console.warn(`Clipboard copy failed for tab ${currentTabId}`);
@@ -1176,6 +1292,7 @@ async function extractQA() {
           success: false,
           message: getMessage('errorClipboardManual')
         });
+        return { success: false, error: getMessage('errorClipboardManual'), status: response.status };
       }
     } else {
       // Handle case where response structure is incorrect
@@ -1187,6 +1304,7 @@ async function extractQA() {
         success: false,
         message: invalidDataMessage
       });
+      return { success: false, error: invalidDataMessage };
     }
   } catch (error) {
     // Catch errors from the outer try block (e.g., tab query, script loading, communication)
@@ -1202,6 +1320,7 @@ async function extractQA() {
       success: false,
       message: getMessage('statusError', errorMessage)
     });
+    return { success: false, error: errorMessage };
   }
 }
 // --- END OF FILE background.js ---

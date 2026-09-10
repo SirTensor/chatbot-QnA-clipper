@@ -1,13 +1,21 @@
-// claudeConfig.js (v14 - Normalize Claude assistant heading depth, keep full assistant response extraction)
+// claudeConfig.js (v19 - Preserve mixed list order and exclude copy toolbars)
 
 (function() {
   // Initialization check to prevent re-running the script if already loaded
-  if (window.claudeConfig && window.claudeConfig.version >= 14) {
+  if (window.claudeConfig && window.claudeConfig.version >= 19) {
     // console.log("Claude config already initialized (v" + window.claudeConfig.version + "), skipping.");
     return;
   }
 
   // --- Helper Functions ---
+
+  function isDownloadRecommendationCard(element) {
+    return element && element.tagName.toLowerCase() === 'div' &&
+      element.classList.contains('font-sans') &&
+      element.classList.contains('border-strong') &&
+      element.classList.contains('bg-surface-3') &&
+      !!element.querySelector(':scope > div.border-b-0\\.5 a[href="/downloads"]');
+  }
 
   /**
    * Checks if an element is a Claude thinking/reasoning block that should be skipped.
@@ -135,12 +143,15 @@
                           element.classList.contains('katex-mathml') ||
                           element.classList.contains('katex-html');
 
-    // Skip table container divs (div.overflow-x-auto containing a table)
+    // Table wrappers change styling classes; the direct child table is the stable structure.
     const isTableContainer = tagNameLower === 'div' &&
-                            element.classList.contains('overflow-x-auto') &&
                             element.querySelector(':scope > table');
 
-    return tagNameLower === 'ul' ||
+    const isCopyToolbar = element.matches('div.sticky[class~="group-hover/copy:opacity-100"]') &&
+                          element.querySelector('button span[aria-hidden="true"]');
+
+    return isDownloadRecommendationCard(element) || isCopyToolbar ||
+           tagNameLower === 'ul' ||
            tagNameLower === 'ol' ||
            isStandalonePre || // Only skip standalone pre elements
            tagNameLower === 'table' || // Skip tables (handled separately)
@@ -194,6 +205,57 @@
 
     // Process only direct li children
     el.querySelectorAll(':scope > li').forEach(li => {
+      // Mixed blocks must stay in DOM order. The legacy path below groups nested
+      // lists, quotes, code and tables after all ordinary text in the item.
+      const hasMixedBlocks = Array.from(li.children).some(child =>
+        child.matches('ul, ol, blockquote, pre, table') ||
+        (child.tagName === 'DIV' && child.querySelector('pre.code-block__code, :scope > table')));
+      if (hasMixedBlocks) {
+        const marker = listType === 'ul' ? '-' : `${startNum + itemIndex}.`;
+        const itemLines = [];
+        const continuation = `${bqPrefix}${'    '.repeat(level + 1)}`;
+        let inlineBuffer = document.createElement('span');
+        const appendBlock = (text) => {
+          if (!text || !text.trim()) return;
+          const parts = text.trim().split('\n');
+          if (!itemLines.length) itemLines.push(`${bqPrefix}${indent}${marker} ${parts.shift()}`);
+          parts.forEach(line => itemLines.push(`${continuation}${line}`));
+        };
+        const flushInline = () => {
+          convertDelToMarkdown(inlineBuffer);
+          appendBlock(QAClipper.Utils.htmlToMarkdown(inlineBuffer, { skipElementCheck: shouldSkipElement }));
+          inlineBuffer = document.createElement('span');
+        };
+        Array.from(li.childNodes).forEach(node => {
+          const tag = node.nodeType === Node.ELEMENT_NODE ? node.tagName.toLowerCase() : '';
+          if (!/^(p|h[1-6]|ul|ol|blockquote|pre|table|div)$/.test(tag)) {
+            inlineBuffer.appendChild(node.cloneNode(true));
+            return;
+          }
+          flushInline();
+          if (tag === 'ul' || tag === 'ol') {
+            if (!itemLines.length) itemLines.push(`${bqPrefix}${indent}${marker}`);
+            const nested = processList(node, tag, level + 1, isWithinBlockquote, blockquoteLevel);
+            if (nested) itemLines.push(nested);
+          } else if (tag === 'blockquote') {
+            appendBlock(processBlockquote(node, 0));
+          } else if (tag === 'pre' || (tag === 'div' && node.querySelector('pre.code-block__code'))) {
+            const code = processCodeBlock(node);
+            if (code?.type === 'code_block') appendBlock('```' + (code.language || '') + '\n' + code.content + '\n```');
+            else if (code?.content) appendBlock(code.content);
+          } else if (tag === 'table' || (tag === 'div' && node.querySelector(':scope > table'))) {
+            appendBlock(processTableToMarkdown(tag === 'table' ? node : node.querySelector(':scope > table'))?.content);
+          } else {
+            const clone = node.cloneNode(true);
+            convertDelToMarkdown(clone);
+            appendBlock(QAClipper.Utils.htmlToMarkdown(clone, { skipElementCheck: shouldSkipElement }));
+          }
+        });
+        flushInline();
+        if (itemLines.length) lines.push(itemLines.join('\n'));
+        if (listType === 'ol') itemIndex++;
+        return;
+      }
       // Clone the li to manipulate it without affecting the original DOM
       const liClone = li.cloneNode(true);
 
@@ -244,8 +306,9 @@
         });
       }
 
-      // Find and process tables within the li (wrapped in div.overflow-x-auto)
-      const tableContainersInLi = Array.from(li.querySelectorAll(':scope > div.overflow-x-auto'));
+      // Find table wrappers by structure, including both old and current Claude layouts.
+      const tableContainersInLi = Array.from(li.querySelectorAll(':scope > div'))
+        .filter(container => container.querySelector(':scope > table'));
       let tablesContent = '';
 
       if (tableContainersInLi.length > 0) {
@@ -259,9 +322,10 @@
           }
 
           // Remove the table container from the clone to prevent duplicate processing
-          const tableContainersInClone = liClone.querySelectorAll(':scope > div.overflow-x-auto');
+          const tableContainersInClone = Array.from(liClone.querySelectorAll(':scope > div'))
+            .filter(container => container.querySelector(':scope > table'));
           if (tableContainersInClone.length > 0) {
-            const index = Array.from(li.querySelectorAll(':scope > div.overflow-x-auto')).indexOf(tableContainer);
+            const index = tableContainersInLi.indexOf(tableContainer);
             if (index >= 0 && index < tableContainersInClone.length) {
               liClone.removeChild(tableContainersInClone[index]);
             }
@@ -843,6 +907,7 @@
    * @param {Object} selectors - Selector configuration
    */
   function processContentElement(element, contentItems, selectors) {
+      if (isDownloadRecommendationCard(element)) return;
       const tagNameLower = element.tagName.toLowerCase();
       let item = null;
 
@@ -958,6 +1023,9 @@
       } else if (tagNameLower === 'ol') {
           const listMarkdown = processList(element, 'ol', 0);
           if (listMarkdown) contentItems.push({ type: 'text', content: listMarkdown });
+      } else if (tagNameLower === 'table') {
+          item = processTableToMarkdown(element);
+          if (item) contentItems.push(item);
       } else if (tagNameLower === 'pre') {
           // Check if the pre element contains a table first
           const tableElement = element.querySelector(selectors.tableElement);
@@ -986,9 +1054,9 @@
       } else if (tagNameLower === 'hr') { // Handle horizontal rules
           QAClipper.Utils.addTextItem(contentItems, '---');
       } else if (tagNameLower === 'div') {
-          // Check if this is a table container (div.overflow-x-auto containing a table)
+          // Recognize table wrappers without depending on changing scrolling classes.
           const tableElement = element.querySelector(':scope > table');
-          if (tableElement && element.classList.contains('overflow-x-auto')) {
+          if (tableElement) {
               // This is a table container - process the table
               item = processTableToMarkdown(tableElement);
               if (item) contentItems.push(item);
@@ -1023,7 +1091,7 @@
   // --- Main Configuration Object ---
   const claudeConfig = {
     platformName: 'Claude',
-    version: 15, // Extract code blocks inside user messages as fenced markdown
+    version: 19, // Preserve mixed list order and exclude code copy toolbars
     selectors: {
       // Container for a single turn (user or assistant)
       turnContainer: 'div[data-test-render-count]',
@@ -1034,7 +1102,7 @@
       userImageThumbnailContainer: 'div.group\\/thumbnail',
       userImageElement: 'img[alt]',
       userFileThumbnailContainer: 'div[data-testid="file-thumbnail"]',
-      userFileName: 'h3',
+      userFileName: 'h3, .text-footnote.line-clamp-2',
       userFileType: 'p',
       userFilePreviewContent: 'div.whitespace-pre-wrap',
 
@@ -1043,7 +1111,7 @@
       // Selector for the grid *inside* a tabindex div (used in v6 logic)
       assistantContentGridInTabindex: ':scope > div.grid-cols-1',
       // Selector for content elements *inside* the grid (used in v6 logic)
-      assistantContentElementsInGrid: ':scope > :is(p, ol, ul, pre, h1, h2, h3, h4, h5, h6, blockquote, div)',
+      assistantContentElementsInGrid: ':scope > :is(p, ol, ul, pre, h1, h2, h3, h4, h5, h6, blockquote, div, table)',
 
       // --- Content Block Selectors (within assistant turn) ---
       listItem: 'li',
@@ -1057,7 +1125,7 @@
       blockquoteContainer: 'blockquote',
       
       // --- Table Selectors ---
-      tableContainer: 'div.overflow-x-auto, pre.font-styrene', // Container divs or pre elements containing tables
+      tableContainer: 'div.md-table-scroll, div.overflow-x-auto, pre.font-styrene', // Container divs or pre elements containing tables
       tableElement: 'table', // The actual table element
 
       // --- Artifact (Interactive Block) Selectors ---
@@ -1101,6 +1169,12 @@
             // For whitespace-pre-wrap, we need to preserve the exact text including line breaks
             // First, clone the element to avoid modifying the original
             const clonedChild = child.cloneNode(true);
+
+            // Current user messages use br nodes as well as literal newlines.
+            // textContent omits br nodes, so preserve them before flattening.
+            clonedChild.querySelectorAll('br').forEach(br => {
+              br.replaceWith(document.createTextNode('\n'));
+            });
             
             // Replace inline code elements with markdown syntax
             const codeElements = clonedChild.querySelectorAll('code');

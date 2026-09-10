@@ -144,11 +144,22 @@ debug/
 builds/
 backups/
 
-# Ignore CLAUDE.md
-CLAUDE.md
+# Ignore AI IDE
+# CLAUDE.md
+# AGENTS.md
 
 # Ignore Claude Settings
 .claude/
 
 # Ignore Windsurf rules
 .windsurf
+
+# Local-only workspace files
+webstore/
+repomix*.*
+tests/
+release/
+
+# Local agent instruction entry points
+/AGENTS.override.md
+/CLAUDE.local.md

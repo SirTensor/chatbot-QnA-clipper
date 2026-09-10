@@ -15,6 +15,39 @@
     "message": "Q&A를 클립보드에 복사",
     "description": "Main action button text"
   },
+  "pageTestCopy": {
+    "message": "이 탭 추출 테스트"
+  },
+  "pageTestReady": {
+    "message": "현재 탭 추출 준비됨"
+  },
+  "pageTestSettingsLabel": {
+    "message": "테스트 패널 표시"
+  },
+  "pageTestSettingsHelp": {
+    "message": "지원하는 대화 사이트에 테스트 버튼을 표시합니다. 기본값은 꺼짐입니다."
+  },
+  "pageTestSettingsSaveError": {
+    "message": "테스트 패널 설정을 저장하지 못했습니다. 다시 시도해 주세요."
+  },
+  "pageTestToggle": {
+    "message": "테스트 버튼 접기 또는 펼치기"
+  },
+  "pageTestReconnect": {
+    "message": "확장을 새로고침했다면 이 페이지도 새로고침하세요."
+  },
+  "pageTestFailed": {
+    "message": "추출이 완료되지 않았습니다."
+  },
+  "pageTestReload": {
+    "message": "개발본 다시 불러오기"
+  },
+  "pageTestReloading": {
+    "message": "개발본을 다시 불러오는 중..."
+  },
+  "pageTestReloaded": {
+    "message": "개발본을 다시 불러옵니다. 잠시 후 이 페이지를 새로고침하세요."
+  },
   "headerLevelLabel": {
     "message": "헤더 레벨:",
     "description": "Label for header level selector"

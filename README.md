@@ -86,6 +86,17 @@ These options appear only on platforms where temporary capture preservation is s
 - **Clear captured content**: Clears the temporary captured-message cache for the current tab/session.
 - **Full Scan then Copy**: Scrolls through the current conversation, assembles captured messages, and copies the result where supported.
 
+### Optional Development Panel
+
+Unpacked installations can enable **Show test panel** in the popup to display
+**Clipper DEV** controls on supported conversation pages. It is off by default.
+Use the minus button to collapse the panel, or disable the setting to hide it.
+Chrome Web Store installations do not expose this setting or allow test actions.
+
+After source changes, reload the extension and refresh affected conversation pages.
+The panel also provides **Reload development extension**. Its messages currently
+support English and Korean; missing translations fall back to English.
+
 ## Keyboard Shortcut
 
 The default keyboard shortcut is **Alt+3**. You can customize this:

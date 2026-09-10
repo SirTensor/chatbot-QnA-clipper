@@ -1,11 +1,20 @@
-// chatgptConfigs.js (v38 - Silently skip assistant images before URL readiness)
+// chatgptConfigs.js (v40 - Support direct-button upload thumbnails)
 
 (function() {
     // Initialization check
-    // v38: Avoid extension error-page noise from transient ChatGPT image containers.
-    if (window.chatgptConfig && window.chatgptConfig.version >= 38) { return; }
+    // v40: Current upload images may be direct children of the rounded button.
+    if (window.chatgptConfig && window.chatgptConfig.version >= 40) { return; }
 
     // --- Helper Functions ---
+
+    function getMathMarkdown(element) {
+      const source = element.getAttribute('data-math-source') ||
+        element.querySelector('.katex-mathml annotation[encoding="application/x-tex"]')?.textContent;
+      if (!source || !source.trim()) return null;
+      const display = element.classList.contains('katex-display') || !!element.querySelector('.katex-display');
+      const delimiter = display ? '$$' : '$';
+      return `${delimiter}${source.trim()}${delimiter}`;
+    }
 
     function shouldSkipElement(element) { // Unchanged
       if (!element || element.nodeType !== Node.ELEMENT_NODE) return false;
@@ -172,6 +181,10 @@
      * @returns {string} - The markdown representation
      */
     function enhancedHtmlToMarkdown(element, options = {}) {
+        if (element.matches('[role="math"][data-math-source], span.katex-display, span.katex')) {
+            const markdown = getMathMarkdown(element);
+            if (markdown) return markdown;
+        }
         // Clone the element to avoid modifying the original
         const clone = element.cloneNode(true);
 
@@ -196,25 +209,12 @@
             }
         });
         
-        // Process KaTeX elements for LaTeX extraction FIRST (before heading processing)
-        const katexInlineElements = clone.querySelectorAll('span.katex');
-        katexInlineElements.forEach(katexEl => {
-            const mathML = katexEl.querySelector('.katex-mathml annotation[encoding="application/x-tex"]');
-            if (mathML) {
-                const latex = mathML.textContent.trim();
-                const replacementText = document.createTextNode(`$${latex}$`);
-                katexEl.parentNode.replaceChild(replacementText, katexEl);
-            }
-        });
-
-        const katexDisplayElements = clone.querySelectorAll('span.katex-display');
-        katexDisplayElements.forEach(katexEl => {
-            const mathML = katexEl.querySelector('.katex-mathml annotation[encoding="application/x-tex"]');
-            if (mathML) {
-                const latex = mathML.textContent.trim();
-                const replacementText = document.createTextNode(`$$${latex}$$`);
-                katexEl.parentNode.replaceChild(replacementText, katexEl);
-            }
+        // Replace outer math wrappers first so display formulas remain display math.
+        // Current ChatGPT removes MathML after rendering but retains the source attribute.
+        clone.querySelectorAll('[role="math"][data-math-source], span.katex-display, span.katex').forEach(mathEl => {
+            if (!clone.contains(mathEl)) return;
+            const markdown = getMathMarkdown(mathEl);
+            if (markdown) mathEl.replaceWith(document.createTextNode(markdown));
         });
 
         // Process headings to ensure they use markdown syntax (after KaTeX is already processed)
@@ -1033,28 +1033,11 @@
                  element.querySelectorAll('*').forEach(child => processedElements.add(child)); // processBlockquote handles children
                  handledSeparately = true;
              }
-             else if (tagNameLower === 'span' && element.classList.contains('katex-display')) {
+             else if (element.matches('[role="math"][data-math-source], span.katex-display, span.katex')) {
                  flushMdBlock();
                  if (processedElements.has(element)) return;
-                 // Handle standalone display math
-                 const mathML = element.querySelector('.katex-mathml annotation[encoding="application/x-tex"]');
-                 if (mathML) {
-                     const latex = mathML.textContent.trim();
-                     QAClipper.Utils.addTextItem(contentItems, `$$${latex}$$`);
-                 }
-                 processedElements.add(element);
-                 element.querySelectorAll('*').forEach(child => processedElements.add(child));
-                 handledSeparately = true;
-             }
-             else if (tagNameLower === 'span' && element.classList.contains('katex')) {
-                 flushMdBlock();
-                 if (processedElements.has(element)) return;
-                 // Handle standalone inline math
-                 const mathML = element.querySelector('.katex-mathml annotation[encoding="application/x-tex"]');
-                 if (mathML) {
-                     const latex = mathML.textContent.trim();
-                     QAClipper.Utils.addTextItem(contentItems, `$${latex}$`);
-                 }
+                 const markdown = getMathMarkdown(element);
+                 if (markdown) QAClipper.Utils.addTextItem(contentItems, markdown);
                  processedElements.add(element);
                  element.querySelectorAll('*').forEach(child => processedElements.add(child));
                  handledSeparately = true;
@@ -1243,14 +1226,14 @@
     // --- Main Configuration Object ---
     const chatgptConfig = {
       platformName: 'ChatGPT',
-      version: 38, // v38: Silently skip assistant image containers before URL readiness
+      version: 40, // v40: Direct-button upload thumbnails
       selectors: { // Updated selectors for new table structure
         turnContainer: 'article[data-testid^="conversation-turn-"], section[data-testid^="conversation-turn-"]',
         turnContainerFallback: 'div[data-message-author-role]', // Fallback for edge cases without article wrapper
         userMessageContainer: 'div[data-message-author-role="user"]',
         assistantMessageContainer: 'div[data-message-author-role="assistant"]',
         userText: 'div[data-message-author-role="user"] .whitespace-pre-wrap',
-        userImageContainer: 'div[data-message-author-role="user"] div.overflow-hidden.rounded-lg img[src]',
+        userImageContainer: 'div[data-message-author-role="user"] div.overflow-hidden.rounded-lg img[src], div[data-message-author-role="user"] button div.overflow-hidden[class*="rounded-"] > img.object-cover[src], div[data-message-author-role="user"] button.overflow-hidden[class*="rounded-"] > img.object-cover[src]',
         userFileContainer: 'div[data-message-author-role="user"] div[class*="group text-token-text-primary"]',
         userFileName: 'div.truncate.font-semibold',
         userFileType: 'div.text-token-text-secondary.truncate',
@@ -1274,6 +1257,7 @@
           div.markdown.prose > div[class*="_tableContainer_"],
           div.markdown.prose > span.katex-display,
           div.markdown.prose > span.katex,
+          div.markdown.prose > [role="math"][data-math-source],
           :scope > pre /* Pre directly under assistant container (less common) */
         `,
         assistantTextContainer: '.markdown.prose',
@@ -1391,7 +1375,8 @@
                   const labelFromDom = altText || ariaLabel || null;
                   // Upload previews wrap the image in a dialog-opening button and ship a localized placeholder alt
                   const isUploadPreviewThumb = !!imgElement.closest('button[aria-haspopup="dialog"]') ||
-                                               !!imgElement.closest('div.bg-token-main-surface-secondary');
+                                               !!imgElement.closest('div.bg-token-main-surface-secondary') ||
+                                               (imgElement.matches('img.object-cover') && !!imgElement.closest('button'));
                   const extractedContent = (!isUploadPreviewThumb && labelFromDom) ? labelFromDom : "User Uploaded Image";
                   try {
                       const absoluteSrc = new URL(src, window.location.origin).href;

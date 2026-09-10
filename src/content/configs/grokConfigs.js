@@ -1,12 +1,12 @@
-// --- Updated grokConfigs.js (v25 - Fix math display container extraction) ---
+// --- Updated grokConfigs.js (v31 - Preserve generated-image not-prose galleries) ---
 
 /**
  * Configuration for extracting Q&A data from Grok (grok.com)
- * Version: 25 (Fix math display container extraction)
+ * Version: 31 (Preserve generated-image not-prose galleries)
  */
 (function() {
   // Initialization check
-  if (window.grokConfig && window.grokConfig.version >= 25) { // Updated version check
+  if (window.grokConfig && window.grokConfig.version >= 31) { // Updated version check
     // console.log("Grok config already initialized (v" + window.grokConfig.version + "), skipping.");
     return;
   }
@@ -419,13 +419,31 @@
           const src = imgElement.getAttribute('src');
           if (src && !src.startsWith('data:') && !src.startsWith('blob:')) {
               try {
-                  const absoluteSrc = new URL(src, window.location.origin).href;
+                  const imageUrl = new URL(src, window.location.origin);
+                  if (!['http:', 'https:'].includes(imageUrl.protocol)) return;
+                  const absoluteSrc = imageUrl.href;
                   const altText = imgElement.getAttribute('alt')?.trim() || viewerLabel || "Image";
+                  const sourceLink = imgElement.closest('div[class~="group/image"]')?.querySelector('a[href]');
+                  let sourceUrl = null;
+                  let sourceLabel = null;
+                  if (sourceLink) {
+                    try {
+                      const source = new URL(sourceLink.getAttribute('href'), window.location.origin);
+                      if (['http:', 'https:'].includes(source.protocol)) {
+                        sourceUrl = source.href;
+                        sourceLabel = sourceLink.textContent?.trim() || source.hostname;
+                      }
+                    } catch (error) {
+                      // A transient source link must not discard a ready image.
+                    }
+                  }
                   images.push({
                       type: 'image',
                       src: absoluteSrc,
                       alt: altText,
-                      extractedContent: altText
+                      extractedContent: altText,
+                      sourceUrl,
+                      sourceLabel
                   });
               } catch (e) {
                   console.error("[Grok Extractor] Error processing image URL:", e);
@@ -948,6 +966,15 @@
         const tagName = node.tagName.toLowerCase();
 
         // *** Handle SPECIAL block elements first (they add their own newlines) ***
+        // Image cards can also carry not-prose; resolve them before code blocks,
+        // matching the top-level extraction order for images nested in paragraphs.
+        if (node.matches(selectors.assistantImageGrid)) {
+            const imageItems = processAssistantImageGrid(node);
+            return '\n' + imageItems.map(img => {
+                const source = img.sourceUrl ? `\n[${img.sourceLabel}](${img.sourceUrl})` : '';
+                return `[${img.alt}]: ${img.src}${source}`;
+            }).join('\n') + '\n';
+        }
         if (node.matches(selectors.assistantCodeBlockOuterContainer)) {
             const innerCodeContainer = node.querySelector(selectors.assistantCodeBlockInnerContainer);
             if (innerCodeContainer) {
@@ -960,11 +987,6 @@
                 }
             }
             return ''; // Skip if inner container not found or no code
-        }
-        if (node.matches(selectors.assistantImageGrid)) {
-            const imageItems = processAssistantImageGrid(node);
-            // Add newlines for separation.
-            return '\n' + imageItems.map(img => `[${img.alt}]: ${img.src}`).join('\n') + '\n';
         }
         if (tagName === 'ul' || tagName === 'ol') {
             const listData = processList(node, tagName);
@@ -1184,7 +1206,7 @@
   // --- Main Configuration Object ---
   const grokConfig = {
     platformName: 'Grok',
-    version: 25, // Updated config version - Fix math display container extraction
+    version: 31, // Preserve generated-image not-prose galleries
     selectors: {
       turnContainer: 'div.relative.group.flex.flex-col.justify-center[class*="items-"]',
       userMessageIndicator: '.items-end',
@@ -1196,6 +1218,8 @@
       userAttachmentImagePreviewDiv: 'div[style*="background-image"]',
       userAttachmentImageFigure: 'figure',
       userAttachmentImageElement: 'figure img',
+      currentUserAttachmentImageElement: ':scope > div.flex.flex-row.flex-wrap.justify-end > div[class~="group/chip"] > button > div.aspect-square > img.object-cover',
+      currentUserAttachmentButton: ':scope > div.flex.flex-row.flex-wrap.justify-end > div[class~="group/chip"] > button',
       userAttachmentFileIcon: 'figure svg.lucide[role="img"]',
       assistantContentContainer: 'div.response-content-markdown',
       assistantRelevantBlocks: ':scope > :is(p.break-words, h1, h2, h3, h4, h5, h6, ol, ul, div.not-prose, div.grid, div.table-container, div.py-2, blockquote, hr, span.katex-display, div.overflow-x-auto, div.relative:has(div.table-container))',
@@ -1204,8 +1228,8 @@
       assistantCodeBlockInnerContainer: ':scope > div.relative, div.not-prose > div.relative',
       assistantCodeBlockLang: ':scope > div.flex > span.font-mono.text-xs',
       assistantCodeBlockContent: ':scope > div[style*="display: block"] > code[style*="white-space: pre"]',
-      assistantImageGrid: 'div.grid',
-      assistantImageElement: 'img.object-cover.relative',
+      assistantImageGrid: 'div.grid, div[class~="group/grok-image"]',
+      assistantImageElement: 'img.object-cover.relative, div[class~="group/image"] img.object-contain',
       inlineCodeSpan: 'span.text-sm.px-1.rounded-sm.\\!font-mono',
       assistantTableContainer: 'div.table-container',
       assistantTable: 'table',
@@ -1303,10 +1327,47 @@
           }
         }
       });
+
+      // Current chips are siblings of the message bubble, with a button preview.
+      // Restrict this path to attachment chips so profile images are excluded.
+      turnElement.querySelectorAll(selectors.currentUserAttachmentImageElement).forEach(imgElement => {
+        const src = imgElement.getAttribute('src');
+        if (!src || !/^https?:\/\//i.test(src)) return;
+        const sourceUrl = src.includes('assets.grok.com') && src.includes('/preview-image')
+          ? getFullImageUrlFromPreview(src)
+          : src;
+        images.push({
+          type: 'image',
+          sourceUrl,
+          isPreviewOnly: true,
+          extractedContent: 'User Uploaded Image'
+        });
+      });
       
       return images;
     },
-    extractUserUploadedFiles: (turnElement) => { /* ... unchanged ... */ const files = []; const selectors = grokConfig.selectors; turnElement.querySelectorAll(selectors.userAttachmentChip).forEach(chip => { const fileIcon = chip.querySelector(selectors.userAttachmentFileIcon); const filenameElement = chip.querySelector(selectors.userAttachmentFilename); if (fileIcon && filenameElement && !chip.querySelector(selectors.userAttachmentImagePreviewDiv)) { const fileName = filenameElement.textContent?.trim(); if (fileName) { files.push({ type: 'file', fileName: fileName, fileType: 'File', isPreviewOnly: true, extractedContent: null }); } } }); return files; },
+    extractUserUploadedFiles: (turnElement) => {
+      const files = [];
+      const selectors = grokConfig.selectors;
+      const processedChips = new Set();
+      const addFile = (chip, filenameElement) => {
+        if (processedChips.has(chip) || chip.querySelector('img') ||
+            chip.querySelector(selectors.userAttachmentImagePreviewDiv)) return;
+        const fileName = filenameElement?.textContent?.trim();
+        if (!fileName) return;
+        files.push({ type: 'file', fileName, fileType: 'File', isPreviewOnly: true, extractedContent: null });
+        processedChips.add(chip);
+      };
+      turnElement.querySelectorAll(selectors.userAttachmentChip).forEach(chip => {
+        if (chip.querySelector(selectors.userAttachmentFileIcon)) {
+          addFile(chip, chip.querySelector(selectors.userAttachmentFilename));
+        }
+      });
+      turnElement.querySelectorAll(selectors.currentUserAttachmentButton).forEach(button => {
+        addFile(button.parentElement, button.querySelector('span.truncate'));
+      });
+      return files;
+    },
 
           /**
        * Extracts structured content items (text, code, images, lists, tables, blockquotes, interactive blocks) from an assistant's message bubble.
@@ -1339,16 +1400,38 @@
         addedElements.add(element);
       };
       const relevantSelector = selectors.assistantRelevantBlocks;
-      const nestedRelevantSelector = relevantSelector.replace(/:scope\\s*>\\s*/g, ''); // Allow nested blocks when no content container
+      const blockSelector = relevantSelector.replace(/:scope\s*>\s*/g, '');
+      const collectContentBlocks = (container) => {
+        Array.from(container.children).forEach(block => {
+          // Current Grok puts the entire answer inside two Streamdown wrappers.
+          // Unwrap those before matching relative table wrappers; otherwise an
+          // answer containing several tables can be reduced to its first table.
+          const isStreamdownRoot = block.matches('div.streamdown-chat-md');
+          const isStreamdownBody = container.matches('div.streamdown-chat-md') &&
+            block.tagName === 'DIV' && block.classList.contains('sd:space-y-4');
+          // not-prose is shared by code and generated-image galleries. Resolve
+          // the observed gallery before the generic code block classification.
+          const isGeneratedImageGallery = block.matches('div.not-prose') &&
+            !block.matches(selectors.assistantImageGrid) &&
+            block.querySelector('div[class~="group/grok-image"] > img.object-cover.relative');
+          if (isStreamdownRoot || isStreamdownBody || isGeneratedImageGallery) {
+            collectContentBlocks(block);
+          } else if (block.matches(blockSelector) || block.matches(selectors.assistantImageGrid)) {
+            addElement(block, 'content', container);
+          } else if (block.tagName === 'DIV' &&
+            block.querySelector('div[class~="group/grok-image"] > img.object-cover.relative')) {
+            // Generated images now sit inside plain wrappers rather than a grid.
+            // Follow only wrappers containing the observed generated-image card.
+            collectContentBlocks(block);
+          }
+        });
+      };
       
       directChildren.forEach(child => {
         // Check if this is a response-content-markdown container directly
         if (child.matches(selectors.assistantContentContainer)) {
           // Add all relevant blocks within this content container
-          const relevantBlocks = child.querySelectorAll(selectors.assistantRelevantBlocks);
-          relevantBlocks.forEach(block => {
-            addElement(block, 'content', child);
-          });
+          collectContentBlocks(child);
         }
         // Check if this child contains response-content-markdown containers (nested structure)
         // Use querySelectorAll to find ALL content containers (there may be multiple, e.g., before/after interactive blocks)
@@ -1356,10 +1439,7 @@
           const contentContainers = child.querySelectorAll(selectors.assistantContentContainer);
           contentContainers.forEach(contentContainer => {
             // Add all relevant blocks within each content container
-            const relevantBlocks = contentContainer.querySelectorAll(selectors.assistantRelevantBlocks);
-            relevantBlocks.forEach(block => {
-              addElement(block, 'content', contentContainer);
-            });
+            collectContentBlocks(contentContainer);
           });
           // Check if this child contains interactive blocks (like div.py-1)
           const interactiveBlocks = child.querySelectorAll(selectors.interactiveBlockContainer);
@@ -1372,11 +1452,7 @@
       // Fallback: capture content blocks directly under the bubble (only when no markdown container was found)
       // Prevents tables nested inside lists from being extracted twice/out of order when a container exists.
       if (!hasContentContainer || allElements.length === 0) {
-        const fallbackBlocks = new Set([
-          ...messageBubble.querySelectorAll(relevantSelector),
-          ...messageBubble.querySelectorAll(nestedRelevantSelector)
-        ]);
-        fallbackBlocks.forEach(block => addElement(block, 'content', messageBubble));
+        collectContentBlocks(messageBubble);
 
         const fallbackInteractiveBlocks = messageBubble.querySelectorAll(selectors.interactiveBlockContainer);
         fallbackInteractiveBlocks.forEach(block => addElement(block, 'interactive', messageBubble));
@@ -1427,7 +1503,12 @@
           if (block.matches(selectors.assistantImageGrid)) {
               // console.log("  -> Handling as Top-Level Image Grid");
               const imageItems = processAssistantImageGrid(block);
-              contentItems.push(...imageItems); // Add extracted image items
+              imageItems.forEach(imageItem => {
+                  contentItems.push(imageItem);
+                  if (imageItem.sourceUrl) {
+                      QAClipper.Utils.addTextItem(contentItems, `[${imageItem.sourceLabel}](${imageItem.sourceUrl})`);
+                  }
+              });
               processedElements.add(block);
               block.querySelectorAll('*').forEach(child => processedElements.add(child));
           }

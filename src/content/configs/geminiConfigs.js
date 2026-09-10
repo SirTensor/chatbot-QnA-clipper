@@ -1,9 +1,9 @@
-// geminiConfigs.js (v55 - Capture Gemini inline shared images)
+// geminiConfigs.js (v57 - Preserve current search and temporary generated images)
 
 (function() {
     // Initialization check
-    // v55: Capture inline-image attachments rendered on Gemini share pages
-    if (window.geminiConfig && window.geminiConfig.version >= 55) { return; }
+    // v57: Preserve image-only answers even when their image URL is temporary.
+    if (window.geminiConfig && window.geminiConfig.version >= 57) { return; }
 
     // --- Helper Functions ---
 
@@ -2002,7 +2002,7 @@
      */
     function processImage(el) {
         const captionSelector = geminiConfig.selectors.imageCaption || 'div.caption';
-        const imgSelector = geminiConfig.selectors.imageElementAssistant || 'img.image.loaded, img.inline-img.loaded, img.inline-img';
+        const imgSelector = geminiConfig.selectors.imageElementAssistant || 'img.image.loaded, img.inline-img.loaded, img.inline-img, img.hero-image';
         let imgElement = null, captionElement = null;
         const containerSelector = geminiConfig.selectors.imageContainerAssistant || 'single-image, inline-image';
 
@@ -2017,11 +2017,16 @@
 
         if (!imgElement) return null;
         const src = imgElement.getAttribute('src');
-        if (!src || src.startsWith('blob:') || src.startsWith('data:')) return null;
 
         let altText = captionElement ? captionElement.textContent?.trim() : null;
         if (!altText) altText = imgElement.getAttribute('alt')?.trim();
         if (!altText) altText = "Image";
+
+        // Generated images can exist only as a page-local blob. Keep the answer
+        // visible without exporting a dead URL or embedding image bytes in text.
+        if (!src || src.startsWith('blob:') || src.startsWith('data:')) {
+            return { type: 'text', content: `> [Image: ${altText.replace(/\s+/g, ' ')}]\n> (Preview only)` };
+        }
 
         const absoluteSrc = new URL(src, window.location.origin).href;
         return { type: 'image', src: absoluteSrc, alt: altText, extractedContent: altText };
@@ -2371,7 +2376,7 @@
     // --- Main Configuration Object ---
           const geminiConfig = {
         platformName: 'Gemini',
-        version: 55, // v55: Capture inline-image attachments on share pages
+        version: 57, // v57: Keep image-only answers with temporary sources
       selectors: {
         turnContainer: 'user-query, model-response, share-turn-viewer response-container',
         userMessageContainer: 'user-query', userText: '.query-text',
@@ -2382,7 +2387,7 @@
         relevantBlocks: 'p, h1, h2, h3, h4, h5, h6, ul, ol, code-block, single-image, inline-image, immersive-entry-chip, table, blockquote, response-element, hr, div.math-block',
         listItem: 'li',
         codeBlockContent: 'pre > code', codeBlockLangIndicator: 'div.code-block-decoration > span',
-        imageContainerAssistant: 'single-image, inline-image', imageElementAssistant: 'img.image.loaded, img.inline-img.loaded, img.inline-img', imageCaption: 'div.caption', imageElement: 'img',
+        imageContainerAssistant: 'single-image, inline-image', imageElementAssistant: 'img.image.loaded, img.inline-img.loaded, img.inline-img, img.hero-image', imageCaption: 'div.caption', imageElement: 'img',
         sideContainer: 'code-immersive-panel', sideContainerContent: '.view-line', sideContainerLangIndicator: 'data-mode-id',
         interactiveBlockContainer: 'immersive-entry-chip',
         interactiveBlockTitle: 'div[data-test-id="artifact-text"]',
