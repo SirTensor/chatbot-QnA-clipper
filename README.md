@@ -27,7 +27,7 @@ A Chrome extension that extracts and formats Q&A conversations from AI chatbot p
 You can install the extension directly from the [Chrome Web Store](https://chromewebstore.google.com/detail/pblpjemjhgflddhdajfkieakdmmellmh).
 
 ### Manual Installation
-1. Go to the [Releases page](https://github.com/SirTensor/chatbot-QnA-clipper/releases).
+1. Go to the [Releases page](https://github.com/SirTensor/chatbot-QnA-clipper/releases/latest).
 2. From the latest release's "Assets" section, download the distribution `.zip` file (e.g., `chatbot-clipper-v1.x.x.zip`).
 3. Unzip the downloaded file.
 4. Open Chrome and navigate to `chrome://extensions/`.
