@@ -1,8 +1,8 @@
-// claudeConfig.js (v19 - Preserve mixed list order and exclude copy toolbars)
+// claudeConfig.js (v20 - Quietly skip pending response containers)
 
 (function() {
   // Initialization check to prevent re-running the script if already loaded
-  if (window.claudeConfig && window.claudeConfig.version >= 19) {
+  if (window.claudeConfig && window.claudeConfig.version >= 20) {
     // console.log("Claude config already initialized (v" + window.claudeConfig.version + "), skipping.");
     return;
   }
@@ -1091,7 +1091,7 @@
   // --- Main Configuration Object ---
   const claudeConfig = {
     platformName: 'Claude',
-    version: 19, // Preserve mixed list order and exclude code copy toolbars
+    version: 20, // Pending response containers are a normal loading state
     selectors: {
       // Container for a single turn (user or assistant)
       turnContainer: 'div[data-test-render-count]',
@@ -1321,7 +1321,7 @@
       const assistantContainer = turnElement.querySelector(selectors.assistantMessageContainer);
       
       if (!assistantContainer) {
-          console.warn("[Claude Extractor v8] Assistant container not found");
+          // The response may not be mounted yet; capture retries on DOM changes.
           return contentItems;
       }
 

@@ -1,9 +1,9 @@
-// geminiConfigs.js (v58 - Keep Canvas artifacts separate from conversation responses)
+// geminiConfigs.js (v59 - Treat pending response markup as a normal loading state)
 
 (function() {
     // Initialization check
-    // v58: Do not cache prerendered Canvas content as the surrounding response.
-    if (window.geminiConfig && window.geminiConfig.version >= 58) { return; }
+    // v59: Passive capture may run before response Markdown is mounted.
+    if (window.geminiConfig && window.geminiConfig.version >= 59) { return; }
 
     // --- Helper Functions ---
 
@@ -2376,7 +2376,7 @@
     // --- Main Configuration Object ---
           const geminiConfig = {
         platformName: 'Gemini',
-        version: 58, // Keep Canvas artifacts separate from conversation responses
+        version: 59, // Quietly skip responses whose Markdown is not ready
       selectors: {
         turnContainer: 'user-query, model-response, share-turn-viewer response-container',
         userMessageContainer: 'user-query', userText: '.query-text',
@@ -2620,7 +2620,9 @@
               contentArea = findResponseMarkdown(turnElement, geminiConfig.selectors.assistantContentArea);
           }
           
-          if (!contentArea) { console.warn("[Extractor v52] Gemini markdown content area not found."); return []; }
+          // Loading, thinking-only, and Canvas-only prerender states have no
+          // response Markdown yet. The observer retries when the DOM changes.
+          if (!contentArea) return [];
 
           // v32: Use querySelectorAll to find all potentially relevant elements, regardless of nesting
           const relevantElements = Array.from(contentArea.querySelectorAll(geminiConfig.selectors.relevantBlocks));

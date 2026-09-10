@@ -1,12 +1,12 @@
-// --- Updated grokConfigs.js (v31 - Preserve generated-image not-prose galleries) ---
+// --- Updated grokConfigs.js (v32 - Quietly skip pending response bubbles) ---
 
 /**
  * Configuration for extracting Q&A data from Grok (grok.com)
- * Version: 31 (Preserve generated-image not-prose galleries)
+ * Version: 32 (Quietly skip pending response bubbles)
  */
 (function() {
   // Initialization check
-  if (window.grokConfig && window.grokConfig.version >= 31) { // Updated version check
+  if (window.grokConfig && window.grokConfig.version >= 32) { // Updated version check
     // console.log("Grok config already initialized (v" + window.grokConfig.version + "), skipping.");
     return;
   }
@@ -1206,7 +1206,7 @@
   // --- Main Configuration Object ---
   const grokConfig = {
     platformName: 'Grok',
-    version: 31, // Preserve generated-image not-prose galleries
+    version: 32, // Pending response bubbles are a normal loading state
     selectors: {
       turnContainer: 'div.relative.group.flex.flex-col.justify-center[class*="items-"]',
       userMessageIndicator: '.items-end',
@@ -1383,7 +1383,7 @@
       // Find the message bubble within the turn element
       const messageBubble = turnElement.querySelector(selectors.messageBubble);
       if (!messageBubble) {
-        console.warn("[Grok Extractor] Assistant message bubble not found.");
+        // The bubble may not be mounted yet; capture retries on DOM changes.
         return [];
       }
       
