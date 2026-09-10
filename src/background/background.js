@@ -574,7 +574,7 @@ async function ensureContentScriptLoaded(tabId) {
             status.grokConfigLoaded &&
             status.messageNormalizerLoaded &&
             status.captureCacheLoaded &&
-            status.contentVersion >= 6) {
+            status.contentVersion >= 7) {
           // console.log(`All required scripts confirmed loaded on tab ${tabId}`);
           return true;
         } else {
@@ -911,7 +911,7 @@ async function handlePageTestRequest(request, sender) {
     return { success: false, error: error.message || 'Page test controls are unavailable' };
   }
 
-  const fullScanAvailable = ['chatgpt.com', 'chat.openai.com', 'claude.ai'].includes(new URL(tab.url).hostname);
+  const fullScanAvailable = ['chatgpt.com', 'chat.openai.com', 'claude.ai', 'gemini.google.com', 'grok.com'].includes(new URL(tab.url).hostname);
   if (request.action === 'get-page-test-support') {
     return { enabled: true, version: chrome.runtime.getManifest().version, fullScanAvailable };
   }

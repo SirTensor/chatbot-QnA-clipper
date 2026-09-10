@@ -1,13 +1,13 @@
 // --- START OF FILE content.js ---
 
 (function() {
-  const CONTENT_VERSION = 6;
+  const CONTENT_VERSION = 7;
   if (window.qaClipperContentVersion >= CONTENT_VERSION) return;
   window.qaClipperContentVersion = CONTENT_VERSION;
   window.qaClipperInitialized = true;
 
   const SUPPORTED_PLATFORMS = new Set(['chatgpt', 'gemini', 'claude', 'grok']);
-  const CACHE_ENABLED_PLATFORMS = new Set(['chatgpt', 'claude']);
+  const CACHE_ENABLED_PLATFORMS = new Set(['chatgpt', 'claude', 'gemini', 'grok']);
   const PASSIVE_DEBOUNCE_MS = 300;
   const SCROLL_CAPTURE_THROTTLE_MS = 100;
   const MUTATION_CAPTURE_THROTTLE_MS = 80;
@@ -43,6 +43,8 @@
     lastFormatSettings: {},
     lastUrl: window.location.href,
     lastMutationAt: 0,
+    elementIds: new WeakMap(),
+    nextElementId: 0,
     scan: {
       running: false,
       cancelRequested: false
@@ -138,6 +140,8 @@
       state.platform = platform;
       state.conversationKey = conversationKey;
       state.initialBottomCapturePending = true;
+      state.elementIds = new WeakMap();
+      state.nextElementId = 0;
       clearCopySnapshots();
     }
   }
@@ -182,6 +186,11 @@
   }
 
   function findScrollContainer(platform, root) {
+    if (platform === 'gemini') {
+      const geminiScrollRoot = document.querySelector('infinite-scroller.chat-history') ||
+        document.querySelector('.content-container:has(share-turn-viewer)');
+      if (geminiScrollRoot) return geminiScrollRoot;
+    }
     if (platform === 'chatgpt') {
       const chatgptScrollRoot = document.querySelector('[data-scroll-root]');
       if (chatgptScrollRoot) return chatgptScrollRoot;
@@ -432,6 +441,28 @@
 
   function getStableMessageId(platform, turnElement) {
     if (!turnElement) return null;
+
+    if (platform === 'gemini' || platform === 'grok') {
+      const role = getConfig(platform).getRole(turnElement) || 'unknown';
+      if (platform === 'gemini') {
+        // Both halves of a Gemini turn share the parent's response ID. The
+        // user-query-content-N child ID is a viewport index, not an identity.
+        const pair = turnElement.closest('.conversation-container[id], share-turn-viewer[id]');
+        if (pair && pair.id) return `gemini:${pair.id}:${role}`;
+      }
+      const id = turnElement.getAttribute('data-message-id') ||
+        turnElement.getAttribute('data-response-id') ||
+        turnElement.getAttribute('data-turn-id') ||
+        (platform === 'grok' && /^response-/.test(turnElement.id || '') ? turnElement.id : null);
+      if (id) return `${platform}:${id}:${role}`;
+
+      // Repeated test IDs label controls/roles. They must never merge unrelated
+      // messages. Retain DOM identity when a provider supplies no message ID.
+      if (!state.elementIds.has(turnElement)) {
+        state.elementIds.set(turnElement, ++state.nextElementId);
+      }
+      return `${platform}:element-${state.elementIds.get(turnElement)}:${role}`;
+    }
 
     if (platform === 'chatgpt') {
       const turnId = turnElement.getAttribute('data-turn-id') ||

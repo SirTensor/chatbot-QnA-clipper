@@ -80,11 +80,15 @@ Choose how image links are formatted:
 - Include quote marks extracted from CSS pseudo-elements where supported
 
 ### Capture Options
-These options appear only on platforms where temporary capture preservation is supported.
+These options are available on ChatGPT, Claude, Gemini, and Grok.
 
 - **Preserve while scrolling**: Temporarily keeps captured messages in memory for the current tab/session so long conversations can be copied more completely after scrolling through them.
 - **Clear captured content**: Clears the temporary captured-message cache for the current tab/session.
 - **Full Scan then Copy**: Scrolls through the current conversation, assembles captured messages, and copies the result where supported.
+
+Ordinary copy uses the messages already captured and the currently loaded content;
+it does not automatically scroll. Use Full Scan separately to load and collect a
+long conversation. Capture preservation is temporary and stays in the current tab.
 
 ### Optional Development Panel
 

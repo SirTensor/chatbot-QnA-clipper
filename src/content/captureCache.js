@@ -132,6 +132,7 @@
     const messages = [];
     const byStableId = new Map();
     const byMessageKey = new Map();
+    const observedSuccessors = new Map();
     let sortedMessages = null;
     let sortedMessagesDirty = true;
     let sequence = 0;
@@ -191,6 +192,26 @@
     function getOrderedMessages() {
       if (!sortedMessages || sortedMessagesDirty) {
         sortedMessages = [...messages].sort(compareMessages);
+        if (observedSuccessors.size > 0) {
+          // DOM order remains meaningful when history is prepended or media
+          // changes pixel offsets. Keep constraints across overlapping windows.
+          const indegree = new Map(messages.map(message => [message, 0]));
+          observedSuccessors.forEach(successors => successors.forEach(message => {
+            indegree.set(message, indegree.get(message) + 1);
+          }));
+          const pending = sortedMessages.filter(message => indegree.get(message) === 0);
+          const ordered = [];
+          while (pending.length > 0) {
+            pending.sort(compareMessages);
+            const message = pending.shift();
+            ordered.push(message);
+            (observedSuccessors.get(message) || []).forEach(next => {
+              indegree.set(next, indegree.get(next) - 1);
+              if (indegree.get(next) === 0) pending.push(next);
+            });
+          }
+          if (ordered.length === messages.length) sortedMessages = ordered;
+        }
         sortedMessagesDirty = false;
       }
 
@@ -253,6 +274,8 @@
 
       return messages.find(message => {
         if (!isSameScope(message, incoming)) return false;
+        if (['gemini', 'grok'].includes(incoming.platform) &&
+            message.stableId && incoming.stableId && message.stableId !== incoming.stableId) return false;
 
         const near = isNearOrder(message.orderHint, incoming.orderHint);
         if (!near) return false;
@@ -312,6 +335,28 @@
       });
 
       if (capturedMessages.length > 0) {
+        if (['gemini', 'grok'].includes(platform)) {
+          for (let index = 1; index < capturedMessages.length; index++) {
+            const previous = capturedMessages[index - 1];
+            const next = capturedMessages[index];
+            if (previous === next || previous.conversationKey !== next.conversationKey) continue;
+            const successors = observedSuccessors.get(previous) || new Set();
+            if (successors.has(next)) continue;
+            // Ignore a contradictory observation rather than creating a cycle.
+            const pending = [next];
+            const visited = new Set();
+            while (pending.length > 0) {
+              const item = pending.pop();
+              if (visited.has(item)) continue;
+              visited.add(item);
+              (observedSuccessors.get(item) || []).forEach(child => pending.push(child));
+            }
+            if (visited.has(previous)) continue;
+            successors.add(next);
+            observedSuccessors.set(previous, successors);
+            markSortedMessagesDirty();
+          }
+        }
         reconcileConfirmedEdges(getBoundarySnapshot({ observedAt }), observedAt);
       }
 
@@ -572,6 +617,7 @@
     function clear(nextScope = {}) {
       messages.length = 0;
       clearIndexes();
+      observedSuccessors.clear();
       sortedMessages = null;
       sortedMessagesDirty = true;
       sequence = 0;
@@ -579,6 +625,30 @@
       conversationKey = nextScope.conversationKey || conversationKey || '';
       edgeState = createEdgeState();
       lastCaptureAt = null;
+    }
+
+    function hasDisconnectedObservedOrder() {
+      if (!['gemini', 'grok'].includes(platform) || messages.length < 2) return false;
+
+      // Seeing both viewport edges does not prove that intervening history was
+      // rendered. Require overlapping DOM observations to connect the captured
+      // windows before treating their combined result as complete.
+      const neighbors = new Map(messages.map(message => [message, []]));
+      observedSuccessors.forEach((successors, previous) => successors.forEach(next => {
+        neighbors.get(previous).push(next);
+        neighbors.get(next).push(previous);
+      }));
+      const pending = [messages[0]];
+      const visited = new Set();
+      while (pending.length > 0) {
+        const message = pending.pop();
+        if (visited.has(message)) continue;
+        visited.add(message);
+        neighbors.get(message).forEach(next => {
+          if (!visited.has(next)) pending.push(next);
+        });
+      }
+      return visited.size !== messages.length;
     }
 
     function getStatus() {
@@ -603,7 +673,8 @@
         },
         edgeSettleMs,
         lastCaptureAt,
-        mayBeIncomplete: count > 0 && !(hasSeenTop && hasSeenBottom),
+        mayBeIncomplete: count > 0 &&
+          (!(hasSeenTop && hasSeenBottom) || hasDisconnectedObservedOrder()),
         isEmpty: count === 0
       };
     }

@@ -1,9 +1,9 @@
-// geminiConfigs.js (v57 - Preserve current search and temporary generated images)
+// geminiConfigs.js (v58 - Keep Canvas artifacts separate from conversation responses)
 
 (function() {
     // Initialization check
-    // v57: Preserve image-only answers even when their image URL is temporary.
-    if (window.geminiConfig && window.geminiConfig.version >= 57) { return; }
+    // v58: Do not cache prerendered Canvas content as the surrounding response.
+    if (window.geminiConfig && window.geminiConfig.version >= 58) { return; }
 
     // --- Helper Functions ---
 
@@ -2376,7 +2376,7 @@
     // --- Main Configuration Object ---
           const geminiConfig = {
         platformName: 'Gemini',
-        version: 57, // v57: Keep image-only answers with temporary sources
+        version: 58, // Keep Canvas artifacts separate from conversation responses
       selectors: {
         turnContainer: 'user-query, model-response, share-turn-viewer response-container',
         userMessageContainer: 'user-query', userText: '.query-text',
@@ -2591,6 +2591,11 @@
        */
       extractAssistantContent: (turnElement) => {
           const contentItems = [];
+          // Canvas artifacts reuse the response markdown classes and may render
+          // before the actual response. Never substitute their body for prose.
+          const findResponseMarkdown = (root, selector) =>
+              Array.from(root.querySelectorAll(selector)).find(element =>
+                  !element.closest('.immersive-artifact-content')) || null;
           
           // v52: Fix selector for thinking elements - model-response-text is on structured-content-container, not message-content
           const thinkingElements = turnElement.querySelectorAll('model-thoughts');
@@ -2601,18 +2606,18 @@
               // v52: Fixed - model-response-text class is on structured-content-container, not message-content
               const responseContainer = turnElement.querySelector('structured-content-container.model-response-text');
               if (responseContainer) {
-                  contentArea = responseContainer.querySelector('div.markdown.markdown-main-panel');
+                  contentArea = findResponseMarkdown(responseContainer, 'div.markdown.markdown-main-panel');
               }
               
               // Fallback: if the above didn't work, try alternative selectors
               if (!contentArea) {
-                  contentArea = turnElement.querySelector('structured-content-container[class*="model-response-text"] div.markdown');
+                  contentArea = findResponseMarkdown(turnElement, 'structured-content-container[class*="model-response-text"] div.markdown');
               }
           }
           
           // v52: Always try the generic selector as final fallback (works for both thinking and non-thinking cases)
           if (!contentArea) {
-              contentArea = turnElement.querySelector(geminiConfig.selectors.assistantContentArea);
+              contentArea = findResponseMarkdown(turnElement, geminiConfig.selectors.assistantContentArea);
           }
           
           if (!contentArea) { console.warn("[Extractor v52] Gemini markdown content area not found."); return []; }
