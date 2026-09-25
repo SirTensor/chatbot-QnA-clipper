@@ -1,7 +1,7 @@
 // --- START OF FILE content.js ---
 
 (function() {
-  const CONTENT_VERSION = 8;
+  const CONTENT_VERSION = 9;
   if (window.qaClipperContentVersion >= CONTENT_VERSION) return;
   window.qaClipperContentVersion = CONTENT_VERSION;
   window.qaClipperInitialized = true;
@@ -23,6 +23,7 @@
   const FULL_SCAN_EDGE_SETTLE_MAX_MS = 4000;
 
   const state = {
+    contextInvalidated: false,
     cache: null,
     platform: null,
     conversationKey: null,
@@ -50,6 +51,39 @@
       cancelRequested: false
     }
   };
+
+  function stopInvalidatedContext() {
+    if (state.contextInvalidated) return;
+    state.contextInvalidated = true;
+    state.scan.cancelRequested = true;
+    state.pendingCapture = false;
+    stopPassiveCaptureListeners();
+    clearTimeout(state.captureTimer);
+    clearTimeout(state.throttleTimer);
+    clearInterval(state.routeTimer);
+    state.captureTimer = null;
+    state.throttleTimer = null;
+    state.routeTimer = null;
+  }
+
+  function hasExtensionContext() {
+    if (state.contextInvalidated) return false;
+    try {
+      if (chrome.runtime?.id) return true;
+    } catch (error) {
+      // Accessing the runtime can throw after the extension is reloaded.
+    }
+    stopInvalidatedContext();
+    return false;
+  }
+
+  function handleInvalidatedContext(error) {
+    if (/Extension context invalidated/i.test(error?.message || '')) {
+      stopInvalidatedContext();
+      return true;
+    }
+    return false;
+  }
 
   function getNormalizer() {
     return window.QAClipper && window.QAClipper.messageNormalizer;
@@ -575,6 +609,7 @@
     let knownBottomReached = false;
 
     turnElements.forEach((turnElement, index) => {
+      if (state.contextInvalidated) return;
       try {
         const turnData = extractTurnData(platform, config, turnElement, index, settings);
         if (!turnData) return;
@@ -610,6 +645,7 @@
           turnData
         });
       } catch (error) {
+        if (handleInvalidatedContext(error)) return;
         console.error('Chatbot Clipper: failed to capture a visible turn:', error);
       }
     });
@@ -911,6 +947,7 @@
   }
 
   function performCapture(settings = state.lastFormatSettings, source = 'passive-cache') {
+    if (!hasExtensionContext()) return getStatusSnapshot();
     const currentPlatform = identifyPlatform();
     if (!isCacheEnabledPlatform(currentPlatform)) {
       if (source === 'passive-cache') {
@@ -936,6 +973,7 @@
 
     try {
       const result = buildCapturedMessages(state.lastFormatSettings, source);
+      if (!hasExtensionContext()) return getStatusSnapshot();
       const cache = getCache();
 
       if (result.root && result.scrollContainer) {
@@ -967,6 +1005,9 @@
       }
 
       return getStatusSnapshot();
+    } catch (error) {
+      if (!handleInvalidatedContext(error)) throw error;
+      return getStatusSnapshot();
     } finally {
       if (source === 'passive-cache') {
         state.captureInProgress = false;
@@ -979,7 +1020,7 @@
   }
 
   function captureNowThrottled(minInterval) {
-    if (!state.passiveEnabled) return;
+    if (!hasExtensionContext() || !state.passiveEnabled) return;
 
     const elapsed = Date.now() - state.lastPassiveCaptureAt;
     if (elapsed >= minInterval) {
@@ -1000,6 +1041,7 @@
   }
 
   function scheduleCapture(delay = PASSIVE_DEBOUNCE_MS) {
+    if (!hasExtensionContext()) return;
     if (state.captureTimer) clearTimeout(state.captureTimer);
     state.captureTimer = setTimeout(() => {
       state.captureTimer = null;
@@ -1048,7 +1090,7 @@
     // A reverse ChatGPT viewport can briefly reach the top of a loaded page
     // before older history is prepended. Keep following that moving boundary
     // until both the captured messages and scroll geometry have settled.
-    while (!state.scan.cancelRequested && Date.now() < deadline) {
+    while (hasExtensionContext() && !state.scan.cancelRequested && Date.now() < deadline) {
       if (isEdgeConfirmed(status, edgeName) &&
           (!loadsOlderHistory || Date.now() - stableSince >= FULL_SCAN_WAIT_MS * 4)) break;
       setScrollToEdge(scrollContainer, edgeName);
@@ -1147,6 +1189,7 @@
   }
 
   async function runFullScan(settings = state.lastFormatSettings) {
+    if (!hasExtensionContext()) return { success: false, stopped: true, status: getStatusSnapshot() };
     const platform = identifyPlatform();
     if (!isCacheEnabledPlatform(platform)) {
       return { success: false, error: getMessage('statusFullScanFailed'), status: getStatusSnapshot() };
@@ -1176,7 +1219,7 @@
       if (topSettle.cancelled) stopped = true;
 
       for (let step = 0; !stopped && step < FULL_SCAN_MAX_STEPS; step++) {
-        if (state.scan.cancelRequested || Date.now() - startTime > FULL_SCAN_MAX_MS) {
+        if (!hasExtensionContext() || state.scan.cancelRequested || Date.now() - startTime > FULL_SCAN_MAX_MS) {
           stopped = true;
           break;
         }
@@ -1225,9 +1268,10 @@
   }
 
   function startRouteWatcher() {
-    if (state.routeTimer) return;
+    if (!hasExtensionContext() || state.routeTimer) return;
 
     state.routeTimer = setInterval(() => {
+      if (!hasExtensionContext()) return;
       const platform = identifyPlatform();
       const conversationKey = SUPPORTED_PLATFORMS.has(platform) ? getConversationKey(platform) : '';
 
@@ -1248,6 +1292,7 @@
   function loadStoredSettings() {
     try {
       chrome.storage.local.get(['formatSettings', 'captureSettings'], data => {
+        if (!hasExtensionContext()) return;
         state.lastFormatSettings = data.formatSettings || {};
         state.passiveEnabled = !data.captureSettings || data.captureSettings.passiveCaptureEnabled !== false;
         if (state.passiveEnabled && isCacheEnabledPlatform(identifyPlatform())) {
@@ -1257,6 +1302,7 @@
         }
       });
     } catch (error) {
+      if (handleInvalidatedContext(error)) return;
       if (isCacheEnabledPlatform(identifyPlatform())) {
         scheduleCapture(250);
       }
@@ -1286,12 +1332,14 @@
   }
 
   chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (!hasExtensionContext()) return false;
     if (request.action === 'extractRawData' || request.action === 'extractCachedConversation' || request.action === 'extractCachedConversationV3') {
       (async () => {
         try {
         const settings = request.settings || state.lastFormatSettings || {};
         let result = await composeConversationForCopy(settings);
         result = await recheckOptimisticTopBeforeCopy(result, settings);
+        if (!hasExtensionContext()) return;
         if (!result.data.conversationTurns.length) {
           sendResponse({
             error: `No conversation content found on ${result.status.platform || 'the current page'}. Make sure messages have appeared in this tab.`,
@@ -1302,6 +1350,7 @@
 
         sendResponse(result);
         } catch (error) {
+          if (handleInvalidatedContext(error) || !hasExtensionContext()) return;
           console.error('Chatbot Clipper: extraction failed:', error);
           sendResponse({ error: error.message || 'Extraction failed', status: getStatusSnapshot() });
         }
@@ -1366,8 +1415,9 @@
 
     if (request.action === 'startChatGPTFullScan' || request.action === 'startChatGPTFullScanV3') {
       runFullScan(request.settings || state.lastFormatSettings || {})
-        .then(sendResponse)
+        .then(result => { if (hasExtensionContext()) sendResponse(result); })
         .catch(error => {
+          if (handleInvalidatedContext(error) || !hasExtensionContext()) return;
           console.error('Chatbot Clipper: Full Scan failed:', error);
           sendResponse({ success: false, error: error.message || getMessage('statusFullScanFailed'), status: getStatusSnapshot() });
         });
