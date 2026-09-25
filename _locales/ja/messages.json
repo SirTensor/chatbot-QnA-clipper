@@ -442,5 +442,19 @@
   "platformUnknown": {
     "message": "不明",
     "description": "Fallback label for unknown platform"
+  },
+  "temporaryImageUrlNotice": {
+    "message": "注：一部の画像は一時的な blob: URLを使用しており、現在のページ以外では開けなかったり、有効期限が切れたりすることがあります。保管する場合は、元の画像を別途保存してください。",
+    "description": "Help tooltip explaining temporary blob image URLs; not included in copied output"
+  },
+  "fileCitationLabel": {
+    "message": "ファイル引用: $FILE_NAME$",
+    "description": "Identifies an included uploaded-file citation in copied text",
+    "placeholders": {
+      "file_name": {
+        "content": "$1",
+        "example": "document.pdf"
+      }
+    }
   }
 }

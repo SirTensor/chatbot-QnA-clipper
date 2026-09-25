@@ -1,11 +1,27 @@
-// chatgptConfigs.js (v41 - Support search-unit conversation markup)
+// chatgptConfigs.js (v42 - Preserve upload URLs and citation defaults)
 
 (function() {
     // Initialization check
-    // v41: Support both classic turns and the redesigned conversation view.
-    if (window.chatgptConfig && window.chatgptConfig.version >= 41) { return; }
+    // v42: Match the popup's citation default and retain session-local image URLs.
+    if (window.chatgptConfig && window.chatgptConfig.version >= 42) { return; }
 
     // --- Helper Functions ---
+    const FILE_CITATION_SELECTOR = 'span.text-token-text-secondary, [data-testid="chatgpt-library-file-citation"]';
+
+    function getFileCitationMarkdown(element) {
+      const name = element.textContent?.trim();
+      if (!name) return '';
+      const label = globalThis.chrome?.i18n?.getMessage?.('fileCitationLabel', name) || `File citation: ${name}`;
+      return `[${label.replace(/[\\`*_[\]<>]/g, '\\$&')}]`;
+    }
+
+    function prepareFileCitations(root) {
+      const exclude = chatgptConfig.settings?.excludeFileCitations !== false;
+      root.querySelectorAll(FILE_CITATION_SELECTOR).forEach(citation => {
+        if (exclude) citation.remove();
+        else citation.replaceWith(document.createTextNode(getFileCitationMarkdown(citation)));
+      });
+    }
 
     function getMathMarkdown(element) {
       const source = element.getAttribute('data-math-source') ||
@@ -175,7 +191,9 @@
         if (markdown) return markdown;
 
         if (window.QAClipper && window.QAClipper.Utils && typeof window.QAClipper.Utils.tableToMarkdown === 'function') {
-            const fallback = window.QAClipper.Utils.tableToMarkdown(tableElement);
+            const fallbackTable = tableElement.cloneNode(true);
+            prepareFileCitations(fallbackTable);
+            const fallback = window.QAClipper.Utils.tableToMarkdown(fallbackTable);
             return fallback || null;
         }
 
@@ -189,6 +207,10 @@
      * @returns {string} - The markdown representation
      */
     function enhancedHtmlToMarkdown(element, options = {}) {
+        const excludeCitations = chatgptConfig.settings?.excludeFileCitations !== false;
+        if (element.matches(FILE_CITATION_SELECTOR)) {
+            return excludeCitations ? '' : getFileCitationMarkdown(element);
+        }
         if (element.matches('[data-markdown-copy="inline-code"]')) {
             const wrapper = document.createElement('span');
             const code = document.createElement('code');
@@ -210,16 +232,8 @@
             inline.replaceWith(code);
         });
 
-        // Remove file citation elements if setting is enabled
-        const config = window.chatgptConfig;
-        if (config && config.settings && config.settings.excludeFileCitations) {
-            const citationElements = clone.querySelectorAll('span.text-token-text-secondary, [data-testid="chatgpt-library-file-citation"]');
-            citationElements.forEach(citation => {
-                if (citation.parentNode) {
-                    citation.parentNode.removeChild(citation);
-                }
-            });
-        }
+        // Exclude file citations or identify them explicitly instead of emitting bare names.
+        prepareFileCitations(clone);
 
         // Fix BR tags to prevent unwanted spaces after line breaks
         const brTags = clone.querySelectorAll('br');
@@ -1236,12 +1250,12 @@
     }
 
     function getContentVariantKey(settings = {}) {
-      return `${settings.excludeFileCitations ? 1 : 0}${settings.includePseudoQuotes ? 1 : 0}`;
+      return `${settings.excludeFileCitations !== false ? 1 : 0}${settings.includePseudoQuotes ? 1 : 0}`;
     }
 
     function extractAssistantContentForCapture(turnElement) {
       const settings = chatgptConfig.settings || {};
-      const hasCitations = !!turnElement.querySelector('span.text-token-text-secondary, [data-testid="chatgpt-library-file-citation"]');
+      const hasCitations = !!turnElement.querySelector(FILE_CITATION_SELECTOR);
       const hasQuotes = Array.from(turnElement.querySelectorAll('blockquote li p')).some(element => {
         const pseudo = getPseudoElementContent(element);
         return pseudo.before || pseudo.after;
@@ -1315,7 +1329,7 @@
     // --- Main Configuration Object ---
     const chatgptConfig = {
       platformName: 'ChatGPT',
-      version: 41, // v41: Search-unit messages and semantic markdown roots
+      version: 42, // v42: Upload URLs and consistent citation defaults
       selectors: { // Updated selectors for new table structure
         turnContainer: 'article[data-testid^="conversation-turn-"], section[data-testid^="conversation-turn-"], [data-chatgpt-search-unit-key$=":user"][data-chatgpt-search-message-ids]:not([data-testid^="conversation-turn-"] *), [data-chatgpt-search-unit-key$=":assistant"][data-chatgpt-search-message-ids]:not([data-testid^="conversation-turn-"] *)',
         turnContainerFallback: 'div[data-message-author-role]', // Fallback for edge cases without article wrapper
@@ -1462,17 +1476,18 @@
           const imageElements = turnElement.querySelectorAll(selectors.userImageContainer);
           imageElements.forEach(imgElement => {
               const src = imgElement.getAttribute('src');
-              if (src && /^(blob:|data:)/.test(src) && imgElement.closest('[data-chatgpt-search-unit-key$=":user"]')) {
-                  // Object URLs are session-local. Preserve the attachment without exporting a broken link.
+              if (src && src.startsWith('data:') && imgElement.closest('[data-chatgpt-search-unit-key$=":user"]')) {
+                  // Avoid embedding an entire inline image in URL-only output.
                   images.push({ type: 'image', sourceUrl: null, isPreviewOnly: true, extractedContent: 'User Uploaded Image' });
                   return;
               }
-              if (src && !src.startsWith('data:') && !src.startsWith('blob:')) {
+              if (src && !src.startsWith('data:')) {
+                  // Preserve the URL supplied by the page, including session-local blob URLs.
                   const altText = imgElement.getAttribute('alt')?.trim();
                   const ariaLabel = imgElement.getAttribute('aria-label')?.trim();
                   const labelFromDom = altText || ariaLabel || null;
                   // Upload previews wrap the image in a dialog-opening button and ship a localized placeholder alt
-                  const isUploadPreviewThumb = !!imgElement.closest('button[aria-haspopup="dialog"]') ||
+                  const isUploadPreviewThumb = !!imgElement.closest('[aria-haspopup="dialog"]') ||
                                                !!imgElement.closest('div.bg-token-main-surface-secondary') ||
                                                (imgElement.matches('img.object-cover') && !!imgElement.closest('button'));
                   const extractedContent = (!isUploadPreviewThumb && labelFromDom) ? labelFromDom : "User Uploaded Image";

@@ -442,5 +442,19 @@
   "platformUnknown": {
     "message": "Невідомо",
     "description": "Fallback label for unknown platform"
+  },
+  "temporaryImageUrlNotice": {
+    "message": "Примітка: Деякі зображення використовують тимчасові URL-адреси blob:, які можуть не відкриватися поза поточною сторінкою або згодом перестати працювати. Щоб зберегти зображення, завантажте оригінали окремо.",
+    "description": "Help tooltip explaining temporary blob image URLs; not included in copied output"
+  },
+  "fileCitationLabel": {
+    "message": "Посилання на файл: $FILE_NAME$",
+    "description": "Identifies an included uploaded-file citation in copied text",
+    "placeholders": {
+      "file_name": {
+        "content": "$1",
+        "example": "document.pdf"
+      }
+    }
   }
 }

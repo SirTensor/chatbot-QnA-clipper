@@ -442,5 +442,19 @@
   "platformUnknown": {
     "message": "نامشخص",
     "description": "Fallback label for unknown platform"
+  },
+  "temporaryImageUrlNotice": {
+    "message": "نکته: برخی تصاویر از نشانی‌های موقت blob: استفاده می‌کنند که ممکن است خارج از صفحهٔ فعلی باز نشوند یا بعداً منقضی شوند. برای نگهداری تصاویر، نسخه‌های اصلی را جداگانه ذخیره کنید.",
+    "description": "Help tooltip explaining temporary blob image URLs; not included in copied output"
+  },
+  "fileCitationLabel": {
+    "message": "ارجاع به فایل: $FILE_NAME$",
+    "description": "Identifies an included uploaded-file citation in copied text",
+    "placeholders": {
+      "file_name": {
+        "content": "$1",
+        "example": "document.pdf"
+      }
+    }
   }
 }

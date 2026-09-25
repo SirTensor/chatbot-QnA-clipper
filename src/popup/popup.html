@@ -92,7 +92,10 @@
     </div>
 
     <div class="option-group">
-      <label for="imageFormat" data-i18n="imageFormatLabel">Image URL Format:</label>
+      <div class="label-with-help">
+        <label for="imageFormat" data-i18n="imageFormatLabel">Image URL Format:</label>
+        <span class="help-icon" data-i18n-tooltip="temporaryImageUrlNotice" data-tooltip="Note: Some images use temporary blob: URLs that may not open outside the current page or may expire. Save the original images separately to keep them.">ⓘ</span>
+      </div>
       <select id="imageFormat">
         <option value="bracketed" data-i18n="imageFormatBracketed">[Image URL]: https://...</option>
         <option value="markdown" data-i18n="imageFormatMarkdown">[Image URL](https://...)</option>

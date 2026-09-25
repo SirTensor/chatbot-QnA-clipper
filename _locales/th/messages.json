@@ -442,5 +442,19 @@
   "platformUnknown": {
     "message": "ไม่ทราบ",
     "description": "Fallback label for unknown platform"
+  },
+  "temporaryImageUrlNotice": {
+    "message": "หมายเหตุ: รูปภาพบางรูปใช้ URL แบบ blob: ชั่วคราว ซึ่งอาจเปิดนอกหน้าปัจจุบันไม่ได้หรือหมดอายุในภายหลัง หากต้องการเก็บไว้ โปรดบันทึกรูปภาพต้นฉบับแยกต่างหาก",
+    "description": "Help tooltip explaining temporary blob image URLs; not included in copied output"
+  },
+  "fileCitationLabel": {
+    "message": "อ้างอิงไฟล์: $FILE_NAME$",
+    "description": "Identifies an included uploaded-file citation in copied text",
+    "placeholders": {
+      "file_name": {
+        "content": "$1",
+        "example": "document.pdf"
+      }
+    }
   }
 }

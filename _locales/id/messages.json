@@ -442,5 +442,19 @@
   "platformUnknown": {
     "message": "Tidak diketahui",
     "description": "Fallback label for unknown platform"
+  },
+  "temporaryImageUrlNotice": {
+    "message": "Catatan: Beberapa gambar menggunakan URL blob: sementara yang mungkin tidak dapat dibuka di luar halaman saat ini atau dapat kedaluwarsa. Untuk menyimpannya, simpan gambar asli secara terpisah.",
+    "description": "Help tooltip explaining temporary blob image URLs; not included in copied output"
+  },
+  "fileCitationLabel": {
+    "message": "Rujukan berkas: $FILE_NAME$",
+    "description": "Identifies an included uploaded-file citation in copied text",
+    "placeholders": {
+      "file_name": {
+        "content": "$1",
+        "example": "document.pdf"
+      }
+    }
   }
 }

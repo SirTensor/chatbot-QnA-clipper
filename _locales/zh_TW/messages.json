@@ -442,5 +442,19 @@
   "platformUnknown": {
     "message": "未知",
     "description": "Fallback label for unknown platform"
+  },
+  "temporaryImageUrlNotice": {
+    "message": "注意：部分圖片使用暫時性的 blob: 網址，可能無法在目前頁面之外開啟，也可能失效。如需保留，請另行儲存原始圖片。",
+    "description": "Help tooltip explaining temporary blob image URLs; not included in copied output"
+  },
+  "fileCitationLabel": {
+    "message": "檔案引用: $FILE_NAME$",
+    "description": "Identifies an included uploaded-file citation in copied text",
+    "placeholders": {
+      "file_name": {
+        "content": "$1",
+        "example": "document.pdf"
+      }
+    }
   }
 }

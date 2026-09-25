@@ -91,6 +91,14 @@ label {
   font-weight: bold;
   font-size: 14px;
 }
+.label-with-help {
+  display: flex;
+  align-items: center;
+  margin-bottom: 5px;
+}
+.label-with-help label {
+  margin-bottom: 0;
+}
 select {
   width: 100%;
   padding: 5px;

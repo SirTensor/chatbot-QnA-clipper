@@ -442,5 +442,19 @@
   "platformUnknown": {
     "message": "Неизвестно",
     "description": "Fallback label for unknown platform"
+  },
+  "temporaryImageUrlNotice": {
+    "message": "Примечание: Некоторые изображения используют временные URL-адреса blob:, которые могут не открываться вне текущей страницы или со временем перестать работать. Чтобы сохранить изображения, скачайте оригиналы отдельно.",
+    "description": "Help tooltip explaining temporary blob image URLs; not included in copied output"
+  },
+  "fileCitationLabel": {
+    "message": "Ссылка на файл: $FILE_NAME$",
+    "description": "Identifies an included uploaded-file citation in copied text",
+    "placeholders": {
+      "file_name": {
+        "content": "$1",
+        "example": "document.pdf"
+      }
+    }
   }
 }

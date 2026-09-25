@@ -442,5 +442,19 @@
   "platformUnknown": {
     "message": "לא ידוע",
     "description": "Fallback label for unknown platform"
+  },
+  "temporaryImageUrlNotice": {
+    "message": "הערה: חלק מהתמונות משתמשות בכתובות blob: זמניות שעשויות לא להיפתח מחוץ לדף הנוכחי או לפוג בהמשך. כדי לשמור את התמונות, יש לשמור את הקבצים המקוריים בנפרד.",
+    "description": "Help tooltip explaining temporary blob image URLs; not included in copied output"
+  },
+  "fileCitationLabel": {
+    "message": "הפניה לקובץ: $FILE_NAME$",
+    "description": "Identifies an included uploaded-file citation in copied text",
+    "placeholders": {
+      "file_name": {
+        "content": "$1",
+        "example": "document.pdf"
+      }
+    }
   }
 }

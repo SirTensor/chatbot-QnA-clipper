@@ -73,7 +73,9 @@ function getDefaultFormatSettings() {
     numberFormat: 'space',
     imageFormat: 'bracketed',
     imageLabel: '',
-    includePlatform: true
+    includePlatform: true,
+    excludeFileCitations: true,
+    includePseudoQuotes: false
     // Note: customShortcut removed as it's now handled by Chrome's native commands API
   };
 }

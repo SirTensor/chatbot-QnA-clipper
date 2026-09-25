@@ -442,5 +442,19 @@
   "platformUnknown": {
     "message": "Bilinmiyor",
     "description": "Fallback label for unknown platform"
+  },
+  "temporaryImageUrlNotice": {
+    "message": "Not: Bazı görseller, mevcut sayfanın dışında açılmayabilen veya daha sonra geçerliliğini yitirebilen geçici blob: URL’leri kullanır. Görselleri saklamak için orijinallerini ayrıca kaydedin.",
+    "description": "Help tooltip explaining temporary blob image URLs; not included in copied output"
+  },
+  "fileCitationLabel": {
+    "message": "Dosya referansı: $FILE_NAME$",
+    "description": "Identifies an included uploaded-file citation in copied text",
+    "placeholders": {
+      "file_name": {
+        "content": "$1",
+        "example": "document.pdf"
+      }
+    }
   }
 }
