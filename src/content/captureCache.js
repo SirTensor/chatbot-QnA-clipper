@@ -276,6 +276,12 @@
         if (!isSameScope(message, incoming)) return false;
         if (['gemini', 'grok'].includes(incoming.platform) &&
             message.stableId && incoming.stableId && message.stableId !== incoming.stableId) return false;
+        // Redesigned ChatGPT supplies actual message UUIDs. Equal text at a reused
+        // viewport position must not merge two independently submitted messages.
+        if (incoming.platform === 'chatgpt' &&
+            message.stableId?.startsWith('chatgpt:message:') &&
+            incoming.stableId?.startsWith('chatgpt:message:') &&
+            message.stableId !== incoming.stableId) return false;
 
         const near = isNearOrder(message.orderHint, incoming.orderHint);
         if (!near) return false;
@@ -335,7 +341,8 @@
       });
 
       if (capturedMessages.length > 0) {
-        if (['gemini', 'grok'].includes(platform)) {
+        if (['gemini', 'grok'].includes(platform) ||
+            (platform === 'chatgpt' && capturedMessages.every(message => message.stableId?.startsWith('chatgpt:message:')))) {
           for (let index = 1; index < capturedMessages.length; index++) {
             const previous = capturedMessages[index - 1];
             const next = capturedMessages[index];
@@ -628,7 +635,9 @@
     }
 
     function hasDisconnectedObservedOrder() {
-      if (!['gemini', 'grok'].includes(platform) || messages.length < 2) return false;
+      const usesObservedOrder = ['gemini', 'grok'].includes(platform) ||
+        (platform === 'chatgpt' && messages.every(message => message.stableId?.startsWith('chatgpt:message:')));
+      if (!usesObservedOrder || messages.length < 2) return false;
 
       // Seeing both viewport edges does not prove that intervening history was
       // rendered. Require overlapping DOM observations to connect the captured

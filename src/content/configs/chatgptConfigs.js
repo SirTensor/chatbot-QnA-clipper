@@ -1,9 +1,9 @@
-// chatgptConfigs.js (v40 - Support direct-button upload thumbnails)
+// chatgptConfigs.js (v41 - Support search-unit conversation markup)
 
 (function() {
     // Initialization check
-    // v40: Current upload images may be direct children of the rounded button.
-    if (window.chatgptConfig && window.chatgptConfig.version >= 40) { return; }
+    // v41: Support both classic turns and the redesigned conversation view.
+    if (window.chatgptConfig && window.chatgptConfig.version >= 41) { return; }
 
     // --- Helper Functions ---
 
@@ -136,6 +136,14 @@
         return result;
     }
 
+    function getCodeBlockElement(element) {
+      if (element.matches('pre, [data-markdown-copy="code-block"]')) return element;
+      // The current renderer adds a plain wrapper around each standalone code block.
+      return element.tagName === 'DIV'
+        ? element.querySelector(':scope > [data-markdown-copy="code-block"]')
+        : null;
+    }
+
     function getTableElement(element) {
         if (!element || element.nodeType !== Node.ELEMENT_NODE) {
             return null;
@@ -181,6 +189,13 @@
      * @returns {string} - The markdown representation
      */
     function enhancedHtmlToMarkdown(element, options = {}) {
+        if (element.matches('[data-markdown-copy="inline-code"]')) {
+            const wrapper = document.createElement('span');
+            const code = document.createElement('code');
+            code.textContent = element.textContent;
+            wrapper.appendChild(code);
+            return QAClipper.Utils.htmlToMarkdown(wrapper, options);
+        }
         if (element.matches('[role="math"][data-math-source], span.katex-display, span.katex')) {
             const markdown = getMathMarkdown(element);
             if (markdown) return markdown;
@@ -188,10 +203,17 @@
         // Clone the element to avoid modifying the original
         const clone = element.cloneNode(true);
 
+        // Inline code is now a semantic span rather than a code element.
+        clone.querySelectorAll('[data-markdown-copy="inline-code"]').forEach(inline => {
+            const code = document.createElement('code');
+            code.textContent = inline.textContent;
+            inline.replaceWith(code);
+        });
+
         // Remove file citation elements if setting is enabled
         const config = window.chatgptConfig;
         if (config && config.settings && config.settings.excludeFileCitations) {
-            const citationElements = clone.querySelectorAll('span.text-token-text-secondary');
+            const citationElements = clone.querySelectorAll('span.text-token-text-secondary, [data-testid="chatgpt-library-file-citation"]');
             citationElements.forEach(citation => {
                 if (citation.parentNode) {
                     citation.parentNode.removeChild(citation);
@@ -260,9 +282,9 @@
         });
         
         // Process task list items (checkboxes) - handle both li and p containers
-        const checkboxItems = clone.querySelectorAll('input[type="checkbox"]');
+        const checkboxItems = clone.querySelectorAll('input[type="checkbox"], [role="checkbox"]');
         checkboxItems.forEach(checkbox => {
-            const isChecked = checkbox.checked;
+            const isChecked = checkbox.checked || checkbox.getAttribute('aria-checked') === 'true';
             const checkboxMd = isChecked ? '[x] ' : '[ ] ';
             
             // Create a text node with the markdown checkbox syntax
@@ -274,6 +296,16 @@
 
         
         // Call the original markdown converter with our pre-processed clone
+        // Lists in the current renderer have adjacent inline roots instead of
+        // paragraph wrappers. Keep their own markup and boundary whitespace.
+        if (element.matches('s, del, strike')) {
+            return `~~${QAClipper.Utils.htmlToMarkdown(clone, options)}~~`;
+        }
+        if (element.matches('span, strong, b, em, i, a, code, s, del, strike')) {
+            const wrapper = document.createElement('div');
+            wrapper.appendChild(clone);
+            return QAClipper.Utils.htmlToMarkdown(wrapper, options);
+        }
         return QAClipper.Utils.htmlToMarkdown(clone, options).trim();
     }
 
@@ -339,15 +371,15 @@
                         // Handle empty paragraphs potentially used for spacing
                         previousNodeRequiresSpace = false; // Don't add extra space after empty <p>
                     }
-                } else if (tagName === 'pre') {
-                    const codeItem = processCodeBlock(node);
+                } else if (getCodeBlockElement(node)) {
+                    const codeItem = processCodeBlock(getCodeBlockElement(node));
                     if (codeItem) {
                         const lang = codeItem.language || '';
-                        resultLines.push(`${prefix}\`\`\`${lang}`);
+                        resultLines.push(`${prefix}${codeItem.fence}${lang}`);
                         codeItem.content.split('\n').forEach(line => {
                             resultLines.push(`${prefix}${line}`);
                         });
-                        resultLines.push(`${prefix}\`\`\``);
+                        resultLines.push(`${prefix}${codeItem.fence}`);
                         previousNodeRequiresSpace = true;
                     } else {
                         previousNodeRequiresSpace = false;
@@ -476,7 +508,17 @@
                          }
                      } else if (node.nodeType === Node.ELEMENT_NODE) {
                          const tagName = node.tagName.toLowerCase();
+                         if (tagName === 'br') {
+                             textBuffer += '\n';
+                             return;
+                         }
                          const tableElement = getTableElement(node);
+                         const taskCheckbox = node.matches('[role="checkbox"]') ? node :
+                             (node.matches('[data-markdown-copy="contents"]') ? node.querySelector('[role="checkbox"]') : null);
+                         if (taskCheckbox) {
+                             textBuffer += taskCheckbox.getAttribute('aria-checked') === 'true' ? '[x] ' : '[ ] ';
+                             return;
+                         }
                          
                          // Handle table containers
                          if (tableElement) {
@@ -528,11 +570,11 @@
                                 // Subsequent lines need more indentation
                                 currentContentLines.push(`${bqPrefix}${textIndent}${checkboxMd} ${textContent}`);
                             }
-                         } else if (tagName === 'pre') {
+                         } else if (getCodeBlockElement(node)) {
                              // Flush any accumulated text before processing code block
                              flushTextBuffer();
                              
-                             const codeItem = processCodeBlock(node);
+                             const codeItem = processCodeBlock(getCodeBlockElement(node));
                              if (codeItem) {
                                  if (!hasAddedContent) {
                                      // If this is the first element, add the marker line first
@@ -541,11 +583,11 @@
                                  }
                                  const codeBlockIndent = textIndent;
                                  const lang = codeItem.language || '';
-                                 currentContentLines.push(`${bqPrefix}${codeBlockIndent}\`\`\`${lang}`);
+                                 currentContentLines.push(`${bqPrefix}${codeBlockIndent}${codeItem.fence}${lang}`);
                                  codeItem.content.split('\n').forEach(line => {
                                      currentContentLines.push(`${bqPrefix}${codeBlockIndent}${line}`);
                                  });
-                                 currentContentLines.push(`${bqPrefix}${codeBlockIndent}\`\`\``);
+                                 currentContentLines.push(`${bqPrefix}${codeBlockIndent}${codeItem.fence}`);
                              }
                          } else if (tagName === 'ul' || tagName === 'ol') {
                              // Flush any accumulated text before processing nested list
@@ -813,12 +855,17 @@
     function processCodeBlock(el) {
         const selectors = window.chatgptConfig.selectors;
         const langIndicatorElement =
+            el.querySelector(':scope > [data-markdown-copy="exclude"] > div.truncate') ||
             el.querySelector(selectors.codeBlockLangIndicatorContainer) ||
             el.querySelector('div.text-sm.font-medium');
         let language = normalizeCodeBlockLanguage(langIndicatorElement ? langIndicatorElement.textContent : null);
 
         const codeElement = el.querySelector(selectors.codeBlockContent);
         const codeMirrorContent = el.querySelector('div.cm-content');
+        if (!language && codeElement) {
+            const languageClass = Array.from(codeElement.classList).find(name => name.startsWith('language-'));
+            language = normalizeCodeBlockLanguage(languageClass ? languageClass.slice('language-'.length) : null);
+        }
 
         let code = codeElement ? codeElement.textContent.trimEnd() : '';
         if (!code && codeMirrorContent) {
@@ -827,8 +874,12 @@
 
         language = inferCodeBlockLanguage(code, language, el);
 
-        if (!code.trim() && !language) return null;
-        return { type: 'code_block', language: language, content: code };
+        if (!code.trim() && !language && !el.matches('[data-markdown-copy="code-block"]')) return null;
+        // A Markdown example can itself contain fenced blocks. Its outer fence
+        // must be longer so copying it does not prematurely close the block.
+        const longestBackticks = (code.match(/`+/g) || []).reduce((length, run) => Math.max(length, run.length), 0);
+        const fence = '`'.repeat(Math.max(3, longestBackticks + 1));
+        return { type: 'code_block', language: language, content: code, fence };
     }
 
     function processAssistantImage(el) {
@@ -913,7 +964,7 @@
                 const headerCells = Array.from(headerRow.querySelectorAll(':scope > th'));
                 columnCount = headerCells.length;
                 if (columnCount > 0) {
-                    const headerContent = headerCells.map(th => QAClipper.Utils.htmlToMarkdown(th, { skipElementCheck: shouldSkipElement, ignoreTags: ['table', 'tr', 'th', 'td'] }).trim().replace(/\|/g, '\\|')); // Escape pipes in headers
+                    const headerContent = headerCells.map(th => enhancedHtmlToMarkdown(th, { skipElementCheck: shouldSkipElement, ignoreTags: ['table', 'tr', 'th', 'td'] }).trim().replace(/\|/g, '\\|')); // Escape pipes in headers
                     markdownRows.push(`| ${headerContent.join(' | ')} |`);
                     // Add separator line
                     markdownRows.push(`|${'---|'.repeat(columnCount)}`);
@@ -934,7 +985,7 @@
                 const cells = Array.from(row.querySelectorAll(':scope > td'));
                 // Ensure row has the same number of cells as the header
                 if (cells.length === columnCount) {
-                    const cellContent = cells.map(td => QAClipper.Utils.htmlToMarkdown(td, { skipElementCheck: shouldSkipElement, ignoreTags: ['table', 'tr', 'th', 'td'] }).trim().replace(/\|/g, '\\|').replace(/\n+/g, ' ')); // Escape pipes and replace newlines in cells
+                    const cellContent = cells.map(td => enhancedHtmlToMarkdown(td, { skipElementCheck: shouldSkipElement, ignoreTags: ['table', 'tr', 'th', 'td'] }).trim().replace(/\|/g, '\\|').replace(/\n+/g, ' ')); // Escape pipes and replace newlines in cells
                     markdownRows.push(`| ${cellContent.join(' | ')} |`);
                 } else {
                     console.warn("[Extractor v30] Table row skipped due to column count mismatch.", {
@@ -991,9 +1042,9 @@
              let handledSeparately = false;
 
              // --- Handle Special Blocks ---
-             if (tagNameLower === 'pre') {
+             if (getCodeBlockElement(element)) {
                  flushMdBlock();
-                 const item = processCodeBlock(element);
+                 const item = processCodeBlock(getCodeBlockElement(element));
                  if (item) contentItems.push(item);
                  processedElements.add(element);
                  element.querySelectorAll('*').forEach(child => processedElements.add(child));
@@ -1111,7 +1162,10 @@
                                                                        el.getAttribute('data-temp-id'))));
 
         // Get all relevant elements, ensuring we don't break apart blockquotes
-        const relevantElements = Array.from(textContainer.querySelectorAll(selectors.relevantBlocksInTextContainer))
+        const blocks = textContainer.matches('[data-markdown-text-style="assistant-message"]')
+            ? Array.from(textContainer.children)
+            : Array.from(textContainer.querySelectorAll(selectors.relevantBlocksInTextContainer));
+        const relevantElements = blocks
             .filter(el => {
                 // Keep an element if:
                 // 1. It's a top-level blockquote, or
@@ -1181,6 +1235,41 @@
         return textContainers.length > 0;
     }
 
+    function getContentVariantKey(settings = {}) {
+      return `${settings.excludeFileCitations ? 1 : 0}${settings.includePseudoQuotes ? 1 : 0}`;
+    }
+
+    function extractAssistantContentForCapture(turnElement) {
+      const settings = chatgptConfig.settings || {};
+      const hasCitations = !!turnElement.querySelector('span.text-token-text-secondary, [data-testid="chatgpt-library-file-citation"]');
+      const hasQuotes = Array.from(turnElement.querySelectorAll('blockquote li p')).some(element => {
+        const pseudo = getPseudoElementContent(element);
+        return pseudo.before || pseudo.after;
+      });
+      const variants = {};
+      try {
+        // Keep a canonical rich version in the cache. Formatting switches must not
+        // compete with the cache's preference for longer, more complete messages.
+        for (const excludeFileCitations of hasCitations ? [false, true] : [false]) {
+          for (const includePseudoQuotes of hasQuotes ? [true, false] : [true]) {
+            chatgptConfig.settings = { ...settings, excludeFileCitations, includePseudoQuotes };
+            variants[getContentVariantKey(chatgptConfig.settings)] = extractAssistantContent(turnElement);
+          }
+        }
+        const contentItems = variants['01'];
+        if (!hasCitations && !hasQuotes) return { contentItems };
+        const contentItemsBySettings = {};
+        for (const exclude of [0, 1]) {
+          for (const quotes of [0, 1]) {
+            contentItemsBySettings[`${exclude}${quotes}`] = variants[`${hasCitations ? exclude : 0}${hasQuotes ? quotes : 1}`];
+          }
+        }
+        return { contentItems, contentItemsBySettings };
+      } finally {
+        chatgptConfig.settings = settings;
+      }
+    }
+
     /**
      * v35: Extracts all visible assistant message blocks in DOM order while skipping reasoning UI buttons.
      */
@@ -1226,14 +1315,14 @@
     // --- Main Configuration Object ---
     const chatgptConfig = {
       platformName: 'ChatGPT',
-      version: 40, // v40: Direct-button upload thumbnails
+      version: 41, // v41: Search-unit messages and semantic markdown roots
       selectors: { // Updated selectors for new table structure
-        turnContainer: 'article[data-testid^="conversation-turn-"], section[data-testid^="conversation-turn-"]',
+        turnContainer: 'article[data-testid^="conversation-turn-"], section[data-testid^="conversation-turn-"], [data-chatgpt-search-unit-key$=":user"][data-chatgpt-search-message-ids]:not([data-testid^="conversation-turn-"] *), [data-chatgpt-search-unit-key$=":assistant"][data-chatgpt-search-message-ids]:not([data-testid^="conversation-turn-"] *)',
         turnContainerFallback: 'div[data-message-author-role]', // Fallback for edge cases without article wrapper
-        userMessageContainer: 'div[data-message-author-role="user"]',
-        assistantMessageContainer: 'div[data-message-author-role="assistant"]',
+        userMessageContainer: 'div[data-message-author-role="user"], [data-chatgpt-search-unit-key$=":user"]',
+        assistantMessageContainer: 'div[data-message-author-role="assistant"], [data-chatgpt-search-unit-key$=":assistant"]',
         userText: 'div[data-message-author-role="user"] .whitespace-pre-wrap',
-        userImageContainer: 'div[data-message-author-role="user"] div.overflow-hidden.rounded-lg img[src], div[data-message-author-role="user"] button div.overflow-hidden[class*="rounded-"] > img.object-cover[src], div[data-message-author-role="user"] button.overflow-hidden[class*="rounded-"] > img.object-cover[src]',
+        userImageContainer: 'div[data-message-author-role="user"] div.overflow-hidden.rounded-lg img[src], div[data-message-author-role="user"] button div.overflow-hidden[class*="rounded-"] > img.object-cover[src], div[data-message-author-role="user"] button.overflow-hidden[class*="rounded-"] > img.object-cover[src], [data-chatgpt-search-unit-key$=":user"] [role="button"][aria-haspopup="dialog"] > img.object-cover[src]',
         userFileContainer: 'div[data-message-author-role="user"] div[class*="group text-token-text-primary"]',
         userFileName: 'div.truncate.font-semibold',
         userFileType: 'div.text-token-text-secondary.truncate',
@@ -1260,10 +1349,10 @@
           div.markdown.prose > [role="math"][data-math-source],
           :scope > pre /* Pre directly under assistant container (less common) */
         `,
-        assistantTextContainer: '.markdown.prose',
+        assistantTextContainer: '.markdown.prose, [data-markdown-text-style="assistant-message"]',
         listItem: 'li',
         checkboxItem: 'li input[type="checkbox"]',
-        codeBlockContainer: 'pre',
+        codeBlockContainer: 'pre, [data-markdown-copy="code-block"]',
         codeBlockContent: 'code',
         codeBlockLangIndicatorContainer: ':scope > div.contain-inline-size > div:first-child, :scope > div:first-child[class*="flex items-center"], div.flex.items-center.justify-between div.text-sm.font-medium',
         imageContainerAssistant: 'div.group\\/imagegen-image',
@@ -1276,6 +1365,10 @@
 
       // --- Extraction Functions ---
       getRole: (turnElement) => {
+          const searchUnitKey = turnElement.getAttribute('data-chatgpt-search-unit-key');
+          const searchUnitRole = searchUnitKey && searchUnitKey.split(':').pop();
+          if (searchUnitRole === 'user' || searchUnitRole === 'assistant') return searchUnitRole;
+
           // Check if turnElement itself has the role attribute (handles edge cases)
           if (turnElement.hasAttribute && turnElement.hasAttribute('data-message-author-role')) {
               return turnElement.getAttribute('data-message-author-role');
@@ -1369,6 +1462,11 @@
           const imageElements = turnElement.querySelectorAll(selectors.userImageContainer);
           imageElements.forEach(imgElement => {
               const src = imgElement.getAttribute('src');
+              if (src && /^(blob:|data:)/.test(src) && imgElement.closest('[data-chatgpt-search-unit-key$=":user"]')) {
+                  // Object URLs are session-local. Preserve the attachment without exporting a broken link.
+                  images.push({ type: 'image', sourceUrl: null, isPreviewOnly: true, extractedContent: 'User Uploaded Image' });
+                  return;
+              }
               if (src && !src.startsWith('data:') && !src.startsWith('blob:')) {
                   const altText = imgElement.getAttribute('alt')?.trim();
                   const ariaLabel = imgElement.getAttribute('aria-label')?.trim();
@@ -1414,6 +1512,8 @@
        * v24: Uses the updated extractAssistantContent structure which relies on refactored processors.
        */
       extractAssistantContent: extractAssistantContent, // Ensure this points to the outer function
+      extractAssistantContentForCapture,
+      getContentVariantKey,
 
     }; // End chatgptConfig
 

@@ -1,7 +1,7 @@
 // --- START OF FILE content.js ---
 
 (function() {
-  const CONTENT_VERSION = 7;
+  const CONTENT_VERSION = 8;
   if (window.qaClipperContentVersion >= CONTENT_VERSION) return;
   window.qaClipperContentVersion = CONTENT_VERSION;
   window.qaClipperInitialized = true;
@@ -212,9 +212,17 @@
     return scrollContainer;
   }
 
+  function isReverseScrollContainer(scrollContainer) {
+    return !!scrollContainer && typeof window.getComputedStyle === 'function' &&
+      window.getComputedStyle(scrollContainer).flexDirection === 'column-reverse';
+  }
+
   function getScrollTop(scrollContainer) {
     if (!scrollContainer || scrollContainer === document.body || scrollContainer === document.documentElement || scrollContainer === document.scrollingElement) {
       return window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
+    }
+    if (isReverseScrollContainer(scrollContainer)) {
+      return Math.max(0, scrollContainer.scrollHeight - scrollContainer.clientHeight + scrollContainer.scrollTop);
     }
     return scrollContainer.scrollTop;
   }
@@ -224,7 +232,9 @@
       window.scrollTo({ top: value, behavior: 'auto' });
       return;
     }
-    scrollContainer.scrollTop = value;
+    scrollContainer.scrollTop = isReverseScrollContainer(scrollContainer)
+      ? value - Math.max(0, scrollContainer.scrollHeight - scrollContainer.clientHeight)
+      : value;
   }
 
   function getScrollMetrics(scrollContainer) {
@@ -238,7 +248,7 @@
     }
 
     return {
-      scrollTop: scrollContainer.scrollTop,
+      scrollTop: getScrollTop(scrollContainer),
       scrollHeight: scrollContainer.scrollHeight,
       clientHeight: scrollContainer.clientHeight
     };
@@ -394,7 +404,11 @@
       const files = typeof config.extractUserUploadedFiles === 'function' ? config.extractUserUploadedFiles(turnElement) || [] : [];
       turnData.userAttachments = [...images, ...files];
     } else if (role === 'assistant') {
-      turnData.contentItems = typeof config.extractAssistantContent === 'function' ? config.extractAssistantContent(turnElement) || [] : [];
+      if (typeof config.extractAssistantContentForCapture === 'function') {
+        Object.assign(turnData, config.extractAssistantContentForCapture(turnElement));
+      } else {
+        turnData.contentItems = typeof config.extractAssistantContent === 'function' ? config.extractAssistantContent(turnElement) || [] : [];
+      }
     } else {
       turnData.textContent = turnElement.textContent ? turnElement.textContent.trim() : null;
     }
@@ -465,6 +479,14 @@
     }
 
     if (platform === 'chatgpt') {
+      // Search-unit positions may change when history loads; message UUIDs do not.
+      const searchMessageIds = turnElement.getAttribute('data-chatgpt-search-message-ids');
+      if (searchMessageIds && searchMessageIds.trim()) {
+        const role = getConfig(platform).getRole(turnElement) || 'unknown';
+        const messageIds = [...new Set(searchMessageIds.trim().split(/\s+/))];
+        return `chatgpt:message:${messageIds.join(':')}:${role}`;
+      }
+
       const turnId = turnElement.getAttribute('data-turn-id') ||
         turnElement.getAttribute('data-turn-id-container') ||
         turnElement.closest('[data-turn-id-container]')?.getAttribute('data-turn-id-container') ||
@@ -520,7 +542,7 @@
     }
 
     const containerRect = scrollContainer.getBoundingClientRect();
-    return scrollContainer.scrollTop + elementRect.top - containerRect.top + (index / 1000);
+    return getScrollTop(scrollContainer) + elementRect.top - containerRect.top + (index / 1000);
   }
 
   function buildCapturedMessages(settings, source) {
@@ -595,9 +617,15 @@
     return { platform, conversationKey, root, scrollContainer, messages, knownTopReached, knownBottomReached };
   }
 
-  function messageToTurnData(message, turnIndex) {
+  function messageToTurnData(message, turnIndex, settings) {
     if (message.turnData) {
-      return { ...message.turnData, turnIndex };
+      const turnData = { ...message.turnData, turnIndex };
+      const config = getConfig(message.platform);
+      if (turnData.contentItemsBySettings && typeof config?.getContentVariantKey === 'function') {
+        turnData.contentItems = turnData.contentItemsBySettings[config.getContentVariantKey(settings)] || turnData.contentItems;
+      }
+      delete turnData.contentItemsBySettings;
+      return turnData;
     }
 
     if (message.role === 'assistant') {
@@ -733,7 +761,7 @@
     const platform = state.platform || identifyPlatform() || 'unknown';
     const conversationKey = state.conversationKey || getConversationKey(platform);
     const cachedMessages = cache ? cache.getMessages() : [];
-    const conversationTurns = cachedMessages.map((message, index) => messageToTurnData(message, index));
+    const conversationTurns = cachedMessages.map((message, index) => messageToTurnData(message, index, settings));
     const status = cache ? applyCacheCompleteness(platform, cache.getStatus(), cache) : getStatusSnapshot();
     const responseStatus = {
       ...status,
@@ -1011,14 +1039,28 @@
   }
 
   async function settleFullScanEdge(edgeName, scrollContainer, settings, stopAt) {
-    const deadline = Math.min(Date.now() + FULL_SCAN_EDGE_SETTLE_MAX_MS, stopAt || Number.POSITIVE_INFINITY);
+    const loadsOlderHistory = edgeName === 'top' && identifyPlatform() === 'chatgpt' && isReverseScrollContainer(scrollContainer);
+    const deadline = Math.min(Date.now() + (loadsOlderHistory ? FULL_SCAN_MAX_MS : FULL_SCAN_EDGE_SETTLE_MAX_MS), stopAt || Number.POSITIVE_INFINITY);
     let status = getStatusSnapshot();
+    let stableSince = Date.now();
+    let previousSignature = '';
 
-    while (!isEdgeConfirmed(status, edgeName) && !state.scan.cancelRequested && Date.now() < deadline) {
+    // A reverse ChatGPT viewport can briefly reach the top of a loaded page
+    // before older history is prepended. Keep following that moving boundary
+    // until both the captured messages and scroll geometry have settled.
+    while (!state.scan.cancelRequested && Date.now() < deadline) {
+      if (isEdgeConfirmed(status, edgeName) &&
+          (!loadsOlderHistory || Date.now() - stableSince >= FULL_SCAN_WAIT_MS * 4)) break;
       setScrollToEdge(scrollContainer, edgeName);
       await wait(FULL_SCAN_WAIT_MS);
       performCapture(settings, 'full-scan');
       status = getStatusSnapshot();
+      if (loadsOlderHistory) {
+        const metrics = getScrollMetrics(scrollContainer);
+        const signature = `${status.capturedCount}:${metrics.scrollHeight}:${Math.round(metrics.scrollTop)}`;
+        if (signature !== previousSignature) stableSince = Date.now();
+        previousSignature = signature;
+      }
     }
 
     return {
